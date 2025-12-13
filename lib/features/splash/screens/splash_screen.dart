@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/theme/app_theme.dart';
-import '../../core/navigation/app_router.dart';
-import '../playlist/providers/playlist_provider.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/navigation/app_router.dart';
+import '../../playlist/providers/playlist_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

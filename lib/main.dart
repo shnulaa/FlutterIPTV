@@ -67,10 +67,10 @@ class FlutterIPTVApp extends StatelessWidget {
             darkTheme: AppTheme.darkTheme,
             themeMode: ThemeMode.dark,
             // Use shortcuts for TV remote support
-            shortcuts: <LogicalKeySet, Intent>{
+            shortcuts: <ShortcutActivator, Intent>{
               ...WidgetsApp.defaultShortcuts,
-              LogicalKeySet(LogicalKeyboardKey.select): const ActivateIntent(),
-              LogicalKeySet(LogicalKeyboardKey.enter): const ActivateIntent(),
+              const SingleActivator(LogicalKeyboardKey.select): const ActivateIntent(),
+              const SingleActivator(LogicalKeyboardKey.enter): const ActivateIntent(),
             },
             onGenerateRoute: AppRouter.generateRoute,
             initialRoute: AppRouter.splash,

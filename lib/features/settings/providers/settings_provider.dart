@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../../core/services/service_locator.dart';
+import '../../../core/services/service_locator.dart';
 
 class SettingsProvider extends ChangeNotifier {
   // Keys for SharedPreferences
