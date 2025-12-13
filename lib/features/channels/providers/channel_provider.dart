@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import '../../core/models/channel.dart';
-import '../../core/models/channel_group.dart';
-import '../../core/services/service_locator.dart';
+import '../../../core/models/channel.dart';
+import '../../../core/models/channel_group.dart';
+import '../../../core/services/service_locator.dart';
 
 class ChannelProvider extends ChangeNotifier {
   List<Channel> _channels = [];

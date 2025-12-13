@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
-import '../../core/models/channel.dart';
+import '../../../core/models/channel.dart';
 
 enum PlayerState {
   idle,

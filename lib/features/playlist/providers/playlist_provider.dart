@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import '../../core/models/playlist.dart';
-import '../../core/models/channel.dart';
-import '../../core/services/service_locator.dart';
-import '../../core/utils/m3u_parser.dart';
+import '../../../core/models/playlist.dart';
+import '../../../core/models/channel.dart';
+import '../../../core/services/service_locator.dart';
+import '../../../core/utils/m3u_parser.dart';
 
 class PlaylistProvider extends ChangeNotifier {
   List<Playlist> _playlists = [];

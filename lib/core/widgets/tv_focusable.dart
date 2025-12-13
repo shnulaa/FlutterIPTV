@@ -205,9 +205,5 @@ class GridTraversalPolicy extends ReadingOrderTraversalPolicy {
   final int crossAxisCount;
   
   GridTraversalPolicy({required this.crossAxisCount});
-  
-  @override
-  bool inDirection(FocusNode currentNode, TraversalDirection direction) {
-    return super.inDirection(currentNode, direction);
-  }
 }
+
