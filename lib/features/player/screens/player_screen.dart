@@ -141,8 +141,20 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
 
     // Mute
-    if (key == LogicalKeyboardKey.keyM) {
+    if (key == LogicalKeyboardKey.keyM ||
+        key == LogicalKeyboardKey.audioVolumeMute) {
       playerProvider.toggleMute();
+      return KeyEventResult.handled;
+    }
+
+    // Explicit Volume Keys (for remotes with dedicated buttons)
+    if (key == LogicalKeyboardKey.audioVolumeUp) {
+      playerProvider.setVolume(playerProvider.volume + 0.1);
+      return KeyEventResult.handled;
+    }
+
+    if (key == LogicalKeyboardKey.audioVolumeDown) {
+      playerProvider.setVolume(playerProvider.volume - 0.1);
       return KeyEventResult.handled;
     }
 
