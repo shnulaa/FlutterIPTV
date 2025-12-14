@@ -90,203 +90,211 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
   }
 
   Widget _buildAddPlaylistSection(PlaylistProvider provider) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceColor,
-        borderRadius: const BorderRadius.vertical(
-          bottom: Radius.circular(20),
+    return FocusTraversalGroup(
+      policy: ReadingOrderTraversalPolicy(),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(20),
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            AppStrings.of(context)?.addNewPlaylist ?? 'Add New Playlist',
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              AppStrings.of(context)?.addNewPlaylist ?? 'Add New Playlist',
+              style: const TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // Name Input
-          TVFocusable(
-            onSelect: () => _nameFocusNode.requestFocus(),
-            child: TextField(
-              controller: _nameController,
-              focusNode: _nameFocusNode,
-              style: const TextStyle(color: AppTheme.textPrimary),
-              decoration: InputDecoration(
-                hintText:
-                    AppStrings.of(context)?.playlistName ?? 'Playlist Name',
-                hintStyle: const TextStyle(color: AppTheme.textMuted),
-                prefixIcon:
-                    const Icon(Icons.label_outline, color: AppTheme.textMuted),
-                filled: true,
-                fillColor: AppTheme.cardColor,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: AppTheme.primaryColor, width: 2),
+            // ... inputs
+            // Name Input
+            TVFocusable(
+              onSelect: () => _nameFocusNode.requestFocus(),
+              child: TextField(
+                controller: _nameController,
+                focusNode: _nameFocusNode,
+                style: const TextStyle(color: AppTheme.textPrimary),
+                decoration: InputDecoration(
+                  hintText:
+                      AppStrings.of(context)?.playlistName ?? 'Playlist Name',
+                  hintStyle: const TextStyle(color: AppTheme.textMuted),
+                  prefixIcon: const Icon(Icons.label_outline,
+                      color: AppTheme.textMuted),
+                  filled: true,
+                  fillColor: AppTheme.cardColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                        color: AppTheme.primaryColor, width: 2),
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-          // URL Input
-          TVFocusable(
-            onSelect: () => _urlFocusNode.requestFocus(),
-            child: TextField(
-              controller: _urlController,
-              focusNode: _urlFocusNode,
-              style: const TextStyle(color: AppTheme.textPrimary),
-              decoration: InputDecoration(
-                hintText: AppStrings.of(context)?.playlistUrl ?? 'M3U/M3U8 URL',
-                hintStyle: const TextStyle(color: AppTheme.textMuted),
-                prefixIcon: const Icon(Icons.link, color: AppTheme.textMuted),
-                filled: true,
-                fillColor: AppTheme.cardColor,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: AppTheme.primaryColor, width: 2),
+            // URL Input
+            TVFocusable(
+              onSelect: () => _urlFocusNode.requestFocus(),
+              child: TextField(
+                controller: _urlController,
+                focusNode: _urlFocusNode,
+                style: const TextStyle(color: AppTheme.textPrimary),
+                decoration: InputDecoration(
+                  hintText:
+                      AppStrings.of(context)?.playlistUrl ?? 'M3U/M3U8 URL',
+                  hintStyle: const TextStyle(color: AppTheme.textMuted),
+                  prefixIcon: const Icon(Icons.link, color: AppTheme.textMuted),
+                  filled: true,
+                  fillColor: AppTheme.cardColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                        color: AppTheme.primaryColor, width: 2),
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // Action Buttons
-          Row(
-            children: [
-              Expanded(
-                child: TVFocusable(
-                  onSelect: () => _addPlaylist(provider),
-                  child: ElevatedButton.icon(
-                    onPressed: provider.isLoading
-                        ? null
-                        : () => _addPlaylist(provider),
-                    icon: provider.isLoading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.add_rounded, size: 20),
-                    label: Text(provider.isLoading
-                        ? (AppStrings.of(context)?.importing ?? 'Importing...')
-                        : (AppStrings.of(context)?.addFromUrl ??
-                            'Add from URL')),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+            // Action Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: TVFocusable(
+                    onSelect: () => _addPlaylist(provider),
+                    child: ElevatedButton.icon(
+                      onPressed: provider.isLoading
+                          ? null
+                          : () => _addPlaylist(provider),
+                      icon: provider.isLoading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.add_rounded, size: 20),
+                      label: Text(provider.isLoading
+                          ? (AppStrings.of(context)?.importing ??
+                              'Importing...')
+                          : (AppStrings.of(context)?.addFromUrl ??
+                              'Add from URL')),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                TVFocusable(
+                  onSelect: () => _pickFile(provider),
+                  child: OutlinedButton.icon(
+                    onPressed: () => _pickFile(provider),
+                    icon: const Icon(Icons.folder_open_rounded, size: 20),
+                    label:
+                        Text(AppStrings.of(context)?.fromFile ?? 'From File'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primaryColor,
+                      side: const BorderSide(color: AppTheme.primaryColor),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
                 ),
+              ],
+            ),
+
+            // Progress Indicator
+            if (provider.isLoading) ...[
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: provider.importProgress,
+                  backgroundColor: AppTheme.cardColor,
+                  color: AppTheme.primaryColor,
+                  minHeight: 6,
+                ),
               ),
-              const SizedBox(width: 12),
-              TVFocusable(
-                onSelect: () => _pickFile(provider),
-                child: OutlinedButton.icon(
-                  onPressed: () => _pickFile(provider),
-                  icon: const Icon(Icons.folder_open_rounded, size: 20),
-                  label: Text(AppStrings.of(context)?.fromFile ?? 'From File'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.primaryColor,
-                    side: const BorderSide(color: AppTheme.primaryColor),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
+              const SizedBox(height: 8),
+              Text(
+                '${(provider.importProgress * 100).toInt()}% Complete',
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 12,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+
+            // Error Message
+            if (provider.error != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.errorColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border:
+                      Border.all(color: AppTheme.errorColor.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      color: AppTheme.errorColor,
+                      size: 20,
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        provider.error!,
+                        style: const TextStyle(
+                          color: AppTheme.errorColor,
+                          fontSize: 13,
+                        ),
+                      ),
                     ),
-                  ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 18),
+                      color: AppTheme.errorColor,
+                      onPressed: provider.clearError,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
-
-          // Progress Indicator
-          if (provider.isLoading) ...[
-            const SizedBox(height: 16),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: provider.importProgress,
-                backgroundColor: AppTheme.cardColor,
-                color: AppTheme.primaryColor,
-                minHeight: 6,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${(provider.importProgress * 100).toInt()}% Complete',
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 12,
-              ),
-              textAlign: TextAlign.center,
-            ),
           ],
-
-          // Error Message
-          if (provider.error != null) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.errorColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.errorColor.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.error_outline_rounded,
-                    color: AppTheme.errorColor,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      provider.error!,
-                      style: const TextStyle(
-                        color: AppTheme.errorColor,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 18),
-                    color: AppTheme.errorColor,
-                    onPressed: provider.clearError,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }

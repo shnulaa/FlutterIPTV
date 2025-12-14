@@ -41,6 +41,30 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
     // Hide system UI for immersive experience
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+    // Listen for errors
+    final playerProvider = context.read<PlayerProvider>();
+    playerProvider.addListener(_onError);
+  }
+
+  void _onError() {
+    if (!mounted) return;
+    final provider = context.read<PlayerProvider>();
+    if (provider.hasError && provider.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              '${AppStrings.of(context)?.playbackError ?? "Error"}: ${provider.error}'),
+          backgroundColor: AppTheme.errorColor,
+          duration: const Duration(seconds: 3),
+          action: SnackBarAction(
+            label: AppStrings.of(context)?.retry ?? 'Retry',
+            textColor: Colors.white,
+            onPressed: _startPlayback,
+          ),
+        ),
+      );
+    }
   }
 
   void _startPlayback() {
@@ -86,36 +110,115 @@ class _PlayerScreenState extends State<PlayerScreen> {
     // Restore system UI
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
+    try {
+      context.read<PlayerProvider>().removeListener(_onError);
+    } catch (_) {}
+
     super.dispose();
   }
 
-  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+  DateTime? _lastSelectKeyDownTime;
 
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     _showControlsTemporarily();
 
     final playerProvider = context.read<PlayerProvider>();
     final key = event.logicalKey;
 
-    // Play/Pause
+    // Play/Pause & Favorite (Select/Enter)
     if (key == LogicalKeyboardKey.select ||
         key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.space) {
-      playerProvider.togglePlayPause();
+      if (event is KeyDownEvent) {
+        if (event is KeyRepeatEvent) return KeyEventResult.handled;
+        _lastSelectKeyDownTime = DateTime.now();
+        return KeyEventResult.handled;
+      }
+
+      if (event is KeyUpEvent && _lastSelectKeyDownTime != null) {
+        final duration = DateTime.now().difference(_lastSelectKeyDownTime!);
+        _lastSelectKeyDownTime = null;
+
+        if (duration.inMilliseconds > 500) {
+          // Long Press: Toggle Favorite
+          // Channel Provider not needed, Favorites Provider is enough
+          // final provider = context.read<ChannelProvider>();
+          final favorites = context.read<FavoritesProvider>();
+          final channel = playerProvider.currentChannel;
+
+          if (channel != null) {
+            favorites.toggleFavorite(channel);
+
+            // Show toast
+            final isFav = favorites.isFavorite(channel.id ?? 0);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  isFav ? 'Added to Favorites' : 'Removed from Favorites',
+                ),
+                duration: const Duration(seconds: 1),
+                backgroundColor: AppTheme.accentColor,
+              ),
+            );
+          }
+        } else {
+          // Short Press: Play/Pause or Select Button if focused?
+          // Actually, if we are focused on a button, the button handles it?
+          // No, we are in the Parent Focus Capture.
+          // If we handle it here, the child button's 'onSelect' might not trigger if we consume it?
+          // Focus on the scaffold body is _playerFocusNode.
+          // If focus is on a button, this _handleKeyEvent on _playerFocusNode might NOT receive it if the button consumes it?
+          // Wait, Focus(onKeyEvent) usually bubbles UP if not handled by child.
+          // If the child (button) handles it, this won't run.
+          // So this logic only applies when no button handles it (e.g. video area focused).
+          playerProvider.togglePlayPause();
+        }
+        return KeyEventResult.handled;
+      }
       return KeyEventResult.handled;
     }
 
-    // Seek backward
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    // Seek backward (Left)
     if (key == LogicalKeyboardKey.arrowLeft) {
+      if (_showControls) {
+        // If controls are visible, let the focus system handle navigation
+        return KeyEventResult.ignored;
+      }
       playerProvider.seekBackward(10);
       return KeyEventResult.handled;
     }
 
-    // Seek forward
+    // Seek forward (Right)
     if (key == LogicalKeyboardKey.arrowRight) {
+      if (_showControls) {
+        // If controls are visible, let the focus system handle navigation
+        return KeyEventResult.ignored;
+      }
       playerProvider.seekForward(10);
       return KeyEventResult.handled;
     }
+
+    // Previous/Next Channel (Up/Down)
+    // If controls are shown, Up/Down might be needed for navigation too (e.g. Volume -> Play -> Settings row to Top Bar)?
+    // Usually Up/Down in player (if simplistic) is Volume/Channel.
+    // If we have a UI with Top Bar and Bottom Bar, Up from Bottom Bar should go to Top Bar?
+    // Let's allow Up/Down to propagate IF focus is on a control?
+    // But how do we know if focus is on a control?
+    // _playerFocusNode is the parent. We don't know easily which child has focus here without checking FocusManager.
+    // BUT user specifically complained about Left/Right.
+    // User wants Up/Down to switch channels.
+    // If I return ignored for UP/DOWN when controls shown, channel switching might stop working if a button is focused.
+    // But if a button IS focused, Up/Down should probably navigate to other buttons?
+    // Let's assume for now Up/Down ALWAYS switches Channel UNLESS we are in a vertical menu (Settings sheet handles its own).
+    // The main player controls are a single Row (Left/Right).
+    // The Top Bar is above.
+    // If I press Up, should it go to Top Bar? Or switch Channel?
+    // User asked "Up/Down switch channel".
+    // I will keep Up/Down as Channel Switch for now, unless user explicitly requested navigation.
+    // Wait, user complained "Navigate bar displays, Left/Right cannot seek (should move focus)".
+    // They didn't complain about Up/Down. So I will ONLY modify Left/Right.
 
     // Previous Channel (Up)
     if (key == LogicalKeyboardKey.arrowUp ||
@@ -136,7 +239,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     // Back/Exit
     if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.goBack) {
       playerProvider.stop();
-      Navigator.of(context).pop();
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
       return KeyEventResult.handled;
     }
 
@@ -168,7 +273,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     // Back (explicit handling for some remotes)
     if (key == LogicalKeyboardKey.backspace) {
       playerProvider.stop();
-      Navigator.of(context).pop();
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
       return KeyEventResult.handled;
     }
 
@@ -227,16 +334,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   },
                 ),
 
-                // Error Display
-                Consumer<PlayerProvider>(
-                  builder: (context, provider, _) {
-                    if (provider.hasError) {
-                      return _buildErrorDisplay(
-                          provider.error ?? 'Unknown error');
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
+                // Error Display - Handled via Listener now to show SnackBar
+                // But we can keep a subtle indicator if needed, or remove it entirely
+                // to prevent blocking. Let's remove the blocking widget.
               ],
             ),
           ),
@@ -494,7 +594,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
                   const SizedBox(width: 32),
 
-                  // Fullscreen
+                  // Fullscreen button removed as per request
+                  /*
                   TVFocusable(
                     onSelect: provider.toggleFullscreen,
                     focusScale: 1.1,
@@ -515,6 +616,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   ),
 
                   const SizedBox(width: 16),
+                  */
 
                   // Settings
                   TVFocusable(
