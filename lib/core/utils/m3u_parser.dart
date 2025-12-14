@@ -82,7 +82,7 @@ class M3UParser {
           channels.add(Channel(
             playlistId: playlistId,
             name: currentName,
-            url: line,
+            url: line.split('\$').first.trim(),
             logoUrl: currentLogo,
             groupName: currentGroup ?? 'Uncategorized',
             epgId: currentEpgId,

@@ -349,21 +349,29 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
           // Favorite Button
           Consumer<FavoritesProvider>(
-            builder: (context, favProvider, _) {
-              // Note: Would need proper channel object to check favorites
+            builder: (context, favorites, _) {
+              final playerProvider = context.read<PlayerProvider>();
+              final currentChannel = playerProvider.currentChannel;
+              final isFav = currentChannel != null &&
+                  favorites.isFavorite(currentChannel.id ?? 0);
+
               return TVFocusable(
                 onSelect: () {
-                  // Toggle favorite
+                  if (currentChannel != null) {
+                    favorites.toggleFavorite(currentChannel);
+                  }
                 },
                 focusScale: 1.1,
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: isFav
+                        ? AppTheme.accentColor
+                        : Colors.white.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
-                    Icons.favorite_border_rounded,
+                  child: Icon(
+                    isFav ? Icons.favorite : Icons.favorite_border_rounded,
                     color: Colors.white,
                     size: 24,
                   ),
@@ -422,6 +430,28 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   ),
 
                   const SizedBox(width: 32),
+
+                  // Fullscreen
+                  TVFocusable(
+                    onSelect: provider.toggleFullscreen,
+                    focusScale: 1.1,
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        provider.isFullscreen
+                            ? Icons.fullscreen_exit_rounded
+                            : Icons.fullscreen_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 16),
 
                   // Settings
                   TVFocusable(

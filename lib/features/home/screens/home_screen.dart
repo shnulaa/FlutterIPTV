@@ -10,6 +10,8 @@ import '../../../core/platform/platform_detector.dart';
 import '../../channels/providers/channel_provider.dart';
 import '../../playlist/providers/playlist_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
+import '../../player/providers/player_provider.dart';
+import '../../../core/models/channel.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -541,7 +543,7 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
-      itemCount: provider.groups.length > 8 ? 8 : provider.groups.length,
+      itemCount: provider.groups.length,
       itemBuilder: (context, index) {
         final group = provider.groups[index];
         return CategoryCard(
@@ -564,7 +566,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildChannelsGrid(BuildContext context, ChannelProvider provider) {
     final size = MediaQuery.of(context).size;
     final crossAxisCount = PlatformDetector.getGridCrossAxisCount(size.width);
-    final channels = provider.channels.take(12).toList();
+
+    // Randomly pick 10 channels if there are enough
+    List<Channel> channels;
+    if (provider.channels.length <= 10) {
+      channels = provider.channels;
+    } else {
+      channels = List<Channel>.from(provider.channels)..shuffle();
+      channels = channels.take(10).toList();
+    }
 
     return GridView.builder(
       shrinkWrap: true,
@@ -585,6 +595,10 @@ class _HomeScreenState extends State<HomeScreen> {
           isFavorite:
               context.read<FavoritesProvider>().isFavorite(channel.id ?? 0),
           onTap: () {
+            // Ensure we set the current channel in provider before navigating
+            // This is crucial for favorites to work
+            context.read<PlayerProvider>().playChannel(channel);
+
             Navigator.pushNamed(
               context,
               AppRouter.player,

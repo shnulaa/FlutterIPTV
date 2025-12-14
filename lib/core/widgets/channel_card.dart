@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../theme/app_theme.dart';
@@ -111,14 +112,7 @@ class ChannelCard extends StatelessWidget {
                       ),
                       child: Center(
                         child: logoUrl != null && logoUrl!.isNotEmpty
-                            ? CachedNetworkImage(
-                                imageUrl: logoUrl!,
-                                fit: BoxFit.contain,
-                                placeholder: (context, url) =>
-                                    _buildPlaceholder(),
-                                errorWidget: (context, url, error) =>
-                                    _buildPlaceholder(),
-                              )
+                            ? _buildChannelLogo(logoUrl!)
                             : _buildPlaceholder(),
                       ),
                     ),
@@ -249,5 +243,23 @@ class ChannelCard extends StatelessWidget {
         color: AppTheme.textMuted.withOpacity(0.5),
       ),
     );
+  }
+
+  Widget _buildChannelLogo(String url) {
+    if (url.startsWith('http')) {
+      return CachedNetworkImage(
+        imageUrl: url,
+        fit: BoxFit.contain,
+        placeholder: (context, url) => _buildPlaceholder(),
+        errorWidget: (context, url, error) => _buildPlaceholder(),
+      );
+    } else {
+      // Local file
+      return Image.file(
+        File(url),
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+      );
+    }
   }
 }
