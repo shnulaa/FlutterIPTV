@@ -25,6 +25,14 @@
 
 Lotus IPTV is a modern, high-performance IPTV player application developed with Flutter. It offers a seamless viewing experience across multiple platforms, with a special focus on usability and aesthetics.
 
+## 📸 Screenshots
+
+<p align="center">
+  <img src="assets/screenshots/home_screen.png" width="30%" alt="Home Screen">
+  <img src="assets/screenshots/channels_screen.png" width="30%" alt="Channels Screen">
+  <img src="assets/screenshots/player_screen.jpg" width="30%" alt="Player Screen">
+</p>
+
 ## ✨ Features
 
 - **📺 Cross-Platform Excellence**:
@@ -126,6 +134,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 # Lotus IPTV (中文说明)
 
 Lotus IPTV 是一款基于 Flutter 开发的现代化高性能 IPTV 播放器。它支持多平台无缝观看，专注于易用性和美观的界面设计。
+
+## 📸 软件截图
+
+<p align="center">
+  <img src="assets/screenshots/home_screen.png" width="30%" alt="主页">
+  <img src="assets/screenshots/channels_screen.png" width="30%" alt="频道列表">
+  <img src="assets/screenshots/player_screen.jpg" width="30%" alt="播放界面">
+</p>
 
 ## ✨ 功能特性
 
