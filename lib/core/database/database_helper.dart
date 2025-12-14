@@ -7,11 +7,9 @@ import 'package:path_provider/path_provider.dart';
 class DatabaseHelper {
   static Database? _database;
   static const String _databaseName = 'flutter_iptv.db';
-  static const int _databaseVersion = 1;
+  static const int _databaseVersion = 2;
 
   Future<void> initialize() async {
-    if (_database != null) return;
-
     if (_database != null) return;
 
     // Note: FFI initialization is handled in main.dart
@@ -37,6 +35,7 @@ class DatabaseHelper {
         file_path TEXT,
         is_active INTEGER DEFAULT 1,
         last_updated INTEGER,
+        channel_count INTEGER DEFAULT 0,
         created_at INTEGER NOT NULL
       )
     ''');
@@ -108,7 +107,16 @@ class DatabaseHelper {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Handle future migrations here
+    if (oldVersion < 2) {
+      // Add channel_count column to playlists table
+      try {
+        await db.execute(
+            'ALTER TABLE playlists ADD COLUMN channel_count INTEGER DEFAULT 0');
+      } catch (e) {
+        // Ignore if column already exists
+        print('Migration error (ignored): $e');
+      }
+    }
   }
 
   Database get db {

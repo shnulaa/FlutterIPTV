@@ -5,6 +5,12 @@ All notable changes to FlutterIPTV will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.8] - 2024-12-14
+
+### Fixed
+- Fixed database migration error (`no such column: channel_count`) for existing users
+- Updated database schema version to 2
+
 ## [1.0.7] - 2024-12-14
 
 ### Fixed
