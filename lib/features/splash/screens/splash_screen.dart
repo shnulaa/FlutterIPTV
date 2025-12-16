@@ -58,26 +58,35 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _initializeApp() async {
     try {
+      debugPrint('DEBUG: 开始初始化应用程序核心服务...');
+      
       // Initialize core services
       await ServiceLocator.init();
+      debugPrint('DEBUG: 服务定位器初始化完成');
+      
       await TVDetectionChannel.initialize();
+      debugPrint('DEBUG: TV检测通道初始化完成');
 
       // Load data
       if (mounted) {
+        debugPrint('DEBUG: 开始加载播放列表数据...');
         final playlistProvider = context.read<PlaylistProvider>();
         await playlistProvider.loadPlaylists();
+        debugPrint('DEBUG: 播放列表加载完成，共 ${playlistProvider.playlists.length} 个播放列表');
 
         // Check for updates in background (don't block UI)
         _checkForUpdatesInBackground();
       }
-    } catch (e) {
-      debugPrint('Initialization failed: $e');
+    } catch (e, stackTrace) {
+      debugPrint('DEBUG: 初始化失败: $e');
+      debugPrint('DEBUG: 错误堆栈: $stackTrace');
     }
 
     // Ensure minimum splash display time
     await Future.delayed(const Duration(milliseconds: 1500));
 
     if (mounted) {
+      debugPrint('DEBUG: 导航到主页...');
       Navigator.of(context).pushReplacementNamed(AppRouter.home);
     }
   }

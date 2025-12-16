@@ -38,6 +38,8 @@ dependencies:
   version: ^3.0.2
   package_info_plus: ^4.2.0
   url_launcher: ^6.2.2
+  open_file: ^3.3.2
+  install_plugin: ^2.1.0
   
   # UI Components
   cached_network_image: ^3.3.0

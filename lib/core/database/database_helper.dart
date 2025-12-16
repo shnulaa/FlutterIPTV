@@ -11,19 +11,32 @@ class DatabaseHelper {
   static const int _databaseVersion = 2;
 
   Future<void> initialize() async {
-    if (_database != null) return;
+    if (_database != null) {
+      debugPrint('DEBUG: 数据库已存在，跳过初始化');
+      return;
+    }
+
+    debugPrint('DEBUG: 开始初始化数据库...');
 
     // Note: FFI initialization is handled in main.dart
 
     final Directory appDir = await getApplicationDocumentsDirectory();
     final String path = join(appDir.path, _databaseName);
+    debugPrint('DEBUG: 数据库路径: $path');
 
-    _database = await openDatabase(
-      path,
-      version: _databaseVersion,
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
-    );
+    try {
+      _database = await openDatabase(
+        path,
+        version: _databaseVersion,
+        onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
+      );
+      debugPrint('DEBUG: 数据库打开成功，版本: $_databaseVersion');
+    } catch (e, stackTrace) {
+      debugPrint('DEBUG: 数据库初始化失败: $e');
+      debugPrint('DEBUG: 错误堆栈: $stackTrace');
+      rethrow;
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {

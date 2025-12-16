@@ -32,22 +32,32 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
+    debugPrint('DEBUG: 开始加载主页数据...');
+    
     final playlistProvider = context.read<PlaylistProvider>();
     final channelProvider = context.read<ChannelProvider>();
     final favoritesProvider = context.read<FavoritesProvider>();
 
+    debugPrint('DEBUG: 检查是否有播放列表...');
     if (playlistProvider.hasPlaylists) {
+      debugPrint('DEBUG: 找到 ${playlistProvider.playlists.length} 个播放列表');
+      
       // Load channels for the active playlist instead of all channels
       final activePlaylist = playlistProvider.activePlaylist;
       if (activePlaylist != null && activePlaylist.id != null) {
-        debugPrint('DEBUG: 加载激活播放列表的频道: ${activePlaylist.name}');
+        debugPrint('DEBUG: 加载激活播放列表的频道: ${activePlaylist.name} (ID: ${activePlaylist.id})');
         await channelProvider.loadChannels(activePlaylist.id!);
       } else {
         // Fallback to all channels if no active playlist
         debugPrint('DEBUG: 没有激活的播放列表，加载所有频道');
         await channelProvider.loadAllChannels();
       }
+      
+      debugPrint('DEBUG: 开始加载收藏...');
       await favoritesProvider.loadFavorites();
+      debugPrint('DEBUG: 数据加载完成');
+    } else {
+      debugPrint('DEBUG: 没有找到播放列表，显示空状态');
     }
   }
 
@@ -70,51 +80,46 @@ class _HomeScreenState extends State<HomeScreen> {
           label: AppStrings.of(context)?.favorites ?? 'Favorites'),
       _NavItem(
           icon: Icons.search_rounded,
-          label: AppStrings.of(context)?.settings ??
-              'Search'), // Wait, search has its own string? Yes search screen title is Search Channels. But nav item should be Search.
-      // Search logic... AppStrings.of(context)?.search ?? 'Search' - I used 'search' key? No I used 'searchChannels'.
-      // I should check AppStrings. I might have missed 'search' generic key.
-      // I have 'settings'. I have 'channels'. I have 'home'.
-      // Let's use 'Search' hardcoded for now or use 'searchChannels' if appropriate, or check if I added 'search'.
-      // I checked AppStrings in step 128. 'searchChannels' exists. 'searchHint' exists. 'shortcutsHint' exists.
-      // I don't see generic 'search'. I'll use 'searchChannels' or adds 'Search' later.
-      // For now let's use 'searchChannels' or just 'Search' via getter if I adding it.
-      // Actually 'searchChannels' is 'Search Channels'. Too long for nav item?
-      // I'll use 'Search' string manually or mapping if I missed it.
-      // Wait, I can add it now. AppStrings is already written.
-      // I will use 'Search' for now in English/Chinese within the list generation logic if I can't update AppStrings again easily.
-      // Or just use 'searchChannels' and hope it's fine. '搜索频道' is fine.
-      // The 4th item is Settings.
+          label: AppStrings.of(context)?.searchChannels ?? 'Search'),
       _NavItem(
           icon: Icons.settings_rounded,
           label: AppStrings.of(context)?.settings ?? 'Settings'),
     ];
   }
 
-  // Correction: The 4th item was Search (index 3). 5th (index 4) was Settings.
-  // In _getNavItems:
-  // 0: Home
-  // 1: Channels
-  // 2: Favorites
-  // 3: Search
-  // 4: Settings
-
   void _onNavItemTap(int index) {
+    debugPrint('DEBUG: 导航项被点击，索引: $index');
     setState(() => _selectedNavIndex = index);
 
+    // Navigation item indices:
+    // 0: Home (current page, no navigation)
+    // 1: Channels
+    // 2: Favorites
+    // 3: Search
+    // 4: Settings
+    
     switch (index) {
-      case 1:
+      case 0: // Home - already on home page
+        debugPrint('DEBUG: 已在主页，无需导航');
+        break;
+      case 1: // Channels
+        debugPrint('DEBUG: 导航到频道页面');
         Navigator.pushNamed(context, AppRouter.channels);
         break;
-      case 2:
+      case 2: // Favorites
+        debugPrint('DEBUG: 导航到收藏页面');
         Navigator.pushNamed(context, AppRouter.favorites);
         break;
-      case 3:
+      case 3: // Search
+        debugPrint('DEBUG: 导航到搜索页面');
         Navigator.pushNamed(context, AppRouter.search);
         break;
-      case 4:
+      case 4: // Settings
+        debugPrint('DEBUG: 导航到设置页面');
         Navigator.pushNamed(context, AppRouter.settings);
         break;
+      default:
+        debugPrint('DEBUG: 未知的导航索引: $index');
     }
   }
 

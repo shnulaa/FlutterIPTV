@@ -27,19 +27,24 @@ void main() async {
 
   try {
     WidgetsFlutterBinding.ensureInitialized();
+    debugPrint('DEBUG: WidgetsFlutterBinding 已初始化');
 
     // Initialize MediaKit
     MediaKit.ensureInitialized();
+    debugPrint('DEBUG: MediaKit 已初始化');
 
     // Initialize Windows/Linux/macOS Database Engine
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
+      debugPrint('DEBUG: SQLite FFI 已初始化 (${Platform.operatingSystem})');
     }
 
     // Initialize critical services (Prefs) immediately for SettingsProvider
     // Database will be initialized in SplashScreen
+    debugPrint('DEBUG: 开始初始化 SharedPreferences...');
     await ServiceLocator.initPrefs();
+    debugPrint('DEBUG: SharedPreferences 已成功初始化');
 
     // Set preferred orientations for mobile
     await SystemChrome.setPreferredOrientations([
