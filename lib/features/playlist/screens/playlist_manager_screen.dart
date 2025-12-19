@@ -118,22 +118,44 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Name Input - Order 1
-            FocusTraversalOrder(
-              order: const NumericFocusOrder(1),
-              child: _buildFocusableTextField(
-                controller: _nameController,
-                focusNode: _nameFocusNode,
-                hintText:
-                    AppStrings.of(context)?.playlistName ?? 'Playlist Name',
-                prefixIcon: Icons.label_outline,
-                autofocus: true,
+            // For Android TV, only show file import and QR scan buttons (no text input)
+            if (PlatformDetector.isTV) ...[
+              // From File Button - Order 1
+              FocusTraversalOrder(
+                order: const NumericFocusOrder(1),
+                child: _buildActionButton(
+                  onPressed: () => _pickFile(provider),
+                  icon: const Icon(Icons.folder_open_rounded, size: 20),
+                  label: AppStrings.of(context)?.fromFile ?? 'From File',
+                  isPrimary: true,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-
-            // URL Input and Add from URL Button - Only show for PC and Android Mobile
-            if (!PlatformDetector.isTV) ...[
+              const SizedBox(height: 12),
+              // Scan QR Code Button - Order 2
+              FocusTraversalOrder(
+                order: const NumericFocusOrder(2),
+                child: _buildActionButton(
+                  onPressed: () => _showQrImportDialog(context),
+                  icon: const Icon(Icons.qr_code_scanner_rounded, size: 20),
+                  label: '手机扫码导入',
+                  isPrimary: false,
+                ),
+              ),
+            ] else ...[
+              // For PC and Android Mobile, show full UI with text inputs
+              // Name Input - Order 1
+              FocusTraversalOrder(
+                order: const NumericFocusOrder(1),
+                child: _buildFocusableTextField(
+                  controller: _nameController,
+                  focusNode: _nameFocusNode,
+                  hintText:
+                      AppStrings.of(context)?.playlistName ?? 'Playlist Name',
+                  prefixIcon: Icons.label_outline,
+                  autofocus: true,
+                ),
+              ),
+              const SizedBox(height: 12),
               // URL Input - Order 2
               FocusTraversalOrder(
                 order: const NumericFocusOrder(2),
@@ -145,7 +167,6 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-
               // Action Buttons Row
               Row(
                 children: [
@@ -190,30 +211,17 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-            ] else ...[
-              // For Android TV, only show file import button as primary
+              // Scan QR Code Button - Order 5
               FocusTraversalOrder(
-                order: const NumericFocusOrder(2),
+                order: const NumericFocusOrder(5),
                 child: _buildActionButton(
-                  onPressed: () => _pickFile(provider),
-                  icon: const Icon(Icons.folder_open_rounded, size: 20),
-                  label: AppStrings.of(context)?.fromFile ?? 'From File',
-                  isPrimary: true,
+                  onPressed: () => _showQrImportDialog(context),
+                  icon: const Icon(Icons.qr_code_scanner_rounded, size: 20),
+                  label: '手机扫码导入',
+                  isPrimary: false,
                 ),
               ),
-              const SizedBox(height: 12),
             ],
-
-            // Scan QR Code Button - Available for all platforms
-            FocusTraversalOrder(
-              order: PlatformDetector.isTV ? const NumericFocusOrder(3) : const NumericFocusOrder(5),
-              child: _buildActionButton(
-                onPressed: () => _showQrImportDialog(context),
-                icon: const Icon(Icons.qr_code_scanner_rounded, size: 20),
-                label: '手机扫码导入',
-                isPrimary: false,
-              ),
-            ),
 
             // Progress Indicator
             if (provider.isLoading) ...[

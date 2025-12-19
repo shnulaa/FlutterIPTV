@@ -19,6 +19,10 @@ class ChannelProvider extends ChangeNotifier {
 
   List<Channel> get filteredChannels {
     if (_selectedGroup == null) return _channels;
+    // 如果选中失效频道分组，返回所有失效频道
+    if (_selectedGroup == unavailableGroupName) {
+      return _channels.where((c) => isUnavailableChannel(c.groupName)).toList();
+    }
     return _channels.where((c) => c.groupName == _selectedGroup).toList();
   }
 
@@ -98,16 +102,27 @@ class ChannelProvider extends ChangeNotifier {
 
   void _updateGroups() {
     final Map<String, int> groupCounts = {};
+    int unavailableCount = 0;
 
     for (final channel in _channels) {
       final group = channel.groupName ?? 'Uncategorized';
-      groupCounts[group] = (groupCounts[group] ?? 0) + 1;
+      // 将所有失效频道合并到一个分组
+      if (isUnavailableChannel(group)) {
+        unavailableCount++;
+      } else {
+        groupCounts[group] = (groupCounts[group] ?? 0) + 1;
+      }
     }
 
     _groups = groupCounts.entries
         .map((e) => ChannelGroup(name: e.key, channelCount: e.value))
         .toList()
       ..sort((a, b) => a.name.compareTo(b.name));
+    
+    // 如果有失效频道，添加到列表末尾
+    if (unavailableCount > 0) {
+      _groups.add(ChannelGroup(name: unavailableGroupName, channelCount: unavailableCount));
+    }
   }
 
   // Select a group filter
@@ -200,6 +215,135 @@ class ChannelProvider extends ChangeNotifier {
       _error = 'Failed to delete channels: $e';
       notifyListeners();
     }
+  }
+
+  // 失效频道分类名称前缀
+  static const String unavailableGroupPrefix = '⚠️ 失效频道';
+  static const String unavailableGroupName = '⚠️ 失效频道';
+
+  // 从失效分组名中提取原始分组名
+  static String? extractOriginalGroup(String? groupName) {
+    if (groupName == null || !groupName.startsWith(unavailableGroupPrefix)) {
+      return null;
+    }
+    // 格式: "⚠️ 失效频道|原始分组名"
+    final parts = groupName.split('|');
+    if (parts.length > 1) {
+      return parts[1];
+    }
+    return 'Uncategorized';
+  }
+
+  // 检查是否是失效频道
+  static bool isUnavailableChannel(String? groupName) {
+    return groupName != null && groupName.startsWith(unavailableGroupPrefix);
+  }
+
+  // 将频道标记为失效（移动到失效分类，保留原始分组信息）
+  Future<void> markChannelsAsUnavailable(List<int> channelIds) async {
+    if (channelIds.isEmpty) return;
+
+    try {
+      // 批量更新频道分组，保存原始分组名
+      for (final id in channelIds) {
+        final channel = _channels.firstWhere((c) => c.id == id, orElse: () => _channels.first);
+        final originalGroup = channel.groupName ?? 'Uncategorized';
+        // 如果已经是失效频道，不重复标记
+        if (isUnavailableChannel(originalGroup)) continue;
+        
+        final newGroupName = '$unavailableGroupPrefix|$originalGroup';
+        
+        await ServiceLocator.database.update(
+          'channels',
+          {'group_name': newGroupName},
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+      }
+
+      // 更新内存中的频道数据
+      for (int i = 0; i < _channels.length; i++) {
+        if (channelIds.contains(_channels[i].id)) {
+          final originalGroup = _channels[i].groupName ?? 'Uncategorized';
+          if (!isUnavailableChannel(originalGroup)) {
+            _channels[i] = _channels[i].copyWith(
+              groupName: '$unavailableGroupPrefix|$originalGroup',
+            );
+          }
+        }
+      }
+
+      _updateGroups();
+      notifyListeners();
+
+      debugPrint('DEBUG: 已将 ${channelIds.length} 个频道标记为失效');
+    } catch (e) {
+      debugPrint('DEBUG: 标记失效频道时出错: $e');
+      _error = 'Failed to mark channels as unavailable: $e';
+      notifyListeners();
+    }
+  }
+
+  // 恢复失效频道到原分组
+  Future<bool> restoreChannel(int channelId) async {
+    try {
+      final channel = _channels.firstWhere((c) => c.id == channelId);
+      final originalGroup = extractOriginalGroup(channel.groupName);
+      
+      if (originalGroup == null) {
+        debugPrint('DEBUG: 频道不是失效频道，无需恢复');
+        return false;
+      }
+
+      await ServiceLocator.database.update(
+        'channels',
+        {'group_name': originalGroup},
+        where: 'id = ?',
+        whereArgs: [channelId],
+      );
+
+      final index = _channels.indexWhere((c) => c.id == channelId);
+      if (index != -1) {
+        _channels[index] = _channels[index].copyWith(groupName: originalGroup);
+      }
+
+      _updateGroups();
+      notifyListeners();
+      
+      debugPrint('DEBUG: 已恢复频道到分组: $originalGroup');
+      return true;
+    } catch (e) {
+      _error = 'Failed to restore channel: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // 删除所有失效频道
+  Future<int> deleteAllUnavailableChannels() async {
+    try {
+      final count = await ServiceLocator.database.delete(
+        'channels',
+        where: 'group_name LIKE ?',
+        whereArgs: ['$unavailableGroupPrefix%'],
+      );
+
+      _channels.removeWhere((c) => isUnavailableChannel(c.groupName));
+      _updateGroups();
+      notifyListeners();
+
+      debugPrint('DEBUG: 已删除 $count 个失效频道');
+      return count;
+    } catch (e) {
+      _error = 'Failed to delete unavailable channels: $e';
+      notifyListeners();
+      return 0;
+    }
+  }
+
+  // 获取失效频道数量
+  int get unavailableChannelCount {
+    return _channels.where((c) => isUnavailableChannel(c.groupName)).length;
   }
 
   // Clear all data

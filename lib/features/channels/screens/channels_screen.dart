@@ -7,7 +7,12 @@ import '../../../core/widgets/tv_focusable.dart';
 import '../../../core/widgets/channel_card.dart';
 import '../../../core/platform/platform_detector.dart';
 import '../../../core/i18n/app_strings.dart';
+import '../../../core/services/channel_test_service.dart';
+import '../../../core/services/service_locator.dart';
+import '../../../core/services/background_test_service.dart';
+import '../../../core/models/channel.dart';
 import '../providers/channel_provider.dart';
+import '../widgets/channel_test_dialog.dart';
 import '../../favorites/providers/favorites_provider.dart';
 
 class ChannelsScreen extends StatefulWidget {
@@ -286,6 +291,27 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                 ),
               ),
               actions: [
+                // Background test progress indicator
+                _BackgroundTestIndicator(
+                  onTap: () => _showBackgroundTestProgress(context),
+                ),
+                // Test channels button
+                IconButton(
+                  icon: const Icon(Icons.speed_rounded),
+                  color: AppTheme.textSecondary,
+                  tooltip: '测试频道',
+                  onPressed: channels.isEmpty
+                      ? null
+                      : () => _showChannelTestDialog(context, channels),
+                ),
+                // Delete all unavailable channels button (only show when in unavailable group)
+                if (_selectedGroup == ChannelProvider.unavailableGroupName && channels.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.delete_sweep_rounded),
+                    color: AppTheme.errorColor,
+                    tooltip: '删除所有失效频道',
+                    onPressed: () => _confirmDeleteAllUnavailable(context, provider),
+                  ),
                 // Channel count
                 Center(
                   child: Container(
@@ -350,18 +376,23 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                       final isFavorite = context
                           .watch<FavoritesProvider>()
                           .isFavorite(channel.id ?? 0);
+                      final isUnavailable = ChannelProvider.isUnavailableChannel(channel.groupName);
 
                       return ChannelCard(
                         name: channel.name,
                         logoUrl: channel.logoUrl,
-                        groupName: channel.groupName,
+                        groupName: isUnavailable 
+                            ? ChannelProvider.extractOriginalGroup(channel.groupName)
+                            : channel.groupName,
                         isFavorite: isFavorite,
+                        isUnavailable: isUnavailable,
                         autofocus: index == 0,
                         onFavoriteToggle: () {
                           context
                               .read<FavoritesProvider>()
                               .toggleFavorite(channel);
                         },
+                        onTest: () => _testSingleChannel(context, channel),
                         onTap: () {
                           Navigator.pushNamed(
                             context,
@@ -385,6 +416,275 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
         );
       },
     );
+  }
+
+  Future<void> _confirmDeleteAllUnavailable(BuildContext context, ChannelProvider provider) async {
+    final count = provider.unavailableChannelCount;
+    
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          '删除所有失效频道',
+          style: TextStyle(color: AppTheme.textPrimary),
+        ),
+        content: Text(
+          '确定要删除全部 $count 个失效频道吗？此操作不可撤销。',
+          style: const TextStyle(color: AppTheme.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorColor,
+            ),
+            child: const Text('删除', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      final deletedCount = await provider.deleteAllUnavailableChannels();
+      
+      // 切换到全部频道
+      setState(() {
+        _selectedGroup = null;
+      });
+      provider.clearGroupFilter();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('已删除 $deletedCount 个失效频道'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _testSingleChannel(BuildContext context, dynamic channel) async {
+    final testService = ChannelTestService();
+    final channelObj = channel as Channel;
+    
+    // 显示测试中提示
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text('正在测试: ${channelObj.name}'),
+          ],
+        ),
+        duration: const Duration(seconds: 10),
+      ),
+    );
+
+    final result = await testService.testChannel(channelObj);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      
+      // 如果测试通过且是失效频道，自动恢复到原分类
+      if (result.isAvailable && ChannelProvider.isUnavailableChannel(channelObj.groupName)) {
+        final provider = context.read<ChannelProvider>();
+        final originalGroup = ChannelProvider.extractOriginalGroup(channelObj.groupName);
+        await provider.restoreChannel(channelObj.id!);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('${channelObj.name} 可用，已恢复到 "$originalGroup" 分类'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  result.isAvailable ? Icons.check_circle : Icons.error,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    result.isAvailable
+                        ? '${channelObj.name} 可用 (${result.responseTime}ms)'
+                        : '${channelObj.name} 不可用: ${result.error}',
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: result.isAvailable ? Colors.green : AppTheme.errorColor,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showChannelTestDialog(BuildContext context, List<dynamic> channels) async {
+    final result = await showDialog<ChannelTestDialogResult>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => ChannelTestDialog(
+        channels: channels.cast<Channel>(),
+      ),
+    );
+
+    if (result == null || !mounted) return;
+
+    // 如果转入后台执行
+    if (result.runInBackground) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.info_outline, color: Colors.white, size: 20),
+              const SizedBox(width: 12),
+              Text('测试已转入后台，剩余 ${result.remainingCount} 个频道'),
+            ],
+          ),
+          backgroundColor: AppTheme.primaryColor,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: '查看进度',
+            textColor: Colors.white,
+            onPressed: () => _showBackgroundTestProgress(context),
+          ),
+        ),
+      );
+      return;
+    }
+
+    // 如果用户选择移动到失效分类
+    if (result.movedToUnavailable) {
+      final unavailableCount = result.results.where((r) => !r.isAvailable).length;
+      
+      // 显示提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('已将 $unavailableCount 个失效频道移至"${ChannelProvider.unavailableGroupName}"分类'),
+          backgroundColor: Colors.orange,
+          action: SnackBarAction(
+            label: '查看',
+            textColor: Colors.white,
+            onPressed: () {
+              // 跳转到失效分类
+              setState(() {
+                _selectedGroup = ChannelProvider.unavailableGroupName;
+              });
+              context.read<ChannelProvider>().selectGroup(ChannelProvider.unavailableGroupName);
+            },
+          ),
+        ),
+      );
+
+      // 自动跳转到失效分类
+      setState(() {
+        _selectedGroup = ChannelProvider.unavailableGroupName;
+      });
+      context.read<ChannelProvider>().selectGroup(ChannelProvider.unavailableGroupName);
+    }
+  }
+
+  void _showBackgroundTestProgress(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => const BackgroundTestProgressDialog(),
+    );
+  }
+
+  Future<void> _deleteUnavailableChannels(List<ChannelTestResult> results) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          '确认删除',
+          style: TextStyle(color: AppTheme.textPrimary),
+        ),
+        content: Text(
+          '确定要删除 ${results.length} 个不可用的频道吗？此操作不可撤销。',
+          style: const TextStyle(color: AppTheme.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorColor,
+            ),
+            child: const Text('删除', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      try {
+        // 删除不可用频道
+        for (final result in results) {
+          if (result.channel.id != null) {
+            await ServiceLocator.database.delete(
+              'channels',
+              where: 'id = ?',
+              whereArgs: [result.channel.id],
+            );
+          }
+        }
+
+        // 刷新频道列表
+        if (mounted) {
+          context.read<ChannelProvider>().loadAllChannels();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('已删除 ${results.length} 个不可用频道'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('删除失败: $e'),
+              backgroundColor: AppTheme.errorColor,
+            ),
+          );
+        }
+      }
+    }
   }
 
   void _showChannelOptions(BuildContext context, dynamic channel) {
@@ -451,11 +751,149 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                 },
               ),
 
+              ListTile(
+                leading: const Icon(
+                  Icons.speed_rounded,
+                  color: AppTheme.textSecondary,
+                ),
+                title: const Text(
+                  '测试频道',
+                  style: TextStyle(color: AppTheme.textPrimary),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _testSingleChannel(context, channel);
+                },
+              ),
+
+              // 如果是失效频道，显示恢复选项
+              if (ChannelProvider.isUnavailableChannel(channel.groupName))
+                ListTile(
+                  leading: const Icon(
+                    Icons.restore_rounded,
+                    color: Colors.orange,
+                  ),
+                  title: Text(
+                    '恢复到原分类 (${ChannelProvider.extractOriginalGroup(channel.groupName)})',
+                    style: const TextStyle(color: AppTheme.textPrimary),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final provider = context.read<ChannelProvider>();
+                    final success = await provider.restoreChannel(channel.id!);
+                    if (mounted && success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('已恢复 ${channel.name} 到原分类'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  },
+                ),
+
               const SizedBox(height: 16),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+/// 后台测试进度指示器
+class _BackgroundTestIndicator extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _BackgroundTestIndicator({required this.onTap});
+
+  @override
+  State<_BackgroundTestIndicator> createState() => _BackgroundTestIndicatorState();
+}
+
+class _BackgroundTestIndicatorState extends State<_BackgroundTestIndicator> {
+  final BackgroundTestService _service = BackgroundTestService();
+  late BackgroundTestProgress _progress;
+
+  @override
+  void initState() {
+    super.initState();
+    _progress = _service.currentProgress;
+    _service.addListener(_onProgressUpdate);
+  }
+
+  @override
+  void dispose() {
+    _service.removeListener(_onProgressUpdate);
+    super.dispose();
+  }
+
+  void _onProgressUpdate(BackgroundTestProgress progress) {
+    if (mounted) {
+      setState(() {
+        _progress = progress;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 只在运行中或有结果时显示
+    if (!_progress.isRunning && !_progress.isComplete) {
+      return const SizedBox.shrink();
+    }
+
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: _progress.isRunning 
+              ? AppTheme.primaryColor.withOpacity(0.2)
+              : Colors.orange.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_progress.isRunning) ...[
+              const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppTheme.primaryColor,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${_progress.completed}/${_progress.total}',
+                style: const TextStyle(
+                  color: AppTheme.primaryColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ] else ...[
+              const Icon(
+                Icons.check_circle_outline,
+                size: 16,
+                color: Colors.orange,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '测试完成 (${_progress.unavailable}失效)',
+                style: const TextStyle(
+                  color: Colors.orange,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

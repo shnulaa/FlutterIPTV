@@ -110,15 +110,15 @@ jobs:
           Write-Host "Windows package contents:"
           Get-ChildItem -Path "dist/windows/" -Recurse | ForEach-Object { Write-Host $_.FullName }
           
-          # Create ZIP archive
-          Compress-Archive -Path "dist/windows/*" -DestinationPath "flutteriptv-Windows-x64.zip" -Force
+          # Rename exe file for release
+          Copy-Item -Path "dist/windows/flutter_iptv.exe" -Destination "flutteriptv-Windows-x64.exe" -Force
         shell: pwsh
       
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-release
-          path: flutteriptv-Windows-x64.zip
+          path: flutteriptv-Windows-x64.exe
           retention-days: 5
 
   # ============================================
@@ -281,7 +281,7 @@ jobs:
           #### Windows
           | File | Description |
           |------|-------------|
-          | `flutteriptv-Windows-x64.zip` | Windows 64-bit portable application |
+          | `flutteriptv-Windows-x64.exe` | Windows 64-bit application |
           
           #### Android Mobile
           | File | Description |
@@ -309,8 +309,8 @@ jobs:
           ### 📋 Installation
           
           **Windows:**
-          1. Download and extract `flutteriptv-Windows-x64.zip`
-          2. Run `flutter_iptv.exe`
+          1. Download `flutteriptv-Windows-x64.exe`
+          2. Run the application directly
           
           **Android Mobile:**
           1. Download the appropriate APK for your device
@@ -336,7 +336,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            release-assets/flutteriptv-Windows-x64.zip
+            release-assets/flutteriptv-Windows-x64.exe
             release-assets/android-mobile/flutteriptv-Android-Mobile-arm64-v8a.apk
             release-assets/android-mobile/flutteriptv-Android-Mobile-armeabi-v7a.apk
             release-assets/android-mobile/flutteriptv-Android-Mobile-x86_64.apk

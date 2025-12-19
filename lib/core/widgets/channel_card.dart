@@ -13,9 +13,11 @@ class ChannelCard extends StatelessWidget {
   final String? currentProgram;
   final bool isFavorite;
   final bool isPlaying;
+  final bool isUnavailable; // 是否是失效频道
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final VoidCallback? onFavoriteToggle;
+  final VoidCallback? onTest; // 测试按钮回调
   final bool autofocus;
   final FocusNode? focusNode;
 
@@ -27,9 +29,11 @@ class ChannelCard extends StatelessWidget {
     this.currentProgram,
     this.isFavorite = false,
     this.isPlaying = false,
+    this.isUnavailable = false,
     this.onTap,
     this.onLongPress,
     this.onFavoriteToggle,
+    this.onTest,
     this.autofocus = false,
     this.focusNode,
   });
@@ -160,34 +164,91 @@ class ChannelCard extends StatelessWidget {
                         ),
                       ),
 
-                    // Favorite indicator/button
+                    // Top right buttons row
                     Positioned(
                       top: 4,
                       right: 4,
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: onFavoriteToggle,
-                          borderRadius: BorderRadius.circular(20),
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.5),
-                              shape: BoxShape.circle,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Test button (show for unavailable channels or when onTest is provided)
+                          if (onTest != null)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: onTest,
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: isUnavailable 
+                                          ? Colors.orange.withOpacity(0.8)
+                                          : Colors.black.withOpacity(0.5),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.speed_rounded,
+                                      color: Colors.white.withOpacity(0.9),
+                                      size: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                            child: Icon(
-                              isFavorite
-                                  ? Icons.favorite
-                                  : Icons.favorite_border_rounded,
-                              color: isFavorite
-                                  ? AppTheme.accentColor
-                                  : Colors.white.withOpacity(0.7),
-                              size: 16,
+                          // Favorite button
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: onFavoriteToggle,
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.5),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  isFavorite
+                                      ? Icons.favorite
+                                      : Icons.favorite_border_rounded,
+                                  color: isFavorite
+                                      ? AppTheme.accentColor
+                                      : Colors.white.withOpacity(0.7),
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Unavailable indicator
+                    if (isUnavailable)
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            '失效',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),

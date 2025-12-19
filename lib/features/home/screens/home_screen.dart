@@ -168,13 +168,16 @@ class _HomeScreenState extends State<HomeScreen> {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              gradient: AppTheme.primaryGradient,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Icons.live_tv_rounded,
-              color: Colors.white,
-              size: 28,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/icons/app_icon.png',
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
 

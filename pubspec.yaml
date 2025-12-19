@@ -1,7 +1,7 @@
 name: flutter_iptv
 description: A professional IPTV player application supporting Windows, Android Mobile, and Android TV with D-Pad navigation.
 publish_to: 'none'
-version: 1.1.18+35
+version: 1.1.19+36
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -64,4 +64,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  
+  assets:
+    - assets/icons/
+    - assets/images/
+    - assets/fonts/
 
