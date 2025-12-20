@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:video_player/video_player.dart';
 import 'dart:async';
 
 import '../../../core/i18n/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/tv_focusable.dart';
 import '../../../core/platform/platform_detector.dart';
+import '../../../core/platform/native_player_channel.dart';
 import '../providers/player_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
 import '../../channels/providers/channel_provider.dart';
@@ -28,14 +30,88 @@ class PlayerScreen extends StatefulWidget {
   State<PlayerScreen> createState() => _PlayerScreenState();
 }
 
-class _PlayerScreenState extends State<PlayerScreen> {
+class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver {
   Timer? _hideControlsTimer;
   bool _showControls = true;
   final FocusNode _playerFocusNode = FocusNode();
+  bool _usingNativePlayer = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkAndLaunchPlayer();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    debugPrint('PlayerScreen: AppLifecycleState changed to $state');
+  }
+
+  Future<void> _checkAndLaunchPlayer() async {
+    // Check if we should use native player on Android TV
+    if (PlatformDetector.isTV && PlatformDetector.isAndroid) {
+      final nativeAvailable = await NativePlayerChannel.isAvailable();
+      debugPrint('PlayerScreen: Native player available: $nativeAvailable');
+      if (nativeAvailable && mounted) {
+        _usingNativePlayer = true;
+        
+        // Get channel list for native player
+        final channelProvider = context.read<ChannelProvider>();
+        final channels = channelProvider.filteredChannels;
+        
+        // Find current channel index
+        int currentIndex = 0;
+        for (int i = 0; i < channels.length; i++) {
+          if (channels[i].url == widget.channelUrl) {
+            currentIndex = i;
+            break;
+          }
+        }
+        
+        // Prepare channel lists
+        final urls = channels.map((c) => c.url).toList();
+        final names = channels.map((c) => c.name).toList();
+        
+        debugPrint('PlayerScreen: Launching native player for ${widget.channelName} (index $currentIndex of ${channels.length})');
+        
+        // Launch native player with channel list and callback for when it closes
+        final launched = await NativePlayerChannel.launchPlayer(
+          url: widget.channelUrl,
+          name: widget.channelName,
+          index: currentIndex,
+          urls: urls,
+          names: names,
+          onClosed: () {
+            debugPrint('PlayerScreen: Native player closed callback');
+            if (mounted) {
+              Navigator.of(context).pop();
+            }
+          },
+        );
+        
+        if (launched && mounted) {
+          // Don't pop - wait for native player to close via callback
+          // The native player is now a Fragment overlay, not a separate Activity
+          return;
+        } else if (!launched && mounted) {
+          // Native player failed to launch, fall back to Flutter player
+          _usingNativePlayer = false;
+          _initFlutterPlayer();
+        }
+        return;
+      }
+    }
+
+    // Fallback to Flutter player
+    if (mounted) {
+      _usingNativePlayer = false;
+      _initFlutterPlayer();
+    }
+  }
+
+  void _initFlutterPlayer() {
     _startPlayback();
     _startHideControlsTimer();
 
@@ -99,20 +175,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _hideControlsTimer?.cancel();
     _playerFocusNode.dispose();
 
-    // Stop playback when leaving the screen
-    try {
-      context.read<PlayerProvider>().stop();
-    } catch (_) {}
+    // Only stop playback if we're using Flutter player (not native)
+    if (!_usingNativePlayer) {
+      try {
+        context.read<PlayerProvider>().stop();
+      } catch (_) {}
+
+      try {
+        context.read<PlayerProvider>().removeListener(_onError);
+      } catch (_) {}
+    }
 
     // Restore system UI
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-
-    try {
-      context.read<PlayerProvider>().removeListener(_onError);
-    } catch (_) {}
 
     super.dispose();
   }
@@ -348,6 +427,20 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Widget _buildVideoPlayer() {
     return Consumer<PlayerProvider>(
       builder: (context, provider, _) {
+        // Use ExoPlayer on Android TV
+        if (provider.useExoPlayer) {
+          if (provider.exoPlayer == null || !provider.exoPlayer!.value.isInitialized) {
+            return const SizedBox.expand();
+          }
+          return Center(
+            child: AspectRatio(
+              aspectRatio: provider.exoPlayer!.value.aspectRatio,
+              child: VideoPlayer(provider.exoPlayer!),
+            ),
+          );
+        }
+        
+        // Use media_kit on other platforms
         if (provider.videoController == null) {
           return const SizedBox.expand();
         }

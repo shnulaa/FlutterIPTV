@@ -11,6 +11,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'core/theme/app_theme.dart';
 import 'core/navigation/app_router.dart';
 import 'core/services/service_locator.dart';
+import 'core/platform/native_player_channel.dart';
 import 'features/channels/providers/channel_provider.dart';
 import 'features/player/providers/player_provider.dart';
 import 'features/playlist/providers/playlist_provider.dart';
@@ -30,6 +31,9 @@ void main() async {
 
     // Initialize MediaKit
     MediaKit.ensureInitialized();
+    
+    // Initialize native player channel for Android TV
+    NativePlayerChannel.init();
 
     // Initialize Windows/Linux/macOS Database Engine
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {

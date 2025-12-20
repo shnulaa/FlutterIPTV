@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:video_player/video_player.dart';
 import 'dart:io' show Platform;
 import 'dart:async';
 
 import '../../../core/models/channel.dart';
-import '../../../core/services/service_locator.dart';
+import '../../../core/platform/platform_detector.dart';
 
 enum PlayerState {
   idle,
@@ -16,10 +18,19 @@ enum PlayerState {
   buffering,
 }
 
+/// Unified player provider that uses:
+/// - Native Android Activity (via MethodChannel) on Android TV for best 4K performance
+/// - media_kit on Windows and other platforms
+/// - ExoPlayer (video_player) as fallback on Android
 class PlayerProvider extends ChangeNotifier {
-  Player? _player;
+  // media_kit player (for Windows/Desktop and fallback)
+  Player? _mediaKitPlayer;
   VideoController? _videoController;
 
+  // video_player (ExoPlayer) for Android fallback
+  VideoPlayerController? _exoPlayer;
+
+  // Common state
   Channel? _currentChannel;
   PlayerState _state = PlayerState.idle;
   String? _error;
@@ -31,13 +42,21 @@ class PlayerProvider extends ChangeNotifier {
   bool _isFullscreen = false;
   bool _controlsVisible = true;
 
-  // Track retry attempts for fallback
   int _retryCount = 0;
   static const int _maxRetries = 2;
 
+  // On Android TV, we use native player via Activity, so don't init any Flutter player
+  // On Android phone/tablet, use ExoPlayer
+  // On other platforms, use media_kit
+  bool get _useNativePlayer => Platform.isAndroid && PlatformDetector.isTV;
+  bool get _useExoPlayer => Platform.isAndroid && !PlatformDetector.isTV;
+
   // Getters
-  Player? get player => _player;
+  Player? get player => _mediaKitPlayer;
   VideoController? get videoController => _videoController;
+  VideoPlayerController? get exoPlayer => _exoPlayer;
+  bool get useExoPlayer => _useExoPlayer;
+
   Channel? get currentChannel => _currentChannel;
   PlayerState get state => _state;
   String? get error => _error;
@@ -50,43 +69,29 @@ class PlayerProvider extends ChangeNotifier {
   bool get controlsVisible => _controlsVisible;
 
   bool get isPlaying => _state == PlayerState.playing;
-  bool get isLoading =>
-      _state == PlayerState.loading || _state == PlayerState.buffering;
+  bool get isLoading => _state == PlayerState.loading || _state == PlayerState.buffering;
   bool get hasError => _state == PlayerState.error;
 
-  // Debug info for display
   String _hwdecMode = 'unknown';
   String _videoCodec = '';
   double _fps = 0;
-  int _droppedFrames = 0;
-  
+
   String get videoInfo {
-    if (_player == null) return '';
-
-    // Access state safely
-    final w = _player!.state.width;
-    final h = _player!.state.height;
-
-    if (w == 0 || h == 0) return '';
-
-    final parts = <String>[];
-    parts.add('${w}x$h');
-    
-    if (_videoCodec.isNotEmpty) {
-      parts.add(_videoCodec);
+    if (_useExoPlayer) {
+      if (_exoPlayer == null || !_exoPlayer!.value.isInitialized) return '';
+      final size = _exoPlayer!.value.size;
+      return '${size.width.toInt()}x${size.height.toInt()} | ExoPlayer';
+    } else {
+      if (_mediaKitPlayer == null) return '';
+      final w = _mediaKitPlayer!.state.width;
+      final h = _mediaKitPlayer!.state.height;
+      if (w == 0 || h == 0) return '';
+      final parts = <String>['${w}x$h'];
+      if (_videoCodec.isNotEmpty) parts.add(_videoCodec);
+      if (_fps > 0) parts.add('${_fps.toStringAsFixed(1)} fps');
+      parts.add('hwdec: $_hwdecMode');
+      return parts.join(' | ');
     }
-    
-    if (_fps > 0) {
-      parts.add('${_fps.toStringAsFixed(1)} fps');
-    }
-    
-    parts.add('hwdec: $_hwdecMode');
-    
-    if (_droppedFrames > 0) {
-      parts.add('dropped: $_droppedFrames');
-    }
-
-    return parts.join(' | ');
   }
 
   double get progress {
@@ -95,205 +100,152 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   PlayerProvider() {
+    debugPrint('PlayerProvider: Constructor called, isTV=${PlatformDetector.isTV}, _useNativePlayer=$_useNativePlayer');
     _initPlayer();
   }
 
   void _initPlayer({bool useSoftwareDecoding = false}) {
-    // Dispose existing player if any
-    _player?.dispose();
-
-    // Get decoding mode preference from settings
-    // Options: 'auto', 'hardware', 'software'
-    String decodingMode = 'auto';
-    try {
-      decodingMode = ServiceLocator.prefs.getString('decoding_mode') ?? 'auto';
-    } catch (_) {}
-
-    // If forced software decoding (fallback after error), override the setting
-    if (useSoftwareDecoding) {
-      decodingMode = 'software';
+    // On Android TV, we use native player - don't initialize any Flutter player
+    if (_useNativePlayer) {
+      debugPrint('PlayerProvider: Using Native Player for Android TV (no Flutter player init)');
+      return;
     }
+    
+    if (_useExoPlayer) {
+      debugPrint('PlayerProvider: Using ExoPlayer for Android phone/tablet');
+    } else {
+      debugPrint('PlayerProvider: Using media_kit for desktop');
+      _initMediaKitPlayer(useSoftwareDecoding: useSoftwareDecoding);
+    }
+  }
 
-    // Create player with configuration
-    // Increase buffer size for smoother 4K playback
-    _player = Player(
-      configuration: const PlayerConfiguration(
-        bufferSize: 64 * 1024 * 1024, // 64MB buffer for 4K streams
-      ),
+  void _initMediaKitPlayer({bool useSoftwareDecoding = false}) {
+    _mediaKitPlayer?.dispose();
+    _debugInfoTimer?.cancel();
+
+    _mediaKitPlayer = Player(
+      configuration: const PlayerConfiguration(bufferSize: 64 * 1024 * 1024),
     );
 
-    // Configure VideoController with appropriate hwdec settings
-    // For Android TV, use more compatible settings
-    VideoControllerConfiguration config;
+    VideoControllerConfiguration config = VideoControllerConfiguration(
+      hwdec: Platform.isAndroid ? (useSoftwareDecoding ? 'no' : 'mediacodec') : null,
+      enableHardwareAcceleration: !useSoftwareDecoding,
+    );
 
-    if (Platform.isAndroid) {
-      switch (decodingMode) {
-        case 'hardware':
-          // Force hardware decoding via mediacodec
-          // Use gpu vo with mediacodec hwdec for better compatibility
-          config = const VideoControllerConfiguration(
-            vo: 'gpu',
-            hwdec: 'mediacodec',
-            enableHardwareAcceleration: true,
-          );
-          break;
-        case 'software':
-          // Force software decoding
-          config = const VideoControllerConfiguration(
-            vo: 'gpu',
-            hwdec: 'no',
-            enableHardwareAcceleration: false,
-          );
-          break;
-        case 'auto':
-        default:
-          // Auto mode: use mediacodec for hardware decoding
-          // Try without specifying vo to let media_kit choose
-          config = const VideoControllerConfiguration(
-            hwdec: 'mediacodec',
-            enableHardwareAcceleration: true,
-          );
-          break;
-      }
-    } else {
-      // For Windows/Other platforms
-      config = VideoControllerConfiguration(
-        enableHardwareAcceleration: decodingMode != 'software',
-      );
-    }
-
-    _videoController = VideoController(_player!, configuration: config);
-
-    // Listen to player streams
-    _player!.stream.playing.listen((playing) {
-      if (playing) {
-        _state = PlayerState.playing;
-        _retryCount = 0; // Reset retry count on successful play
-      } else if (_state == PlayerState.playing) {
-        _state = PlayerState.paused;
-      }
-      notifyListeners();
-    });
-
-    _player!.stream.buffering.listen((buffering) {
-      if (buffering) {
-        if (_state != PlayerState.idle && _state != PlayerState.error) {
-          _state = PlayerState.buffering;
-          notifyListeners();
-        }
-      } else {
-        // Buffering finished
-        if (_state == PlayerState.buffering) {
-          // Check actual playing status
-          if (_player!.state.playing) {
-            _state = PlayerState.playing;
-          } else {
-            _state = PlayerState.paused;
-          }
-          notifyListeners();
-        }
-      }
-    });
-
-    _player!.stream.position.listen((position) {
-      _position = position;
-      notifyListeners();
-    });
-
-    _player!.stream.duration.listen((duration) {
-      _duration = duration;
-      notifyListeners();
-    });
-
-    // Listen for track info to get codec and hwdec status
-    _player!.stream.tracks.listen((tracks) {
-      for (final track in tracks.video) {
-        if (track.codec != null) {
-          _videoCodec = track.codec!;
-        }
-        if (track.fps != null) {
-          _fps = track.fps!;
-        }
-      }
-      notifyListeners();
-    });
-
-    // Get hwdec mode from player properties periodically
+    _videoController = VideoController(_mediaKitPlayer!, configuration: config);
+    _setupMediaKitListeners();
     _updateDebugInfo();
+  }
 
-    _player!.stream.volume.listen((volume) {
-      _volume = volume / 100;
+  void _setupMediaKitListeners() {
+    _mediaKitPlayer!.stream.playing.listen((playing) {
+      if (playing) { _state = PlayerState.playing; _retryCount = 0; }
+      else if (_state == PlayerState.playing) { _state = PlayerState.paused; }
       notifyListeners();
     });
 
-    _player!.stream.error.listen((error) {
-      if (error.isNotEmpty) {
-        // Check if this is a codec error and we should try software decoding
-        if (_shouldTrySoftwareFallback(error)) {
-          _attemptSoftwareFallback();
-        } else {
-          _state = PlayerState.error;
-          _error = error;
-          notifyListeners();
-        }
+    _mediaKitPlayer!.stream.buffering.listen((buffering) {
+      if (buffering && _state != PlayerState.idle && _state != PlayerState.error) {
+        _state = PlayerState.buffering;
+      } else if (!buffering && _state == PlayerState.buffering) {
+        _state = _mediaKitPlayer!.state.playing ? PlayerState.playing : PlayerState.paused;
       }
+      notifyListeners();
     });
 
-    // Listen to video dimensions
-    _player!.stream.width.listen((_) => notifyListeners());
-    _player!.stream.height.listen((_) => notifyListeners());
+    _mediaKitPlayer!.stream.position.listen((pos) { _position = pos; notifyListeners(); });
+    _mediaKitPlayer!.stream.duration.listen((dur) { _duration = dur; notifyListeners(); });
+    _mediaKitPlayer!.stream.tracks.listen((tracks) {
+      for (final track in tracks.video) {
+        if (track.codec != null) _videoCodec = track.codec!;
+        if (track.fps != null) _fps = track.fps!;
+      }
+      notifyListeners();
+    });
+    _mediaKitPlayer!.stream.volume.listen((vol) { _volume = vol / 100; notifyListeners(); });
+    _mediaKitPlayer!.stream.error.listen((err) {
+      if (err.isNotEmpty) {
+        if (_shouldTrySoftwareFallback(err)) { _attemptSoftwareFallback(); }
+        else { _state = PlayerState.error; _error = err; notifyListeners(); }
+      }
+    });
+    _mediaKitPlayer!.stream.width.listen((_) => notifyListeners());
+    _mediaKitPlayer!.stream.height.listen((_) => notifyListeners());
   }
 
   Timer? _debugInfoTimer;
-  
   void _updateDebugInfo() {
     _debugInfoTimer?.cancel();
     _debugInfoTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      if (_player == null) return;
-      
-      // Try to get hwdec info from mpv properties
-      try {
-        // Check if hardware decoding is being used based on config
-        if (Platform.isAndroid) {
-          final decodingMode = ServiceLocator.prefs.getString('decoding_mode') ?? 'auto';
-          _hwdecMode = decodingMode == 'software' ? 'sw' : 'mediacodec';
-        }
-        
-        notifyListeners();
-      } catch (e) {
-        debugPrint('Error getting debug info: $e');
-      }
+      if (_mediaKitPlayer == null) return;
+      _hwdecMode = 'mediacodec';
+      notifyListeners();
     });
   }
 
   bool _shouldTrySoftwareFallback(String error) {
-    // Check if this looks like a codec/decoder error
     final lowerError = error.toLowerCase();
-    return (lowerError.contains('codec') ||
-            lowerError.contains('decoder') ||
-            lowerError.contains('hwdec') ||
-            lowerError.contains('mediacodec')) &&
+    return (lowerError.contains('codec') || lowerError.contains('decoder') ||
+            lowerError.contains('hwdec') || lowerError.contains('mediacodec')) &&
         _retryCount < _maxRetries;
   }
 
   void _attemptSoftwareFallback() {
     _retryCount++;
-    debugPrint(
-        'PlayerProvider: Hardware decoding failed, attempting software fallback (attempt $_retryCount)');
-
-    // Store current channel to replay
     final channelToPlay = _currentChannel;
+    _initMediaKitPlayer(useSoftwareDecoding: true);
+    if (channelToPlay != null) playChannel(channelToPlay);
+  }
 
-    // Reinitialize player with software decoding
-    _initPlayer(useSoftwareDecoding: true);
 
-    // Replay the channel if we had one
-    if (channelToPlay != null) {
-      playChannel(channelToPlay);
+  // ============ ExoPlayer Methods ============
+
+  Future<void> _initExoPlayer(String url) async {
+    await _disposeExoPlayer();
+
+    _exoPlayer = VideoPlayerController.networkUrl(
+      Uri.parse(url),
+      httpHeaders: const {'Connection': 'keep-alive'},
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false, allowBackgroundPlayback: false),
+    );
+
+    _exoPlayer!.addListener(_onExoPlayerUpdate);
+
+    try {
+      await _exoPlayer!.initialize();
+      await _exoPlayer!.setVolume(_isMuted ? 0 : _volume);
+      await _exoPlayer!.play();
+      _state = PlayerState.playing;
+    } catch (e) {
+      _state = PlayerState.error;
+      _error = 'Failed to initialize player: $e';
+    }
+    notifyListeners();
+  }
+
+  void _onExoPlayerUpdate() {
+    if (_exoPlayer == null) return;
+    final value = _exoPlayer!.value;
+    _position = value.position;
+    _duration = value.duration;
+
+    if (value.hasError) { _state = PlayerState.error; _error = value.errorDescription ?? 'Unknown error'; }
+    else if (value.isBuffering) { _state = PlayerState.buffering; }
+    else if (value.isPlaying) { _state = PlayerState.playing; }
+    else if (value.isInitialized && !value.isPlaying) { _state = PlayerState.paused; }
+    notifyListeners();
+  }
+
+  Future<void> _disposeExoPlayer() async {
+    if (_exoPlayer != null) {
+      _exoPlayer!.removeListener(_onExoPlayerUpdate);
+      await _exoPlayer!.dispose();
+      _exoPlayer = null;
     }
   }
 
-  // Play a channel
+  // ============ Public API ============
+
   Future<void> playChannel(Channel channel) async {
     _currentChannel = channel;
     _state = PlayerState.loading;
@@ -301,149 +253,95 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _player?.open(Media(channel.url));
-      _state = PlayerState.playing;
-    } catch (e) {
-      _state = PlayerState.error;
-      _error = 'Failed to play channel: $e';
-    }
-
+      if (_useExoPlayer) { await _initExoPlayer(channel.url); }
+      else { await _mediaKitPlayer?.open(Media(channel.url)); _state = PlayerState.playing; }
+    } catch (e) { _state = PlayerState.error; _error = 'Failed to play channel: $e'; }
     notifyListeners();
   }
 
-  // Play from URL
   Future<void> playUrl(String url, {String? name}) async {
     _state = PlayerState.loading;
     _error = null;
     notifyListeners();
 
     try {
-      await _player?.open(Media(url));
-      _state = PlayerState.playing;
-    } catch (e) {
-      _state = PlayerState.error;
-      _error = 'Failed to play: $e';
-    }
-
+      if (_useExoPlayer) { await _initExoPlayer(url); }
+      else { await _mediaKitPlayer?.open(Media(url)); _state = PlayerState.playing; }
+    } catch (e) { _state = PlayerState.error; _error = 'Failed to play: $e'; }
     notifyListeners();
   }
 
-  // Toggle play/pause
   void togglePlayPause() {
-    if (_player == null) return;
-    _player!.playOrPause();
+    if (_useExoPlayer) {
+      if (_exoPlayer == null) return;
+      _exoPlayer!.value.isPlaying ? _exoPlayer!.pause() : _exoPlayer!.play();
+    } else { _mediaKitPlayer?.playOrPause(); }
   }
 
-  // Pause playback
-  void pause() {
-    _player?.pause();
-  }
+  void pause() { _useExoPlayer ? _exoPlayer?.pause() : _mediaKitPlayer?.pause(); }
+  void play() { _useExoPlayer ? _exoPlayer?.play() : _mediaKitPlayer?.play(); }
 
-  // Resume playback
-  void play() {
-    _player?.play();
-  }
-
-  // Stop playback
   void stop() {
-    _player?.stop();
+    if (_useExoPlayer) { _exoPlayer?.pause(); _exoPlayer?.seekTo(Duration.zero); }
+    else { _mediaKitPlayer?.stop(); }
     _state = PlayerState.idle;
     _currentChannel = null;
     notifyListeners();
   }
 
-  // Seek to position
-  void seek(Duration position) {
-    _player?.seek(position);
-  }
+  void seek(Duration position) { _useExoPlayer ? _exoPlayer?.seekTo(position) : _mediaKitPlayer?.seek(position); }
+  void seekForward(int seconds) { seek(_position + Duration(seconds: seconds)); }
+  void seekBackward(int seconds) { final newPos = _position - Duration(seconds: seconds); seek(newPos.isNegative ? Duration.zero : newPos); }
 
-  // Seek forward by seconds
-  void seekForward(int seconds) {
-    final newPosition = _position + Duration(seconds: seconds);
-    seek(newPosition);
-  }
-
-  // Seek backward by seconds
-  void seekBackward(int seconds) {
-    final newPosition = _position - Duration(seconds: seconds);
-    seek(newPosition.isNegative ? Duration.zero : newPosition);
-  }
-
-  // Set volume (0.0 to 1.0)
   void setVolume(double volume) {
     _volume = volume.clamp(0.0, 1.0);
-    _player?.setVolume(_volume * 100);
-
-    if (_volume > 0) {
-      _isMuted = false;
-    }
-
+    _useExoPlayer ? _exoPlayer?.setVolume(_volume) : _mediaKitPlayer?.setVolume(_volume * 100);
+    if (_volume > 0) _isMuted = false;
     notifyListeners();
   }
 
-  // Toggle mute
   void toggleMute() {
     _isMuted = !_isMuted;
-    _player?.setVolume(_isMuted ? 0 : _volume * 100);
+    _useExoPlayer ? _exoPlayer?.setVolume(_isMuted ? 0 : _volume) : _mediaKitPlayer?.setVolume(_isMuted ? 0 : _volume * 100);
     notifyListeners();
   }
 
-  // Set playback speed
   void setPlaybackSpeed(double speed) {
     _playbackSpeed = speed;
-    _player?.setRate(speed);
+    _useExoPlayer ? _exoPlayer?.setPlaybackSpeed(speed) : _mediaKitPlayer?.setRate(speed);
     notifyListeners();
   }
 
-  // Toggle fullscreen
-  void toggleFullscreen() {
-    _isFullscreen = !_isFullscreen;
-    notifyListeners();
-  }
+  void toggleFullscreen() { _isFullscreen = !_isFullscreen; notifyListeners(); }
+  void setFullscreen(bool fullscreen) { _isFullscreen = fullscreen; notifyListeners(); }
+  void setControlsVisible(bool visible) { _controlsVisible = visible; notifyListeners(); }
+  void toggleControls() { _controlsVisible = !_controlsVisible; notifyListeners(); }
 
-  // Set fullscreen state
-  void setFullscreen(bool fullscreen) {
-    _isFullscreen = fullscreen;
-    notifyListeners();
-  }
-
-  // Show/hide controls
-  void setControlsVisible(bool visible) {
-    _controlsVisible = visible;
-    notifyListeners();
-  }
-
-  // Toggle controls visibility
-  void toggleControls() {
-    _controlsVisible = !_controlsVisible;
-    notifyListeners();
-  }
-
-  // Play next channel from a list
   void playNext(List<Channel> channels) {
     if (_currentChannel == null || channels.isEmpty) return;
-
-    final currentIndex =
-        channels.indexWhere((c) => c.id == _currentChannel!.id);
-    if (currentIndex == -1 || currentIndex >= channels.length - 1) return;
-
-    playChannel(channels[currentIndex + 1]);
+    final idx = channels.indexWhere((c) => c.id == _currentChannel!.id);
+    if (idx == -1 || idx >= channels.length - 1) return;
+    playChannel(channels[idx + 1]);
   }
 
-  // Play previous channel from a list
   void playPrevious(List<Channel> channels) {
     if (_currentChannel == null || channels.isEmpty) return;
+    final idx = channels.indexWhere((c) => c.id == _currentChannel!.id);
+    if (idx <= 0) return;
+    playChannel(channels[idx - 1]);
+  }
 
-    final currentIndex =
-        channels.indexWhere((c) => c.id == _currentChannel!.id);
-    if (currentIndex <= 0) return;
-
-    playChannel(channels[currentIndex - 1]);
+  /// Set current channel without starting playback (for native player coordination)
+  void setCurrentChannelOnly(Channel channel) {
+    _currentChannel = channel;
+    notifyListeners();
   }
 
   @override
   void dispose() {
-    _player?.dispose();
+    _debugInfoTimer?.cancel();
+    _mediaKitPlayer?.dispose();
+    _disposeExoPlayer();
     super.dispose();
   }
 }
