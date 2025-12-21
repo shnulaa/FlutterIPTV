@@ -68,6 +68,9 @@ class NativePlayerFragment : Fragment() {
     private var controlsVisible = true
     private val CONTROLS_HIDE_DELAY = 3000L
     
+    private var lastBackPressTime = 0L
+    private val BACK_PRESS_INTERVAL = 2000L // 2秒内按两次返回才退出
+    
     private var videoWidth = 0
     private var videoHeight = 0
     private var videoCodec = ""
@@ -187,6 +190,27 @@ class NativePlayerFragment : Fragment() {
         categoryList.layoutManager = LinearLayoutManager(requireContext())
         channelList.layoutManager = LinearLayoutManager(requireContext())
         
+        // 给 RecyclerView 添加按键监听，处理返回键和左键
+        val recyclerKeyListener = View.OnKeyListener { _, keyCode, event ->
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                when (keyCode) {
+                    KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE -> {
+                        handleBackKey()
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        handleBackKey()
+                        true
+                    }
+                    else -> false
+                }
+            } else {
+                false
+            }
+        }
+        categoryList.setOnKeyListener(recyclerKeyListener)
+        channelList.setOnKeyListener(recyclerKeyListener)
+        
         // Category adapter
         categoryList.adapter = object : RecyclerView.Adapter<CategoryViewHolder>() {
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CategoryViewHolder {
@@ -203,6 +227,21 @@ class NativePlayerFragment : Fragment() {
                 
                 holder.itemView.setOnClickListener {
                     selectCategory(holder.adapterPosition)
+                }
+                
+                // 给每个 item 添加按键监听
+                holder.itemView.setOnKeyListener { _, keyCode, event ->
+                    if (event.action == KeyEvent.ACTION_DOWN) {
+                        when (keyCode) {
+                            KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_DPAD_LEFT -> {
+                                handleBackKey()
+                                true
+                            }
+                            else -> false
+                        }
+                    } else {
+                        false
+                    }
                 }
                 
                 holder.itemView.setOnFocusChangeListener { _, hasFocus ->
@@ -275,6 +314,21 @@ class NativePlayerFragment : Fragment() {
                     hideCategoryPanel()
                 }
                 
+                // 给每个 item 添加按键监听
+                holder.itemView.setOnKeyListener { _, keyCode, event ->
+                    if (event.action == KeyEvent.ACTION_DOWN) {
+                        when (keyCode) {
+                            KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_DPAD_LEFT -> {
+                                handleBackKey()
+                                true
+                            }
+                            else -> false
+                        }
+                    } else {
+                        false
+                    }
+                }
+                
                 holder.itemView.setOnFocusChangeListener { v, hasFocus ->
                     v.isSelected = hasFocus
                 }
@@ -324,24 +378,42 @@ class NativePlayerFragment : Fragment() {
         scheduleHideControls()
     }
 
+    fun handleBackKey(): Boolean {
+        Log.d(TAG, "handleBackKey: categoryPanelVisible=$categoryPanelVisible, showingChannelList=$showingChannelList")
+        
+        if (categoryPanelVisible) {
+            if (showingChannelList) {
+                // Go back to category list
+                channelListContainer.visibility = View.GONE
+                showingChannelList = false
+                categoryList.findViewHolderForAdapterPosition(selectedCategoryIndex.coerceAtLeast(0))?.itemView?.requestFocus()
+                return true
+            }
+            // Close category panel
+            hideCategoryPanel()
+            return true
+        }
+        
+        // 双击返回退出播放器
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastBackPressTime < BACK_PRESS_INTERVAL) {
+            closePlayer()
+        } else {
+            lastBackPressTime = currentTime
+            // 显示提示
+            activity?.runOnUiThread {
+                android.widget.Toast.makeText(requireContext(), "再按一次返回退出播放", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+        return true
+    }
+
     private fun handleKeyDown(keyCode: Int): Boolean {
         Log.d(TAG, "handleKeyDown: keyCode=$keyCode, categoryPanelVisible=$categoryPanelVisible")
         
         when (keyCode) {
             KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE -> {
-                if (categoryPanelVisible) {
-                    if (showingChannelList) {
-                        // Go back to category list
-                        channelListContainer.visibility = View.GONE
-                        showingChannelList = false
-                        categoryList.findViewHolderForAdapterPosition(selectedCategoryIndex.coerceAtLeast(0))?.itemView?.requestFocus()
-                        return true
-                    }
-                    hideCategoryPanel()
-                    return true
-                }
-                closePlayer()
-                return true
+                return handleBackKey()
             }
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
                 if (!categoryPanelVisible) {

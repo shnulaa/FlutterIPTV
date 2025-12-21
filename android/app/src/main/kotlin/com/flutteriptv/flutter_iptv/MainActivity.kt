@@ -105,7 +105,7 @@ class MainActivity: FlutterFragmentActivity() {
         backPressedCallback = object : OnBackPressedCallback(false) {
             override fun handleOnBackPressed() {
                 Log.d(TAG, "OnBackPressedCallback triggered")
-                hidePlayerFragment()
+                playerFragment?.handleBackKey()
             }
         }
         onBackPressedDispatcher.addCallback(this, backPressedCallback)
@@ -184,12 +184,10 @@ class MainActivity: FlutterFragmentActivity() {
     
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         Log.d(TAG, "onKeyDown: keyCode=$keyCode, playerVisible=${playerContainer?.visibility == View.VISIBLE}")
-        // If player is showing, let it handle keys
+        // If player is showing, let the fragment handle back key
         if (playerFragment != null && playerContainer?.visibility == View.VISIBLE) {
-            // Back key handling
             if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE) {
-                Log.d(TAG, "Back key pressed, hiding player")
-                hidePlayerFragment()
+                playerFragment?.handleBackKey()
                 return true
             }
         }
