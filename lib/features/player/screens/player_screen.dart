@@ -857,11 +857,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
               // Keyboard hints
               if (PlatformDetector.useDPadNavigation)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
                   child: Text(
-                    '↑↓ 切换频道 · ← 分类列表 · OK 播放/暂停',
-                    style: TextStyle(color: Color(0x66FFFFFF), fontSize: 11),
+                    AppStrings.of(context)?.playerHintTV ?? '↑↓ Switch Channel · ← Categories · OK Play/Pause',
+                    style: const TextStyle(color: Color(0x66FFFFFF), fontSize: 11),
                   ),
                 ),
             ],

@@ -116,9 +116,9 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          '正在处理，请稍候...',
-                          style: TextStyle(
+                        Text(
+                          AppStrings.of(context)?.processing ?? 'Processing, please wait...',
+                          style: const TextStyle(
                             color: AppTheme.textSecondary,
                             fontSize: 14,
                             decoration: TextDecoration.none,
@@ -178,7 +178,7 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
                 child: _buildActionButton(
                   onPressed: () => _showQrImportDialog(context),
                   icon: const Icon(Icons.qr_code_scanner_rounded, size: 20),
-                  label: '手机扫码导入',
+                  label: AppStrings.of(context)?.scanToImport ?? 'Scan to Import',
                   isPrimary: false,
                 ),
               ),
@@ -258,7 +258,7 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
                 child: _buildActionButton(
                   onPressed: () => _showQrImportDialog(context),
                   icon: const Icon(Icons.qr_code_scanner_rounded, size: 20),
-                  label: '手机扫码导入',
+                  label: AppStrings.of(context)?.scanToImport ?? 'Scan to Import',
                   isPrimary: false,
                 ),
               ),
@@ -535,9 +535,8 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
 
   Widget _buildEmptyState() {
     final platformText = PlatformDetector.isTV
-        ? '添加您的第一个M3U播放列表\n您可以通过USB设备导入或使用手机扫码导入'
-        : (AppStrings.of(context)?.addFirstPlaylist ??
-            'Add your first M3U playlist above');
+        ? (AppStrings.of(context)?.addFirstPlaylistTV ?? 'Add your first M3U playlist\nYou can import via USB or scan QR code')
+        : (AppStrings.of(context)?.addFirstPlaylist ?? 'Add your first M3U playlist above');
             
     return Center(
       child: Column(
@@ -700,7 +699,7 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  playlist.isRemote ? 'URL' : '本地文件',
+                                  playlist.isRemote ? 'URL' : (AppStrings.of(context)?.localFile ?? 'Local File'),
                                   style: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
                                 ),
                                 const SizedBox(width: 8),
@@ -880,7 +879,7 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      playlist.isRemote ? 'URL' : '本地文件',
+                      playlist.isRemote ? 'URL' : (AppStrings.of(context)?.localFile ?? 'Local File'),
                       style: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
                     ),
                     const SizedBox(width: 8),
@@ -1018,7 +1017,7 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
           await context.read<EpgProvider>().loadEpg(provider.lastExtractedEpgUrl!);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('已自动应用EPG源: ${provider.lastExtractedEpgUrl}'),
+              content: Text('${AppStrings.of(context)?.epgAutoApplied ?? "EPG source auto-applied"}: ${provider.lastExtractedEpgUrl}'),
               backgroundColor: AppTheme.successColor,
               duration: const Duration(seconds: 3),
             ),
@@ -1158,9 +1157,9 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
       // For Android TV, show a more user-friendly message
       if (PlatformDetector.isTV) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('请在文件管理器中选择M3U/M3U8文件'),
-            duration: Duration(seconds: 3),
+          SnackBar(
+            content: Text(AppStrings.of(context)?.selectM3uFile ?? 'Please select an M3U/M3U8 file'),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -1208,9 +1207,9 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
         // For Android TV, show additional help if no file was selected
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('未选择文件。请确保您的设备已连接USB存储设备或已配置网络存储。'),
-              duration: Duration(seconds: 4),
+            SnackBar(
+              content: Text(AppStrings.of(context)?.noFileSelected ?? 'No file selected. Please ensure your device has USB storage or network storage configured.'),
+              duration: const Duration(seconds: 4),
             ),
           );
         }

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/local_server_service.dart';
 import '../../../core/widgets/tv_focusable.dart';
+import '../../../core/i18n/app_strings.dart';
 import '../../channels/providers/channel_provider.dart';
 import '../providers/playlist_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
@@ -59,7 +60,7 @@ class _QrImportDialogState extends State<QrImportDialog> {
       _isLoading = false;
       _isServerRunning = success;
       if (!success) {
-        _error = '无法启动本地服务器，请检查网络连接';
+        _error = AppStrings.of(context)?.serverStartFailed ?? 'Failed to start local server. Please check network connection.';
       }
     });
   }
@@ -71,7 +72,7 @@ class _QrImportDialogState extends State<QrImportDialog> {
 
     setState(() {
       _isImporting = true;
-      _receivedMessage = '正在导入: $name';
+      _receivedMessage = '${AppStrings.of(context)?.importingPlaylist ?? "Importing"}: $name';
     });
 
     try {
@@ -96,7 +97,7 @@ class _QrImportDialogState extends State<QrImportDialog> {
         }
 
         setState(() {
-          _receivedMessage = '✓ 导入成功: ${playlist.name}';
+          _receivedMessage = '✓ ${AppStrings.of(context)?.importSuccess ?? "Import successful"}: ${playlist.name}';
           _isImporting = false;
         });
 
@@ -108,7 +109,7 @@ class _QrImportDialogState extends State<QrImportDialog> {
       } else {
         debugPrint('DEBUG: 播放列表添加失败');
         setState(() {
-          _receivedMessage = '✗ 导入失败';
+          _receivedMessage = '✗ ${AppStrings.of(context)?.importFailed ?? "Import failed"}';
           _isImporting = false;
         });
       }
@@ -116,7 +117,7 @@ class _QrImportDialogState extends State<QrImportDialog> {
       debugPrint('DEBUG: URL导入过程中发生错误: $e');
       debugPrint('DEBUG: 错误堆栈: ${StackTrace.current}');
       setState(() {
-        _receivedMessage = '✗ 导入失败: $e';
+        _receivedMessage = '✗ ${AppStrings.of(context)?.importFailed ?? "Import failed"}: $e';
         _isImporting = false;
       });
     }
@@ -129,7 +130,7 @@ class _QrImportDialogState extends State<QrImportDialog> {
 
     setState(() {
       _isImporting = true;
-      _receivedMessage = '正在导入: $name';
+      _receivedMessage = '${AppStrings.of(context)?.importingPlaylist ?? "Importing"}: $name';
     });
 
     try {
@@ -154,7 +155,7 @@ class _QrImportDialogState extends State<QrImportDialog> {
         }
 
         setState(() {
-          _receivedMessage = '✓ 导入成功: ${playlist.name}';
+          _receivedMessage = '✓ ${AppStrings.of(context)?.importSuccess ?? "Import successful"}: ${playlist.name}';
           _isImporting = false;
         });
 
@@ -166,7 +167,7 @@ class _QrImportDialogState extends State<QrImportDialog> {
       } else {
         debugPrint('DEBUG: 播放列表添加失败');
         setState(() {
-          _receivedMessage = '✗ 导入失败';
+          _receivedMessage = '✗ ${AppStrings.of(context)?.importFailed ?? "Import failed"}';
           _isImporting = false;
         });
       }
@@ -174,7 +175,7 @@ class _QrImportDialogState extends State<QrImportDialog> {
       debugPrint('DEBUG: 内容导入过程中发生错误: $e');
       debugPrint('DEBUG: 错误堆栈: ${StackTrace.current}');
       setState(() {
-        _receivedMessage = '✗ 导入失败: $e';
+        _receivedMessage = '✗ ${AppStrings.of(context)?.importFailed ?? "Import failed"}: $e';
         _isImporting = false;
       });
     }
@@ -207,9 +208,9 @@ class _QrImportDialogState extends State<QrImportDialog> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  '扫码导入播放列表',
-                  style: TextStyle(
+                Text(
+                  AppStrings.of(context)?.scanToImport ?? 'Scan to Import Playlist',
+                  style: const TextStyle(
                     color: AppTheme.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -246,7 +247,7 @@ class _QrImportDialogState extends State<QrImportDialog> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text('关闭'),
+                  child: Text(AppStrings.of(context)?.close ?? 'Close'),
                 ),
               ),
             ),
@@ -257,9 +258,9 @@ class _QrImportDialogState extends State<QrImportDialog> {
   }
 
   Widget _buildLoadingState() {
-    return const Column(
+    return Column(
       children: [
-        SizedBox(
+        const SizedBox(
           width: 48,
           height: 48,
           child: CircularProgressIndicator(
@@ -267,10 +268,10 @@ class _QrImportDialogState extends State<QrImportDialog> {
             color: AppTheme.primaryColor,
           ),
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
         Text(
-          '正在启动服务...',
-          style: TextStyle(color: AppTheme.textSecondary),
+          AppStrings.of(context)?.startingServer ?? 'Starting server...',
+          style: const TextStyle(color: AppTheme.textSecondary),
         ),
       ],
     );
@@ -298,7 +299,7 @@ class _QrImportDialogState extends State<QrImportDialog> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryColor,
             ),
-            child: const Text('重试'),
+            child: Text(AppStrings.of(context)?.retry ?? 'Retry'),
           ),
         ),
       ],
@@ -341,11 +342,11 @@ class _QrImportDialogState extends State<QrImportDialog> {
                 ),
                 child: Column(
                   children: [
-                    _buildStep('1', '使用手机扫描左侧二维码'),
+                    _buildStep('1', AppStrings.of(context)?.qrStep1 ?? 'Scan the QR code with your phone'),
                     const SizedBox(height: 8),
-                    _buildStep('2', '在网页中输入链接或上传文件'),
+                    _buildStep('2', AppStrings.of(context)?.qrStep2 ?? 'Enter URL or upload file on the webpage'),
                     const SizedBox(height: 8),
-                    _buildStep('3', '点击导入，电视自动接收'),
+                    _buildStep('3', AppStrings.of(context)?.qrStep3 ?? 'Click import, TV receives automatically'),
                   ],
                 ),
               ),

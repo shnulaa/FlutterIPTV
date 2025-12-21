@@ -28,7 +28,9 @@ class SettingsScreen extends StatelessWidget {
               _buildSelectTile(
                 context,
                 title: AppStrings.of(context)?.language ?? 'Language',
-                subtitle: settings.locale?.languageCode == 'zh' ? '中文' : 'English',
+                subtitle: settings.locale?.languageCode == 'zh' 
+                    ? (AppStrings.of(context)?.chinese ?? '中文')
+                    : (AppStrings.of(context)?.english ?? 'English'),
                 icon: Icons.language_rounded,
                 onTap: () => _showLanguageDialog(context, settings),
               ),
@@ -52,8 +54,8 @@ class SettingsScreen extends StatelessWidget {
                 _buildDivider(),
                 _buildSelectTile(
                   context,
-                  title: 'Decoding Mode',
-                  subtitle: _getDecodingModeLabel(settings.decodingMode),
+                  title: AppStrings.of(context)?.decodingMode ?? 'Decoding Mode',
+                  subtitle: _getDecodingModeLabel(context, settings.decodingMode),
                   icon: Icons.memory_rounded,
                   onTap: () => _showDecodingModeDialog(context, settings),
                 ),
@@ -69,8 +71,8 @@ class SettingsScreen extends StatelessWidget {
                 _buildDivider(),
                 _buildSwitchTile(
                   context,
-                  title: '音量平衡',
-                  subtitle: '自动调节不同频道的音量差异',
+                  title: AppStrings.of(context)?.volumeNormalization ?? 'Volume Normalization',
+                  subtitle: AppStrings.of(context)?.volumeNormalizationSubtitle ?? 'Auto-adjust volume differences between channels',
                   icon: Icons.volume_up_rounded,
                   value: settings.volumeNormalization,
                   onChanged: (value) => settings.setVolumeNormalization(value),
@@ -79,9 +81,9 @@ class SettingsScreen extends StatelessWidget {
                   _buildDivider(),
                   _buildSelectTile(
                     context,
-                    title: '音量增益',
+                    title: AppStrings.of(context)?.volumeBoost ?? 'Volume Boost',
                     subtitle: settings.volumeBoost == 0
-                        ? '无增益'
+                        ? (AppStrings.of(context)?.noBoost ?? 'No boost')
                         : '${settings.volumeBoost > 0 ? '+' : ''}${settings.volumeBoost} dB',
                     icon: Icons.equalizer_rounded,
                     onTap: () => _showVolumeBoostDialog(context, settings),
@@ -208,8 +210,8 @@ class SettingsScreen extends StatelessWidget {
                 _buildDivider(),
                 _buildActionTile(
                   context,
-                  title: '检查更新',
-                  subtitle: '检查是否有新版本可用',
+                  title: AppStrings.of(context)?.checkUpdate ?? 'Check for Updates',
+                  subtitle: AppStrings.of(context)?.checkUpdateSubtitle ?? 'Check if a new version is available',
                   icon: Icons.system_update_rounded,
                   onTap: () => _checkForUpdates(context),
                 ),
@@ -278,15 +280,16 @@ class SettingsScreen extends StatelessWidget {
     return 'Unknown';
   }
 
-  String _getDecodingModeLabel(String mode) {
+  String _getDecodingModeLabel(BuildContext context, String mode) {
+    final strings = AppStrings.of(context);
     switch (mode) {
       case 'hardware':
-        return 'Hardware (硬解)';
+        return strings?.decodingModeHardware ?? 'Hardware';
       case 'software':
-        return 'Software (软解)';
+        return strings?.decodingModeSoftware ?? 'Software';
       case 'auto':
       default:
-        return 'Auto (自动)';
+        return strings?.decodingModeAuto ?? 'Auto';
     }
   }
 
@@ -299,20 +302,20 @@ class SettingsScreen extends StatelessWidget {
       builder: (context) {
         return AlertDialog(
           backgroundColor: AppTheme.surfaceColor,
-          title: const Text(
-            'Decoding Mode / 解码模式',
-            style: TextStyle(color: AppTheme.textPrimary),
+          title: Text(
+            AppStrings.of(context)?.decodingMode ?? 'Decoding Mode',
+            style: const TextStyle(color: AppTheme.textPrimary),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: options.map((mode) {
               return RadioListTile<String>(
                 title: Text(
-                  _getDecodingModeLabel(mode),
+                  _getDecodingModeLabel(context, mode),
                   style: const TextStyle(color: AppTheme.textPrimary),
                 ),
                 subtitle: Text(
-                  _getDecodingModeDescription(mode),
+                  _getDecodingModeDescription(context, mode),
                   style:
                       const TextStyle(color: AppTheme.textMuted, fontSize: 11),
                 ),
@@ -333,15 +336,16 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  String _getDecodingModeDescription(String mode) {
+  String _getDecodingModeDescription(BuildContext context, String mode) {
+    final strings = AppStrings.of(context);
     switch (mode) {
       case 'hardware':
-        return 'Force MediaCodec. May cause errors on some devices. / 强制硬解，部分设备可能报错';
+        return strings?.decodingModeHardwareDesc ?? 'Force MediaCodec. May cause errors on some devices.';
       case 'software':
-        return 'Use CPU decoding. More compatible but uses more power. / 使用CPU解码，兼容性好但耗电';
+        return strings?.decodingModeSoftwareDesc ?? 'Use CPU decoding. More compatible but uses more power.';
       case 'auto':
       default:
-        return 'Automatically choose best option. Recommended. / 自动选择最佳方式，推荐';
+        return strings?.decodingModeAutoDesc ?? 'Automatically choose best option. Recommended.';
     }
   }
 
@@ -697,22 +701,23 @@ class SettingsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) {
+        final strings = AppStrings.of(context);
         return AlertDialog(
           backgroundColor: AppTheme.surfaceColor,
-          title: const Text(
-            '音量增益 / Volume Boost',
-            style: TextStyle(color: AppTheme.textPrimary),
+          title: Text(
+            strings?.volumeBoost ?? 'Volume Boost',
+            style: const TextStyle(color: AppTheme.textPrimary),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: options.map((db) {
               return RadioListTile<int>(
                 title: Text(
-                  db == 0 ? '无增益 (0 dB)' : '${db > 0 ? '+' : ''}$db dB',
+                  db == 0 ? '${strings?.noBoost ?? "No boost"} (0 dB)' : '${db > 0 ? '+' : ''}$db dB',
                   style: const TextStyle(color: AppTheme.textPrimary),
                 ),
                 subtitle: Text(
-                  _getVolumeBoostDescription(db),
+                  _getVolumeBoostDescription(context, db),
                   style: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
                 ),
                 value: db,
@@ -732,12 +737,13 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  String _getVolumeBoostDescription(int db) {
-    if (db <= -10) return '大幅降低音量';
-    if (db < 0) return '略微降低音量';
-    if (db == 0) return '保持原始音量';
-    if (db <= 10) return '略微提高音量';
-    return '大幅提高音量';
+  String _getVolumeBoostDescription(BuildContext context, int db) {
+    final strings = AppStrings.of(context);
+    if (db <= -10) return strings?.volumeBoostLow ?? 'Significantly lower volume';
+    if (db < 0) return strings?.volumeBoostSlightLow ?? 'Slightly lower volume';
+    if (db == 0) return strings?.volumeBoostNormal ?? 'Keep original volume';
+    if (db <= 10) return strings?.volumeBoostSlightHigh ?? 'Slightly higher volume';
+    return strings?.volumeBoostHigh ?? 'Significantly higher volume';
   }
 
   void _showRefreshIntervalDialog(
@@ -927,9 +933,9 @@ class SettingsScreen extends StatelessWidget {
                 activeColor: AppTheme.primaryColor,
               ),
               RadioListTile<String>(
-                title: const Text(
-                  '中文',
-                  style: TextStyle(color: AppTheme.textPrimary),
+                title: Text(
+                  AppStrings.of(context)?.chinese ?? '中文',
+                  style: const TextStyle(color: AppTheme.textPrimary),
                 ),
                 value: 'zh',
                 groupValue: settings.locale?.languageCode ?? 'en',

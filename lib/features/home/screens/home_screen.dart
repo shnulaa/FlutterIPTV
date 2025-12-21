@@ -71,12 +71,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<_NavItem> _getNavItems(BuildContext context) {
+    final strings = AppStrings.of(context);
     return [
-      _NavItem(icon: Icons.home_rounded, label: AppStrings.of(context)?.home ?? '首页'),
-      _NavItem(icon: Icons.live_tv_rounded, label: AppStrings.of(context)?.channels ?? '频道'),
-      _NavItem(icon: Icons.favorite_rounded, label: AppStrings.of(context)?.favorites ?? '收藏'),
-      const _NavItem(icon: Icons.search_rounded, label: '搜索'),
-      _NavItem(icon: Icons.settings_rounded, label: AppStrings.of(context)?.settings ?? '设置'),
+      _NavItem(icon: Icons.home_rounded, label: strings?.home ?? 'Home'),
+      _NavItem(icon: Icons.live_tv_rounded, label: strings?.channels ?? 'Channels'),
+      _NavItem(icon: Icons.favorite_rounded, label: strings?.favorites ?? 'Favorites'),
+      _NavItem(icon: Icons.search_rounded, label: strings?.searchChannels ?? 'Search'),
+      _NavItem(icon: Icons.settings_rounded, label: strings?.settings ?? 'Settings'),
     ];
   }
 
@@ -168,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  _buildChannelRow('推荐频道', _recommendedChannels, showRefresh: true, onRefresh: _refreshRecommendedChannels),
+                  _buildChannelRow(AppStrings.of(context)?.recommendedChannels ?? 'Recommended', _recommendedChannels, showRefresh: true, onRefresh: _refreshRecommendedChannels),
                   const SizedBox(height: 28),
                   ...channelProvider.groups.take(5).map((group) {
                     final channels = channelProvider.channels.where((c) => c.groupName == group.name).take(7).toList();
@@ -183,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   }),
                   if (favChannels.isNotEmpty) ...[
-                    _buildChannelRow('我的收藏', favChannels, showMore: true, onMoreTap: () => Navigator.pushNamed(context, AppRouter.favorites)),
+                    _buildChannelRow(AppStrings.of(context)?.myFavorites ?? 'My Favorites', favChannels, showMore: true, onMoreTap: () => Navigator.pushNamed(context, AppRouter.favorites)),
                     const SizedBox(height: 24),
                   ],
                 ]),
@@ -212,7 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${provider.totalChannelCount} 频道 · ${provider.groups.length} 分类 · ${context.watch<FavoritesProvider>().count} 收藏',
+                  '${provider.totalChannelCount} ${AppStrings.of(context)?.channels ?? "channels"} · ${provider.groups.length} ${AppStrings.of(context)?.categories ?? "categories"} · ${context.watch<FavoritesProvider>().count} ${AppStrings.of(context)?.favorites ?? "favorites"}',
                   style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
                 ),
               ],
@@ -220,9 +221,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Row(
             children: [
-              _buildHeaderButton(Icons.play_arrow_rounded, '继续观看', true, recentChannel != null ? () => _playChannel(recentChannel) : null),
+              _buildHeaderButton(Icons.play_arrow_rounded, AppStrings.of(context)?.continueWatching ?? 'Continue', true, recentChannel != null ? () => _playChannel(recentChannel) : null),
               const SizedBox(width: 10),
-              _buildHeaderButton(Icons.playlist_add_rounded, '播放列表', false, () => Navigator.pushNamed(context, AppRouter.playlistManager)),
+              _buildHeaderButton(Icons.playlist_add_rounded, AppStrings.of(context)?.playlists ?? 'Playlists', false, () => Navigator.pushNamed(context, AppRouter.playlistManager)),
             ],
           ),
         ],
@@ -344,12 +345,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: child,
                   );
                 },
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('更多', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
-                    SizedBox(width: 2),
-                    Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted, size: 16),
+                    Text(AppStrings.of(context)?.more ?? 'More', style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted, size: 16),
                   ],
                 ),
               ),
@@ -410,9 +411,9 @@ class _HomeScreenState extends State<HomeScreen> {
             child: const Icon(Icons.playlist_add_rounded, size: 48, color: Colors.white),
           ),
           const SizedBox(height: 20),
-          const Text('还没有播放列表', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(AppStrings.of(context)?.noPlaylistYet ?? 'No Playlists Yet', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          const Text('添加 M3U 播放列表开始观看', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+          Text(AppStrings.of(context)?.addM3uToStart ?? 'Add M3U playlist to start watching', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
           const SizedBox(height: 24),
           TVFocusable(
             autofocus: true,
@@ -420,7 +421,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ElevatedButton.icon(
               onPressed: () => Navigator.pushNamed(context, AppRouter.playlistManager),
               icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('添加播放列表'),
+              label: Text(AppStrings.of(context)?.addPlaylist ?? 'Add Playlist'),
             ),
           ),
         ],

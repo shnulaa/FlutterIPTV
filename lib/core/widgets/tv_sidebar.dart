@@ -49,11 +49,11 @@ class _TVSidebarState extends State<TVSidebar> {
 
   List<_NavItem> _getNavItems(BuildContext context) {
     return [
-      _NavItem(icon: Icons.home_rounded, label: AppStrings.of(context)?.home ?? '首页', route: null),
-      _NavItem(icon: Icons.live_tv_rounded, label: AppStrings.of(context)?.channels ?? '频道', route: AppRouter.channels),
-      _NavItem(icon: Icons.favorite_rounded, label: AppStrings.of(context)?.favorites ?? '收藏', route: AppRouter.favorites),
-      const _NavItem(icon: Icons.search_rounded, label: '搜索', route: AppRouter.search),
-      _NavItem(icon: Icons.settings_rounded, label: AppStrings.of(context)?.settings ?? '设置', route: AppRouter.settings),
+      _NavItem(icon: Icons.home_rounded, label: AppStrings.of(context)?.home ?? 'Home', route: null),
+      _NavItem(icon: Icons.live_tv_rounded, label: AppStrings.of(context)?.channels ?? 'Channels', route: AppRouter.channels),
+      _NavItem(icon: Icons.favorite_rounded, label: AppStrings.of(context)?.favorites ?? 'Favorites', route: AppRouter.favorites),
+      _NavItem(icon: Icons.search_rounded, label: AppStrings.of(context)?.search ?? 'Search', route: AppRouter.search),
+      _NavItem(icon: Icons.settings_rounded, label: AppStrings.of(context)?.settings ?? 'Settings', route: AppRouter.settings),
     ];
   }
 
