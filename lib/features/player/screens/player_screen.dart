@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:video_player/video_player.dart';
 import 'package:screen_brightness/screen_brightness.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'dart:async';
 
 import '../../../core/i18n/app_strings.dart';
@@ -53,19 +54,38 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   double _initialBrightness = 0;
   bool _showGestureIndicator = false;
   double _gestureValue = 0;
+  
+  // 本地 loading 状态，用于强制刷新
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // 保持屏幕常亮
+    WakelockPlus.enable();
     _checkAndLaunchPlayer();
   }
   
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 保存 provider 引用
-    _playerProvider ??= context.read<PlayerProvider>();
+    // 保存 provider 引用并添加监听
+    if (_playerProvider == null) {
+      _playerProvider = context.read<PlayerProvider>();
+      _playerProvider!.addListener(_onProviderUpdate);
+      _isLoading = _playerProvider!.isLoading;
+    }
+  }
+  
+  void _onProviderUpdate() {
+    if (!mounted) return;
+    final newLoading = _playerProvider?.isLoading ?? false;
+    if (_isLoading != newLoading) {
+      setState(() {
+        _isLoading = newLoading;
+      });
+    }
   }
 
   @override
@@ -222,6 +242,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     if (!_usingNativePlayer && _playerProvider != null) {
       debugPrint('PlayerScreen: calling _playerProvider.stop()');
       _playerProvider!.removeListener(_onError);
+      _playerProvider!.removeListener(_onProviderUpdate);
       _playerProvider!.stop();
     }
     
@@ -229,6 +250,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     try {
       ScreenBrightness.instance.resetApplicationScreenBrightness();
     } catch (_) {}
+    
+    // 关闭屏幕常亮
+    WakelockPlus.disable();
 
     // Restore system UI
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -359,6 +383,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           playerProvider.playNext(channelProvider.filteredChannels);
           _saveLastChannelId(playerProvider.currentChannel);
         }
+        // 强制刷新 UI
+        setState(() {});
       }
     }
     
@@ -686,19 +712,13 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                 // 手势指示器 (手机端)
                 if (_showGestureIndicator) _buildGestureIndicator(),
 
-                // Loading Indicator
-                Consumer<PlayerProvider>(
-                  builder: (context, provider, _) {
-                    if (provider.isLoading) {
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          color: AppTheme.primaryColor,
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
+                // Loading Indicator - 使用本地状态
+                if (_isLoading)
+                  const Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
 
                 // Error Display - Handled via Listener now to show SnackBar
                 // But we can keep a subtle indicator if needed, or remove it entirely
@@ -714,16 +734,29 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   Widget _buildVideoPlayer() {
     return Consumer<PlayerProvider>(
       builder: (context, provider, _) {
-        // Use ExoPlayer on Android TV
+        // Use ExoPlayer on Android phone
         if (provider.useExoPlayer) {
-          if (provider.exoPlayer == null || !provider.exoPlayer!.value.isInitialized) {
+          final exoPlayer = provider.exoPlayer;
+          // 确保 exoPlayer 存在
+          if (exoPlayer == null) {
             return const SizedBox.expand();
           }
-          return Center(
-            child: AspectRatio(
-              aspectRatio: provider.exoPlayer!.value.aspectRatio,
-              child: VideoPlayer(provider.exoPlayer!),
-            ),
+          
+          // 使用 ValueListenableBuilder 监听 controller 变化
+          return ValueListenableBuilder<VideoPlayerValue>(
+            valueListenable: exoPlayer,
+            builder: (context, value, child) {
+              if (!value.isInitialized) {
+                return const SizedBox.expand();
+              }
+              
+              return Center(
+                child: AspectRatio(
+                  aspectRatio: value.aspectRatio > 0 ? value.aspectRatio : 16 / 9,
+                  child: VideoPlayer(exoPlayer),
+                ),
+              );
+            },
           );
         }
         

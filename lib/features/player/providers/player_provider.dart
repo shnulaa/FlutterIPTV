@@ -31,6 +31,7 @@ class PlayerProvider extends ChangeNotifier {
 
   // video_player (ExoPlayer) for Android fallback
   VideoPlayerController? _exoPlayer;
+  int _exoPlayerKey = 0; // 用于强制 VideoPlayer widget 重建
 
   // Common state
   Channel? _currentChannel;
@@ -58,6 +59,7 @@ class PlayerProvider extends ChangeNotifier {
   Player? get player => _mediaKitPlayer;
   VideoController? get videoController => _videoController;
   VideoPlayerController? get exoPlayer => _exoPlayer;
+  int get exoPlayerKey => _exoPlayerKey; // 用于 VideoPlayer widget 的 key
   bool get useExoPlayer => _useExoPlayer;
 
   Channel? get currentChannel => _currentChannel;
@@ -205,6 +207,12 @@ class PlayerProvider extends ChangeNotifier {
 
   Future<void> _initExoPlayer(String url) async {
     await _disposeExoPlayer();
+    
+    // 增加 key 强制 VideoPlayer widget 重建
+    _exoPlayerKey++;
+    
+    // 先通知 UI exoPlayer 已被释放
+    notifyListeners();
 
     _exoPlayer = VideoPlayerController.networkUrl(
       Uri.parse(url),
@@ -216,6 +224,9 @@ class PlayerProvider extends ChangeNotifier {
 
     try {
       await _exoPlayer!.initialize();
+      // 初始化完成后立即通知 UI
+      notifyListeners();
+      
       await _exoPlayer!.setVolume(_isMuted ? 0 : _volume);
       await _exoPlayer!.play();
       _state = PlayerState.playing;
@@ -232,10 +243,24 @@ class PlayerProvider extends ChangeNotifier {
     _position = value.position;
     _duration = value.duration;
 
-    if (value.hasError) { _state = PlayerState.error; _error = value.errorDescription ?? 'Unknown error'; }
-    else if (value.isBuffering) { _state = PlayerState.buffering; }
-    else if (value.isPlaying) { _state = PlayerState.playing; }
-    else if (value.isInitialized && !value.isPlaying) { _state = PlayerState.paused; }
+    final oldState = _state;
+    if (value.hasError) { 
+      _state = PlayerState.error; 
+      _error = value.errorDescription ?? 'Unknown error'; 
+    } else if (value.isPlaying) { 
+      // 优先判断 isPlaying，即使在缓冲也显示播放状态
+      _state = PlayerState.playing; 
+    } else if (value.isBuffering) { 
+      _state = PlayerState.buffering; 
+    } else if (value.isInitialized && !value.isPlaying) { 
+      _state = PlayerState.paused; 
+    }
+    
+    if (oldState != _state) {
+      debugPrint('PlayerProvider: ExoPlayer state changed: $oldState -> $_state, isLoading=$isLoading');
+    }
+    
+    // 确保每次状态更新都通知 UI
     notifyListeners();
   }
 
@@ -244,6 +269,7 @@ class PlayerProvider extends ChangeNotifier {
       _exoPlayer!.removeListener(_onExoPlayerUpdate);
       await _exoPlayer!.dispose();
       _exoPlayer = null;
+      notifyListeners(); // 通知 UI player 已被释放
     }
   }
 
