@@ -188,12 +188,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
                         _buildChannelRow(AppStrings.of(context)?.recommendedChannels ?? 'Recommended', _recommendedChannels, showRefresh: true, onRefresh: _refreshRecommendedChannels),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
                         ...channelProvider.groups.take(5).map((group) {
                           // 取足够多的频道，实际显示数量由宽度决定
                           final channels = channelProvider.channels.where((c) => c.groupName == group.name).take(20).toList();
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 20),
+                            padding: const EdgeInsets.only(bottom: 12),
                             child: _buildChannelRow(
                               group.name,
                               channels,
@@ -204,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         }),
                         if (favChannels.isNotEmpty) ...[
                           _buildChannelRow(AppStrings.of(context)?.myFavorites ?? 'My Favorites', favChannels, showMore: true, onMoreTap: () => Navigator.pushNamed(context, AppRouter.favorites)),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 12),
                         ],
                       ]),
                     ),
@@ -248,10 +248,17 @@ class _HomeScreenState extends State<HomeScreen> {
     if (activePlaylist != null) {
       final type = activePlaylist.isRemote ? 'URL' : '本地';
       playlistInfo = ' · [$type] ${activePlaylist.name}';
+      if (activePlaylist.url != null && activePlaylist.url!.isNotEmpty) {
+        String url = activePlaylist.url!.replaceFirst(RegExp(r'^https?://'), '');
+        if (url.length > 30) {
+          url = '${url.substring(0, 30)}...';
+        }
+        playlistInfo += ' · $url';
+      }
     }
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
       child: Row(
         children: [
           Expanded(
@@ -262,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   shaderCallback: (bounds) => AppTheme.lotusGradient.createShader(bounds),
                   child: const Text('Lotus IPTV', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
                   '${provider.totalChannelCount} ${AppStrings.of(context)?.channels ?? "频道"} · ${provider.groups.length} ${AppStrings.of(context)?.categories ?? "分类"} · ${context.watch<FavoritesProvider>().count} ${AppStrings.of(context)?.favorites ?? "收藏"}$playlistInfo',
                   style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
@@ -391,7 +398,7 @@ class _HomeScreenState extends State<HomeScreen> {
             final epgProvider = context.watch<EpgProvider>();
             
             return SizedBox(
-              height: 155,
+              height: 140,
               child: Row(
                 children: List.generate(displayCount, (index) {
                   final channel = channels[index];
@@ -524,14 +531,17 @@ class _ResponsiveCategoryChipsState extends State<_ResponsiveCategoryChips> {
   Widget _buildExpandedView() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        alignment: WrapAlignment.start,
-        children: [
-          ...widget.groups.map((group) => _buildChip(group.name)),
-          if (widget.groups.length > 6) _buildCollapseButton(),
-        ],
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.start,
+          children: [
+            ...widget.groups.map((group) => _buildChip(group.name)),
+            if (widget.groups.length > 6) _buildCollapseButton(),
+          ],
+        ),
       ),
     );
   }
@@ -542,14 +552,17 @@ class _ResponsiveCategoryChipsState extends State<_ResponsiveCategoryChips> {
     
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        alignment: WrapAlignment.start,
-        children: [
-          ...widget.groups.take(visibleCount).map((group) => _buildChip(group.name)),
-          _buildExpandButton(widget.groups.length - visibleCount),
-        ],
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.start,
+          children: [
+            ...widget.groups.take(visibleCount).map((group) => _buildChip(group.name)),
+            _buildExpandButton(widget.groups.length - visibleCount),
+          ],
+        ),
       ),
     );
   }
