@@ -8,6 +8,7 @@ import '../../../core/platform/platform_detector.dart';
 import '../../../core/i18n/app_strings.dart';
 import '../../../core/services/service_locator.dart';
 import '../providers/settings_provider.dart';
+import '../../epg/providers/epg_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -145,7 +146,18 @@ class SettingsScreen extends StatelessWidget {
                       'Show program information for channels',
                   icon: Icons.event_note_rounded,
                   value: settings.enableEpg,
-                  onChanged: (value) => settings.setEnableEpg(value),
+                  onChanged: (value) {
+                    settings.setEnableEpg(value);
+                    if (value) {
+                      // 启用 EPG 时，如果有配置 URL 则加载
+                      if (settings.epgUrl != null && settings.epgUrl!.isNotEmpty) {
+                        context.read<EpgProvider>().loadEpg(settings.epgUrl!);
+                      }
+                    } else {
+                      // 关闭 EPG 时清除已加载的数据
+                      context.read<EpgProvider>().clear();
+                    }
+                  },
                 ),
                 if (settings.enableEpg) ...[
                   _buildDivider(),
@@ -791,7 +803,7 @@ class SettingsScreen extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: AppTheme.surfaceColor,
           title: Text(
@@ -809,15 +821,29 @@ class SettingsScreen extends StatelessWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: Text(AppStrings.of(context)?.cancel ?? 'Cancel'),
             ),
             ElevatedButton(
-              onPressed: () {
-                settings.setEpgUrl(controller.text.trim().isEmpty
+              onPressed: () async {
+                final newUrl = controller.text.trim().isEmpty
                     ? null
-                    : controller.text.trim());
-                Navigator.pop(context);
+                    : controller.text.trim();
+                final oldUrl = settings.epgUrl;
+                
+                // 保存新 URL
+                await settings.setEpgUrl(newUrl);
+                Navigator.pop(dialogContext);
+                
+                // 如果 URL 变化了，清除旧数据并加载新数据
+                if (newUrl != oldUrl) {
+                  final epgProvider = context.read<EpgProvider>();
+                  epgProvider.clear();
+                  
+                  if (newUrl != null && newUrl.isNotEmpty && settings.enableEpg) {
+                    epgProvider.loadEpg(newUrl);
+                  }
+                }
               },
               child: Text(AppStrings.of(context)?.save ?? 'Save'),
             ),

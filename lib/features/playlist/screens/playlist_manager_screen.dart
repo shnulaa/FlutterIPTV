@@ -1000,43 +1000,60 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
       return;
     }
 
-    final playlist = await provider.addPlaylistFromUrl(name, url);
+    try {
+      final playlist = await provider.addPlaylistFromUrl(name, url);
 
-    if (playlist != null && mounted) {
-      // Set the new playlist as active and load its channels
-      provider.setActivePlaylist(playlist,
-          favoritesProvider: context.read<FavoritesProvider>());
-      await context.read<ChannelProvider>().loadChannels(playlist.id!);
-      
-      // Auto-apply EPG URL if extracted from M3U
-      if (provider.lastExtractedEpgUrl != null) {
-        final settingsProvider = context.read<SettingsProvider>();
-        final epgApplied = await provider.applyExtractedEpgUrl(settingsProvider);
-        if (epgApplied && mounted) {
-          // Reload EPG data
-          await context.read<EpgProvider>().loadEpg(provider.lastExtractedEpgUrl!);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${AppStrings.of(context)?.epgAutoApplied ?? "EPG source auto-applied"}: ${provider.lastExtractedEpgUrl}'),
-              backgroundColor: AppTheme.successColor,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+      if (playlist != null && mounted) {
+        // Set the new playlist as active and load its channels
+        provider.setActivePlaylist(playlist,
+            favoritesProvider: context.read<FavoritesProvider>());
+        await context.read<ChannelProvider>().loadChannels(playlist.id!);
+        
+        // Auto-apply EPG URL if extracted from M3U
+        if (provider.lastExtractedEpgUrl != null) {
+          final settingsProvider = context.read<SettingsProvider>();
+          final epgApplied = await provider.applyExtractedEpgUrl(settingsProvider);
+          if (epgApplied && mounted) {
+            // Reload EPG data
+            await context.read<EpgProvider>().loadEpg(provider.lastExtractedEpgUrl!);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${AppStrings.of(context)?.epgAutoApplied ?? "EPG source auto-applied"}: ${provider.lastExtractedEpgUrl}'),
+                backgroundColor: AppTheme.successColor,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        } else {
+          // 如果 M3U 没有 EPG URL，但设置中已配置，则加载已配置的 EPG
+          final settingsProvider = context.read<SettingsProvider>();
+          if (settingsProvider.enableEpg && settingsProvider.epgUrl != null) {
+            context.read<EpgProvider>().loadEpg(settingsProvider.epgUrl!);
+          }
         }
+
+        _nameController.clear();
+        _urlController.clear();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                (AppStrings.of(context)?.playlistAdded ?? 'Added "{name}"')
+                    .replaceAll('{name}', playlist.name)
+                    .replaceAll('{count}', '${playlist.channelCount}')),
+            backgroundColor: AppTheme.successColor,
+          ),
+        );
       }
-
-      _nameController.clear();
-      _urlController.clear();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              (AppStrings.of(context)?.playlistAdded ?? 'Added "{name}"')
-                  .replaceAll('{name}', playlist.name)
-                  .replaceAll('{count}', '${playlist.channelCount}')),
-          backgroundColor: AppTheme.successColor,
-        ),
-      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
     }
   }
 
@@ -1061,6 +1078,12 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
           if (epgApplied && mounted) {
             // Reload EPG data (后台加载)
             context.read<EpgProvider>().loadEpg(provider.lastExtractedEpgUrl!);
+          }
+        } else {
+          // 如果 M3U 没有 EPG URL，但设置中已配置，则加载已配置的 EPG
+          final settingsProvider = context.read<SettingsProvider>();
+          if (settingsProvider.enableEpg && settingsProvider.epgUrl != null) {
+            context.read<EpgProvider>().loadEpg(settingsProvider.epgUrl!);
           }
         }
       }
@@ -1186,6 +1209,22 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
               provider.setActivePlaylist(playlist,
                   favoritesProvider: context.read<FavoritesProvider>());
               await context.read<ChannelProvider>().loadChannels(playlist.id!);
+              
+              // Auto-apply EPG URL if extracted from M3U
+              if (provider.lastExtractedEpgUrl != null) {
+                final settingsProvider = context.read<SettingsProvider>();
+                final epgApplied = await provider.applyExtractedEpgUrl(settingsProvider);
+                if (epgApplied && mounted) {
+                  // Reload EPG data
+                  context.read<EpgProvider>().loadEpg(provider.lastExtractedEpgUrl!);
+                }
+              } else {
+                // 如果 M3U 没有 EPG URL，但设置中已配置，则加载已配置的 EPG
+                final settingsProvider = context.read<SettingsProvider>();
+                if (settingsProvider.enableEpg && settingsProvider.epgUrl != null) {
+                  context.read<EpgProvider>().loadEpg(settingsProvider.epgUrl!);
+                }
+              }
             }
 
             ScaffoldMessenger.of(context).showSnackBar(

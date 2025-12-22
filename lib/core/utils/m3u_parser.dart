@@ -52,7 +52,21 @@ class M3UParser {
       return channels;
     } catch (e) {
       debugPrint('DEBUG: 从URL获取播放列表时出错: $e');
-      throw Exception('Error fetching playlist from URL: $e');
+      // 简化错误信息
+      String errorMsg = 'Failed to load playlist';
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('404')) {
+        errorMsg = 'Playlist not found (404)';
+      } else if (errorStr.contains('403')) {
+        errorMsg = 'Access denied (403)';
+      } else if (errorStr.contains('timeout') || errorStr.contains('timed out')) {
+        errorMsg = 'Connection timeout';
+      } else if (errorStr.contains('socket') || errorStr.contains('connection')) {
+        errorMsg = 'Network connection failed';
+      } else if (errorStr.contains('certificate') || errorStr.contains('ssl')) {
+        errorMsg = 'SSL certificate error';
+      }
+      throw Exception(errorMsg);
     }
   }
 

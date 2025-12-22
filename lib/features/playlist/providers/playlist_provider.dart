@@ -112,6 +112,7 @@ class PlaylistProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
 
+    int? playlistId;
     try {
       // Create playlist record
       final playlistData = Playlist(
@@ -120,7 +121,7 @@ class PlaylistProvider extends ChangeNotifier {
         createdAt: DateTime.now(),
       ).toMap();
 
-      final playlistId =
+      playlistId =
           await ServiceLocator.database.insert('playlists', playlistData);
 
       _importProgress = 0.2;
@@ -169,10 +170,20 @@ class PlaylistProvider extends ChangeNotifier {
 
       return _playlists.firstWhere((p) => p.id == playlistId);
     } catch (e) {
+      // 如果失败，删除已创建的播放列表记录
+      if (playlistId != null) {
+        try {
+          await ServiceLocator.database.delete(
+            'playlists',
+            where: 'id = ?',
+            whereArgs: [playlistId],
+          );
+        } catch (_) {}
+      }
       _error = 'Failed to add playlist: $e';
       _isLoading = false;
       notifyListeners();
-      return null;
+      rethrow; // 重新抛出异常让 UI 显示错误
     }
   }
 
