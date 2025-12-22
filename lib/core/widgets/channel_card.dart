@@ -76,14 +76,18 @@ class ChannelCard extends StatelessWidget {
       },
       child: GestureDetector(
         onLongPress: isTV ? () => _showTVMenu(context) : onLongPress,
-        child: AspectRatio(
-          aspectRatio: 16 / 10,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Logo area
-              Expanded(
-                flex: 9,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Logo area - 固定高度，不被 EPG 压缩
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(AppTheme.radiusMedium),
+                topRight: Radius.circular(AppTheme.radiusMedium),
+              ),
+              child: SizedBox(
+                height: 75,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -155,51 +159,51 @@ class ChannelCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Info area
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      name,
-                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+            ),
+            // Info area
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (currentProgram != null && currentProgram!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(Icons.play_circle_filled, color: AppTheme.primaryColor, size: 10),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(currentProgram!, style: const TextStyle(color: AppTheme.primaryColor, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ),
+                      ],
                     ),
-                    if (currentProgram != null && currentProgram!.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Row(
-                        children: [
-                          const Icon(Icons.play_circle_filled, color: AppTheme.primaryColor, size: 10),
-                          const SizedBox(width: 3),
-                          Expanded(
-                            child: Text(currentProgram!, style: const TextStyle(color: AppTheme.primaryColor, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis),
-                          ),
-                        ],
-                      ),
-                    ],
-                    if (nextProgram != null && nextProgram!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          const Icon(Icons.schedule, color: AppTheme.textMuted, size: 10),
-                          const SizedBox(width: 3),
-                          Expanded(
-                            child: Text(nextProgram!, style: const TextStyle(color: AppTheme.textMuted, fontSize: 9), maxLines: 1, overflow: TextOverflow.ellipsis),
-                          ),
-                        ],
-                      ),
-                    ] else if (currentProgram == null && groupName != null) ...[
-                      const SizedBox(height: 2),
-                      Text(groupName!, style: const TextStyle(color: AppTheme.textMuted, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    ],
                   ],
-                ),
+                  if (nextProgram != null && nextProgram!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(Icons.schedule, color: AppTheme.textMuted, size: 10),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(nextProgram!, style: const TextStyle(color: AppTheme.textMuted, fontSize: 9), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ),
+                      ],
+                    ),
+                  ] else if (currentProgram == null && groupName != null) ...[
+                    const SizedBox(height: 2),
+                    Text(groupName!, style: const TextStyle(color: AppTheme.textMuted, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ],
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

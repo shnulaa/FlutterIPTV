@@ -14,6 +14,7 @@ import '../../playlist/providers/playlist_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
 import '../../player/providers/player_provider.dart';
 import '../../settings/providers/settings_provider.dart';
+import '../../epg/providers/epg_provider.dart';
 import '../../../core/models/channel.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -26,6 +27,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedNavIndex = 0;
   List<Channel> _recommendedChannels = [];
+  int? _lastPlaylistId; // 跟踪上次的播放列表ID
 
   @override
   void initState() {
@@ -38,7 +40,17 @@ class _HomeScreenState extends State<HomeScreen> {
     super.didChangeDependencies();
     // 当从其他页面返回时，检查是否需要刷新推荐频道
     final channelProvider = context.read<ChannelProvider>();
-    if (_recommendedChannels.isEmpty && channelProvider.channels.isNotEmpty) {
+    final playlistProvider = context.read<PlaylistProvider>();
+    final currentPlaylistId = playlistProvider.activePlaylist?.id;
+    
+    // 如果播放列表变化了，清空推荐频道并重新加载
+    if (_lastPlaylistId != currentPlaylistId) {
+      _lastPlaylistId = currentPlaylistId;
+      _recommendedChannels = [];
+      if (channelProvider.channels.isNotEmpty) {
+        _refreshRecommendedChannels();
+      }
+    } else if (_recommendedChannels.isEmpty && channelProvider.channels.isNotEmpty) {
       _refreshRecommendedChannels();
     }
   }
@@ -50,6 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (playlistProvider.hasPlaylists) {
       final activePlaylist = playlistProvider.activePlaylist;
+      _lastPlaylistId = activePlaylist?.id;
       if (activePlaylist != null && activePlaylist.id != null) {
         await channelProvider.loadChannels(activePlaylist.id!);
       } else {
@@ -62,12 +75,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _refreshRecommendedChannels() {
     final channelProvider = context.read<ChannelProvider>();
-    if (channelProvider.channels.length <= 7) {
-      _recommendedChannels = channelProvider.channels;
-    } else {
-      final shuffled = List<Channel>.from(channelProvider.channels)..shuffle();
-      _recommendedChannels = shuffled.take(7).toList();
-    }
+    // 随机打乱频道顺序，显示数量由 _buildChannelRow 根据宽度自动计算
+    final shuffled = List<Channel>.from(channelProvider.channels)..shuffle();
+    // 最多取20个作为候选，实际显示数量由宽度决定
+    _recommendedChannels = shuffled.take(20).toList();
     setState(() {});
   }
 
@@ -161,34 +172,44 @@ class _HomeScreenState extends State<HomeScreen> {
         
         final favChannels = _getFavoriteChannels(channelProvider);
         
-        return CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(child: _buildCompactHeader(channelProvider)),
-            SliverToBoxAdapter(child: _buildCategoryChips(channelProvider)),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  _buildChannelRow(AppStrings.of(context)?.recommendedChannels ?? 'Recommended', _recommendedChannels, showRefresh: true, onRefresh: _refreshRecommendedChannels),
-                  const SizedBox(height: 28),
-                  ...channelProvider.groups.take(5).map((group) {
-                    final channels = channelProvider.channels.where((c) => c.groupName == group.name).take(7).toList();
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 28),
-                      child: _buildChannelRow(
-                        group.name,
-                        channels,
-                        showMore: true,
-                        onMoreTap: () => Navigator.pushNamed(context, AppRouter.channels, arguments: {'groupName': group.name}),
-                      ),
-                    );
-                  }),
-                  if (favChannels.isNotEmpty) ...[
-                    _buildChannelRow(AppStrings.of(context)?.myFavorites ?? 'My Favorites', favChannels, showMore: true, onMoreTap: () => Navigator.pushNamed(context, AppRouter.favorites)),
-                    const SizedBox(height: 24),
-                  ],
-                ]),
+        return Column(
+          children: [
+            // 固定头部
+            _buildCompactHeader(channelProvider),
+            // 固定分类标签
+            _buildCategoryChips(channelProvider),
+            const SizedBox(height: 16),
+            // 可滚动的频道列表
+            Expanded(
+              child: CustomScrollView(
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        _buildChannelRow(AppStrings.of(context)?.recommendedChannels ?? 'Recommended', _recommendedChannels, showRefresh: true, onRefresh: _refreshRecommendedChannels),
+                        const SizedBox(height: 20),
+                        ...channelProvider.groups.take(5).map((group) {
+                          // 取足够多的频道，实际显示数量由宽度决定
+                          final channels = channelProvider.channels.where((c) => c.groupName == group.name).take(20).toList();
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: _buildChannelRow(
+                              group.name,
+                              channels,
+                              showMore: true,
+                              onMoreTap: () => Navigator.pushNamed(context, AppRouter.channels, arguments: {'groupName': group.name}),
+                            ),
+                          );
+                        }),
+                        if (favChannels.isNotEmpty) ...[
+                          _buildChannelRow(AppStrings.of(context)?.myFavorites ?? 'My Favorites', favChannels, showMore: true, onMoreTap: () => Navigator.pushNamed(context, AppRouter.favorites)),
+                          const SizedBox(height: 20),
+                        ],
+                      ]),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -200,6 +221,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildCompactHeader(ChannelProvider provider) {
     // 获取上次播放的频道 - 使用 watch 来监听变化
     final settingsProvider = context.watch<SettingsProvider>();
+    final playlistProvider = context.watch<PlaylistProvider>();
+    final activePlaylist = playlistProvider.activePlaylist;
     Channel? lastChannel;
     
     debugPrint('DEBUG: rememberLastChannel=${settingsProvider.rememberLastChannel}, lastChannelId=${settingsProvider.lastChannelId}');
@@ -220,6 +243,13 @@ class _HomeScreenState extends State<HomeScreen> {
       lastChannel = provider.channels.isNotEmpty ? provider.channels.first : null;
     }
 
+    // 构建播放列表信息
+    String playlistInfo = '';
+    if (activePlaylist != null) {
+      final type = activePlaylist.isRemote ? 'URL' : '本地';
+      playlistInfo = ' · [$type] ${activePlaylist.name}';
+    }
+
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
       child: Row(
@@ -234,8 +264,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${provider.totalChannelCount} ${AppStrings.of(context)?.channels ?? "channels"} · ${provider.groups.length} ${AppStrings.of(context)?.categories ?? "categories"} · ${context.watch<FavoritesProvider>().count} ${AppStrings.of(context)?.favorites ?? "favorites"}',
+                  '${provider.totalChannelCount} ${AppStrings.of(context)?.channels ?? "频道"} · ${provider.groups.length} ${AppStrings.of(context)?.categories ?? "分类"} · ${context.watch<FavoritesProvider>().count} ${AppStrings.of(context)?.favorites ?? "收藏"}$playlistInfo',
                   style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -281,44 +313,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCategoryChips(ChannelProvider provider) {
-    return SizedBox(
-      height: 38,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        itemCount: provider.groups.length,
-        itemBuilder: (context, index) {
-          final group = provider.groups[index];
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: TVFocusable(
-              onSelect: () => Navigator.pushNamed(context, AppRouter.channels, arguments: {'groupName': group.name}),
-              focusScale: 1.0,
-              showFocusBorder: false,
-              builder: (context, isFocused, child) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    gradient: isFocused ? AppTheme.lotusGradient : null,
-                    color: isFocused ? null : AppTheme.glassColor,
-                    borderRadius: BorderRadius.circular(AppTheme.radiusPill),
-                    border: Border.all(color: isFocused ? AppTheme.focusBorderColor : AppTheme.glassBorderColor),
-                  ),
-                  child: child,
-                );
-              },
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(CategoryCard.getIconForCategory(group.name), size: 14, color: AppTheme.textSecondary),
-                  const SizedBox(width: 6),
-                  Text(group.name, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+    return _ResponsiveCategoryChips(
+      groups: provider.groups,
+      onGroupTap: (groupName) => Navigator.pushNamed(context, AppRouter.channels, arguments: {'groupName': groupName}),
     );
   }
 
@@ -377,30 +374,51 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
           ],
         ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 145,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: channels.length > 7 ? 7 : channels.length,
-            itemBuilder: (context, index) {
-              final channel = channels[index];
-              return Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: SizedBox(
-                  width: 160,
-                  child: ChannelCard(
-                    name: channel.name,
-                    logoUrl: channel.logoUrl,
-                    groupName: channel.groupName,
-                    isFavorite: context.watch<FavoritesProvider>().isFavorite(channel.id ?? 0),
-                    onFavoriteToggle: () => context.read<FavoritesProvider>().toggleFavorite(channel),
-                    onTap: () => _playChannel(channel),
-                  ),
-                ),
-              );
-            },
-          ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // 每个卡片宽度 160 + 间距 12
+            const cardWidth = 160.0;
+            const cardSpacing = 12.0;
+            final availableWidth = constraints.maxWidth;
+            
+            // 计算能显示多少个卡片
+            final maxCards = ((availableWidth + cardSpacing) / (cardWidth + cardSpacing)).floor();
+            // 显示数量不能超过实际频道数量，最少显示1个
+            final displayCount = maxCards.clamp(1, channels.length);
+            
+            // 获取 EPG Provider
+            final epgProvider = context.watch<EpgProvider>();
+            
+            return SizedBox(
+              height: 155,
+              child: Row(
+                children: List.generate(displayCount, (index) {
+                  final channel = channels[index];
+                  // 获取 EPG 信息
+                  final currentProgram = epgProvider.getCurrentProgram(channel.epgId, channel.name);
+                  final nextProgram = epgProvider.getNextProgram(channel.epgId, channel.name);
+                  
+                  return Padding(
+                    padding: EdgeInsets.only(right: index < displayCount - 1 ? cardSpacing : 0),
+                    child: SizedBox(
+                      width: cardWidth,
+                      child: ChannelCard(
+                        name: channel.name,
+                        logoUrl: channel.logoUrl,
+                        groupName: channel.groupName,
+                        currentProgram: currentProgram?.title,
+                        nextProgram: nextProgram?.title,
+                        isFavorite: context.watch<FavoritesProvider>().isFavorite(channel.id ?? 0),
+                        onFavoriteToggle: () => context.read<FavoritesProvider>().toggleFavorite(channel),
+                        onTap: () => _playChannel(channel),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -423,7 +441,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Channel> _getFavoriteChannels(ChannelProvider provider) {
     final favProvider = context.read<FavoritesProvider>();
-    return provider.channels.where((c) => favProvider.isFavorite(c.id ?? 0)).take(7).toList();
+    // 最多取20个作为候选，实际显示数量由宽度决定
+    return provider.channels.where((c) => favProvider.isFavorite(c.id ?? 0)).take(20).toList();
   }
 
   Widget _buildEmptyState() {
@@ -461,4 +480,161 @@ class _NavItem {
   final IconData icon;
   final String label;
   const _NavItem({required this.icon, required this.label});
+}
+
+/// 响应式分类标签组件 - 根据宽度自适应，超出时折叠
+class _ResponsiveCategoryChips extends StatefulWidget {
+  final List<dynamic> groups;
+  final Function(String) onGroupTap;
+
+  const _ResponsiveCategoryChips({
+    required this.groups,
+    required this.onGroupTap,
+  });
+
+  @override
+  State<_ResponsiveCategoryChips> createState() => _ResponsiveCategoryChipsState();
+}
+
+class _ResponsiveCategoryChipsState extends State<_ResponsiveCategoryChips> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth - 48; // 减去左右 padding
+        
+        // 计算每个 chip 的大致宽度（图标 + 文字 + padding）
+        // 估算每个 chip 平均宽度约 100px
+        final estimatedChipWidth = 110.0;
+        final maxVisibleCount = (availableWidth / estimatedChipWidth).floor();
+        
+        // 如果所有分类都能显示，直接用 Wrap
+        if (widget.groups.length <= maxVisibleCount || _isExpanded) {
+          return _buildExpandedView();
+        }
+        
+        // 否则显示部分 + 展开按钮
+        return _buildCollapsedView(maxVisibleCount);
+      },
+    );
+  }
+
+  Widget _buildExpandedView() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        alignment: WrapAlignment.start,
+        children: [
+          ...widget.groups.map((group) => _buildChip(group.name)),
+          if (widget.groups.length > 6) _buildCollapseButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCollapsedView(int maxVisible) {
+    // 至少显示 4 个，留一个位置给展开按钮
+    final visibleCount = (maxVisible - 1).clamp(3, widget.groups.length);
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        alignment: WrapAlignment.start,
+        children: [
+          ...widget.groups.take(visibleCount).map((group) => _buildChip(group.name)),
+          _buildExpandButton(widget.groups.length - visibleCount),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChip(String name) {
+    return TVFocusable(
+      onSelect: () => widget.onGroupTap(name),
+      focusScale: 1.0,
+      showFocusBorder: false,
+      builder: (context, isFocused, child) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: isFocused ? AppTheme.lotusGradient : null,
+            color: isFocused ? null : AppTheme.glassColor,
+            borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+            border: Border.all(color: isFocused ? AppTheme.focusBorderColor : AppTheme.glassBorderColor),
+          ),
+          child: child,
+        );
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(CategoryCard.getIconForCategory(name), size: 14, color: AppTheme.textSecondary),
+          const SizedBox(width: 6),
+          Text(name, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpandButton(int hiddenCount) {
+    return TVFocusable(
+      onSelect: () => setState(() => _isExpanded = true),
+      focusScale: 1.0,
+      showFocusBorder: false,
+      builder: (context, isFocused, child) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: isFocused ? AppTheme.lotusGradient : null,
+            color: isFocused ? null : AppTheme.glassColor,
+            borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+            border: Border.all(color: isFocused ? AppTheme.focusBorderColor : AppTheme.glassBorderColor),
+          ),
+          child: child,
+        );
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.more_horiz_rounded, size: 14, color: AppTheme.textSecondary),
+          const SizedBox(width: 4),
+          Text('+$hiddenCount', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCollapseButton() {
+    return TVFocusable(
+      onSelect: () => setState(() => _isExpanded = false),
+      focusScale: 1.0,
+      showFocusBorder: false,
+      builder: (context, isFocused, child) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: isFocused ? AppTheme.lotusGradient : null,
+            color: isFocused ? null : AppTheme.glassColor,
+            borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+            border: Border.all(color: isFocused ? AppTheme.focusBorderColor : AppTheme.glassBorderColor),
+          ),
+          child: child,
+        );
+      },
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.unfold_less_rounded, size: 14, color: AppTheme.textSecondary),
+          SizedBox(width: 4),
+          Text('收起', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+        ],
+      ),
+    );
+  }
 }
