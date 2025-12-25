@@ -459,7 +459,7 @@ class SettingsScreen extends StatelessWidget {
       builder: (context, isFocused, child) {
         return Container(
           decoration: BoxDecoration(
-            color: isFocused ? AppTheme.getCardColor(context) : Colors.transparent,
+            color: isFocused ? AppTheme.getFocusBackgroundColor(context) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
           child: child,
@@ -526,7 +526,7 @@ class SettingsScreen extends StatelessWidget {
       builder: (context, isFocused, child) {
         return Container(
           decoration: BoxDecoration(
-            color: isFocused ? AppTheme.getCardColor(context) : Colors.transparent,
+            color: isFocused ? AppTheme.getFocusBackgroundColor(context) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
           child: child,
@@ -612,7 +612,7 @@ class SettingsScreen extends StatelessWidget {
       builder: (context, isFocused, child) {
         return Container(
           decoration: BoxDecoration(
-            color: isFocused ? (isDestructive ? AppTheme.errorColor.withOpacity(0.1) : AppTheme.getCardColor(context)) : Colors.transparent,
+            color: isFocused ? (isDestructive ? AppTheme.errorColor.withOpacity(0.1) : AppTheme.getFocusBackgroundColor(context)) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
           child: child,

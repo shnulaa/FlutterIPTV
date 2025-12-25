@@ -27,6 +27,7 @@ class AppTheme {
   static const Color surfaceColorLight = Color(0xFFFFFFFF); // White
   static const Color cardColorLight = Color(0xFFFFFFFF); // White
   static const Color cardHoverColorLight = Color(0xFFF0F0F0);
+  static const Color focusBackgroundColorLight = Color(0xFFFCE4EC); // Light Pink for focus in light mode
   static const Color textPrimaryLight = Color(0xFF212121);
   static const Color textSecondaryLight = Color(0xFF616161);
   static const Color textMutedLight = Color(0xFF9E9E9E);
@@ -87,6 +88,10 @@ class AppTheme {
 
   static Color getGlassBorderColor(BuildContext context) {
     return Theme.of(context).brightness == Brightness.dark ? glassBorderColorDark : glassBorderColorLight;
+  }
+
+  static Color getFocusBackgroundColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark ? cardColorDark : focusBackgroundColorLight;
   }
 
   // Lotus Gradient - 莲花渐变
