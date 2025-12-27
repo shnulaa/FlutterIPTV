@@ -8,6 +8,7 @@ import '../../../core/platform/platform_detector.dart';
 import '../../../core/i18n/app_strings.dart';
 import '../../../core/services/service_locator.dart';
 import '../providers/settings_provider.dart';
+import '../providers/dlna_provider.dart';
 import '../../epg/providers/epg_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -204,6 +205,34 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ],
             ]),
+
+            const SizedBox(height: 24),
+
+            // DLNA Settings
+            _buildSectionHeader('DLNA 投屏'),
+            Consumer<DlnaProvider>(
+              builder: (context, dlnaProvider, _) {
+                return _buildSettingsCard([
+                  _buildSwitchTile(
+                    context,
+                    title: '启用 DLNA 服务',
+                    subtitle: dlnaProvider.isRunning 
+                        ? '已启动: ${dlnaProvider.deviceName}'
+                        : '允许其他设备投屏到本设备',
+                    icon: Icons.cast_rounded,
+                    value: dlnaProvider.isEnabled,
+                    onChanged: (value) async {
+                      final success = await dlnaProvider.setEnabled(value);
+                      if (success) {
+                        _showSuccess(context, value ? 'DLNA 服务已启动' : 'DLNA 服务已停止');
+                      } else {
+                        _showError(context, 'DLNA 服务启动失败，请检查网络连接');
+                      }
+                    },
+                  ),
+                ]);
+              },
+            ),
 
             const SizedBox(height: 24),
 

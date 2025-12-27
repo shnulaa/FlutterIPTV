@@ -19,6 +19,7 @@ import '../providers/player_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
 import '../../channels/providers/channel_provider.dart';
 import '../../settings/providers/settings_provider.dart';
+import '../../settings/providers/dlna_provider.dart';
 import '../../epg/providers/epg_provider.dart';
 
 class PlayerScreen extends StatefulWidget {
@@ -98,6 +99,21 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     // 检查错误状态
     if (provider.hasError && !_errorShown) {
       _checkAndShowError();
+    }
+    
+    // 只有 DLNA 投屏会话时才同步播放状态
+    try {
+      final dlnaProvider = context.read<DlnaProvider>();
+      if (dlnaProvider.isActiveSession) {
+        dlnaProvider.syncPlayerState(
+          isPlaying: provider.isPlaying,
+          isPaused: provider.state == PlayerState.paused,
+          position: provider.position,
+          duration: provider.duration,
+        );
+      }
+    } catch (e) {
+      // DLNA provider 可能不可用，忽略错误
     }
   }
 
@@ -695,8 +711,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
             }
           },
           child: GestureDetector(
-            // 让手势覆盖整个屏幕，包括黑色区域
-            behavior: HitTestBehavior.opaque,
+            // 使用 translucent 让子组件也能接收点击事件
+            behavior: HitTestBehavior.translucent,
             onTap: () {
               if (_showCategoryPanel) {
                 setState(() {

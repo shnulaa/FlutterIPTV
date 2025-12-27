@@ -61,6 +61,7 @@ dependencies:
   screen_brightness: ^2.1.7
   wakelock_plus: ^1.1.6
   screen_retriever: ^0.1.9
+  device_info_plus: ^12.3.0
 
 dev_dependencies:
   flutter_test:
