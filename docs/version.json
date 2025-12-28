@@ -3,12 +3,23 @@
   "build": 73,
   "releaseDate": "2025-12-29",
   "assets": {
-    "android": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.72/app-release.apk",
-    "windows": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.72/flutter_iptv_windows.zip"
+    "windows": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.73/flutteriptv-Windows-x64-Setup.exe",
+    "android_mobile": {
+      "arm64-v8a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.73/flutteriptv-Android-Mobile-arm64-v8a.apk",
+      "armeabi-v7a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.73/flutteriptv-Android-Mobile-armeabi-v7a.apk",
+      "x86_64": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.73/flutteriptv-Android-Mobile-x86_64.apk",
+      "universal": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.73/flutteriptv-Android-Mobile-universal.apk"
+    },
+    "android_tv": {
+      "arm64-v8a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.73/flutteriptv-AndroidTV-arm64-v8a.apk",
+      "armeabi-v7a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.73/flutteriptv-AndroidTV-armeabi-v7a.apk",
+      "x86_64": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.73/flutteriptv-AndroidTV-x86_64.apk",
+      "universal": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.73/flutteriptv-AndroidTV-universal.apk"
+    }
   },
   "changelog": {
-    "zh": "- 修复 DLNA 自动启动问题\n- 优化播放器性能",
-    "en": "- Fix DLNA auto-start issue\n- Improve player performance"
+    "zh": "- 新增自动更新功能\n- 修复 DLNA 自动启动问题\n- 优化播放器性能",
+    "en": "- Add auto-update feature\n- Fix DLNA auto-start issue\n- Improve player performance"
   },
   "minVersion": "1.0.0"
 }
