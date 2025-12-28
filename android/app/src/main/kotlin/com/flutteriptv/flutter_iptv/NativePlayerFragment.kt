@@ -763,28 +763,11 @@ class NativePlayerFragment : Fragment() {
                     format: Format,
                     decoderReuseEvaluation: DecoderReuseEvaluation?
                 ) {
-                    if (format.frameRate > 0) {
-                        frameRate = format.frameRate
-                    }
+                    // 只从 format 获取 codec 信息，帧率通过渲染帧数计算
                     format.codecs?.let { 
                         if (it.isNotEmpty()) videoCodec = it 
                     }
                     updateVideoInfoDisplay()
-                }
-                
-                override fun onDroppedVideoFrames(
-                    eventTime: AnalyticsListener.EventTime,
-                    droppedFrames: Int,
-                    elapsedMs: Long
-                ) {
-                    // 通过丢帧信息估算帧率
-                    if (frameRate <= 0 && elapsedMs > 0) {
-                        val estimatedFps = (droppedFrames * 1000f / elapsedMs) + 25f // 粗略估算
-                        if (estimatedFps in 20f..60f) {
-                            frameRate = estimatedFps
-                            updateVideoInfoDisplay()
-                        }
-                    }
                 }
             })
         }
@@ -827,20 +810,41 @@ class NativePlayerFragment : Fragment() {
     private fun calculateFps() {
         val p = player ?: return
         
-        // 如果已经有帧率信息，不需要计算
-        if (frameRate > 0) return
+        // 播放器不在播放状态时不计算，但要更新时间戳
+        if (!p.isPlaying) {
+            lastFpsUpdateTime = System.currentTimeMillis()
+            lastRenderedFrameCount = 0L
+            return
+        }
+        
+        val currentTime = System.currentTimeMillis()
+        val timeDelta = currentTime - lastFpsUpdateTime
+        
+        // 时间间隔太短，跳过（但不更新时间戳，等下次累积）
+        if (timeDelta < 800) return
         
         try {
-            // 尝试从 videoFormat 获取帧率
-            val videoFormat = p.videoFormat
-            if (videoFormat != null && videoFormat.frameRate > 0) {
-                frameRate = videoFormat.frameRate
-                updateVideoInfoDisplay()
-                stopFpsCalculation() // 获取到帧率后停止计算
-                return
+            // 从 videoDecoderCounters 获取渲染帧数
+            val counters = p.videoDecoderCounters
+            if (counters != null) {
+                val currentFrames = counters.renderedOutputBufferCount.toLong()
+                
+                if (lastRenderedFrameCount > 0 && currentFrames > lastRenderedFrameCount) {
+                    val frameDelta = currentFrames - lastRenderedFrameCount
+                    val calculatedFps = frameDelta * 1000f / timeDelta
+                    
+                    // 合理范围内才更新 (10-120 fps)
+                    if (calculatedFps in 10f..120f) {
+                        frameRate = calculatedFps
+                        updateVideoInfoDisplay()
+                    }
+                }
+                
+                lastRenderedFrameCount = currentFrames
+                lastFpsUpdateTime = currentTime
             }
         } catch (e: Exception) {
-            Log.d(TAG, "Failed to get video format: ${e.message}")
+            Log.d(TAG, "Failed to calculate FPS: ${e.message}")
         }
     }
     

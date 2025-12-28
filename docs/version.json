@@ -1,23 +1,23 @@
 {
-  "version": "1.1.78",
-  "build": 78,
-  "releaseDate": "2025-12-28",
+  "version": "1.1.79",
+  "build": 79,
+  "releaseDate": "2025-12-29",
   "assets": {
-    "windows": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.78/flutteriptv-Windows-x64-Setup.exe",
+    "windows": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.79/flutteriptv-Windows-x64-Setup.exe",
     "android_mobile": {
-      "arm64-v8a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.78/flutteriptv-Android-Mobile-arm64-v8a.apk",
-      "armeabi-v7a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.78/flutteriptv-Android-Mobile-armeabi-v7a.apk",
-      "x86_64": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.78/flutteriptv-Android-Mobile-x86_64.apk"
+      "arm64-v8a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.79/flutteriptv-Android-Mobile-arm64-v8a.apk",
+      "armeabi-v7a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.79/flutteriptv-Android-Mobile-armeabi-v7a.apk",
+      "x86_64": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.79/flutteriptv-Android-Mobile-x86_64.apk"
     },
     "android_tv": {
-      "arm64-v8a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.78/flutteriptv-AndroidTV-arm64-v8a.apk",
-      "armeabi-v7a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.78/flutteriptv-AndroidTV-armeabi-v7a.apk",
-      "x86_64": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.78/flutteriptv-AndroidTV-x86_64.apk"
+      "arm64-v8a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.79/flutteriptv-AndroidTV-arm64-v8a.apk",
+      "armeabi-v7a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.79/flutteriptv-AndroidTV-armeabi-v7a.apk",
+      "x86_64": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.79/flutteriptv-AndroidTV-x86_64.apk"
     }
   },
   "changelog": {
-    "zh": "- TV端播放错误自动重试（最多3次）\n- 修复TV端FPS显示问题\n- 优化CI构建速度",
-    "en": "- Auto-retry on TV playback error (up to 3 times)\n- Fix TV FPS display issue\n- Optimize CI build speed"
+    "zh": "- TV端播放错误自动重试（最多3次）\n- TV端通过渲染帧数计算实际FPS",
+    "en": "- Auto-retry on TV playback error (up to 3 times)\n- Calculate actual FPS from rendered frame count on TV"
   },
   "minVersion": "1.0.0"
 }
