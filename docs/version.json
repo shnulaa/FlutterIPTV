@@ -1,7 +1,7 @@
 {
-  "version": "1.1.72",
-  "build": 72,
-  "releaseDate": "2025-12-28",
+  "version": "1.1.73",
+  "build": 73,
+  "releaseDate": "2025-12-29",
   "assets": {
     "android": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.72/app-release.apk",
     "windows": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.72/flutter_iptv_windows.zip"
