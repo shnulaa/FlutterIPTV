@@ -16,8 +16,8 @@
     }
   },
   "changelog": {
-    "zh": "- 修复 Release 包签名问题，解决在线更新时软件包冲突\n- 首页标题显示版本号\n- 新增应用内自动更新功能\n- 支持根据设备 CPU 架构自动选择 APK\n- 安装完成后自动清理下载缓�?,
-    "en": "- Fix release signing issue, resolve package conflict during in-app update\n- Show version number in home screen title\n- Add in-app auto-update feature\n- Auto-select APK based on device CPU architecture\n- Auto-cleanup download cache after installation"
+    "zh": "- 优化 CI 构建速度\n- 修复 Release 包签名问题\n- 首页标题显示版本号\n- 新增应用内自动更新功能",
+    "en": "- Optimize CI build speed\n- Fix release signing issue\n- Show version number in home screen title\n- Add in-app auto-update feature"
   },
   "minVersion": "1.0.0"
 }
