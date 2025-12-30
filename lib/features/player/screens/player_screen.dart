@@ -19,7 +19,6 @@ import '../providers/player_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
 import '../../channels/providers/channel_provider.dart';
 import '../../settings/providers/settings_provider.dart';
-import '../../settings/providers/settings_provider.dart';
 import '../../settings/providers/dlna_provider.dart';
 import '../../epg/providers/epg_provider.dart';
 
@@ -164,9 +163,10 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
         debugPrint('PlayerScreen: Launching native player for ${widget.channelName} (isDlna=$isDlnaMode, index $currentIndex of ${channels.length})');
 
-        // 获取缓冲强度设置
+        // 获取缓冲强度设置和FPS显示设置
         final settingsProvider = context.read<SettingsProvider>();
         final bufferStrength = settingsProvider.bufferStrength;
+        final showFps = settingsProvider.showFps;
 
         // Launch native player with channel list and callback for when it closes
         final launched = await NativePlayerChannel.launchPlayer(
@@ -178,6 +178,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           groups: groups,
           isDlnaMode: isDlnaMode,
           bufferStrength: bufferStrength,
+          showFps: showFps,
           onClosed: () {
             debugPrint('PlayerScreen: Native player closed callback');
             // 停止 DLNA 同步定时器
@@ -845,6 +846,49 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     ),
                   ),
 
+                // FPS 显示 - 右上角红色
+                Builder(
+                  builder: (context) {
+                    final settings = context.watch<SettingsProvider>();
+                    final player = context.watch<PlayerProvider>();
+                    
+                    if (!settings.showFps || player.state != PlayerState.playing) {
+                      return const SizedBox.shrink();
+                    }
+                    final fps = player.currentFps;
+                    if (fps <= 0) return const SizedBox.shrink();
+                    
+                    // 迷你模式下调整位置和大小
+                    final isMinMode = WindowsPipChannel.isInPipMode;
+                    
+                    return Positioned(
+                      top: isMinMode ? null : MediaQuery.of(context).padding.top + 8,
+                      bottom: isMinMode ? 4 : null, // 迷你模式放右下角
+                      right: isMinMode ? 4 : 16,
+                      child: IgnorePointer(
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isMinMode ? 4 : 8,
+                            vertical: isMinMode ? 2 : 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(isMinMode ? 2 : 4),
+                          ),
+                          child: Text(
+                            '${fps.toStringAsFixed(0)} FPS',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: isMinMode ? 8 : 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
                 // Error Display - Handled via Listener now to show SnackBar
                 // But we can keep a subtle indicator if needed, or remove it entirely
                 // to prevent blocking. Let's remove the blocking widget.
@@ -903,72 +947,75 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   // 迷你模式下的简化控件
   Widget _buildMiniControlsOverlay() {
-    return GestureDetector(
-      // 整个区域可拖动
-      onPanStart: (_) => windowManager.startDragging(),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.black.withOpacity(0.5),
-              Colors.transparent,
-              Colors.black.withOpacity(0.5),
-            ],
-            stops: const [0.0, 0.5, 1.0],
+    return Focus(
+      // 确保迷你模式下也能接收键盘事件
+      canRequestFocus: true,
+      child: GestureDetector(
+        // 整个区域可拖动
+        onPanStart: (_) => windowManager.startDragging(),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withOpacity(0.5),
+                Colors.transparent,
+                Colors.black.withOpacity(0.5),
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
           ),
-        ),
-        child: Column(
-          children: [
-            // 顶部：频道名 + 退出/恢复按钮
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Consumer<PlayerProvider>(
-                      builder: (context, provider, _) {
-                        return Text(
-                          provider.currentChannel?.name ?? widget.channelName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        );
-                      },
-                    ),
-                  ),
-                  // 恢复大小按钮
-                  GestureDetector(
-                    onTap: () async {
-                      await WindowsPipChannel.exitPipMode();
-                      setState(() {});
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(4),
+          child: Column(
+            children: [
+              // 顶部：频道名 + 退出/恢复按钮
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Consumer<PlayerProvider>(
+                        builder: (context, provider, _) {
+                          return Text(
+                            provider.currentChannel?.name ?? widget.channelName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          );
+                        },
                       ),
-                      child: const Icon(Icons.fullscreen, color: Colors.white, size: 16),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  // 关闭按钮
-                  GestureDetector(
-                    onTap: () {
-                      WindowsPipChannel.exitPipMode();
-                      context.read<PlayerProvider>().stop();
-                      Navigator.of(context).pop();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                    // 恢复大小按钮
+                    GestureDetector(
+                      onTap: () async {
+                        await WindowsPipChannel.exitPipMode();
+                        setState(() {});
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Icon(Icons.fullscreen, color: Colors.white, size: 16),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    // 关闭按钮
+                    GestureDetector(
+                      onTap: () {
+                        WindowsPipChannel.exitPipMode();
+                        context.read<PlayerProvider>().stop();
+                        Navigator.of(context).pop();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Icon(Icons.close, color: Colors.white, size: 16),
@@ -1027,6 +1074,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           ],
         ),
       ),
+    ),  // 闭合 Focus widget
     );
   }
 

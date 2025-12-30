@@ -22,6 +22,7 @@ class SettingsProvider extends ChangeNotifier {
   static const String _keyVolumeNormalization = 'volume_normalization';
   static const String _keyVolumeBoost = 'volume_boost';
   static const String _keyBufferStrength = 'buffer_strength'; // fast, balanced, stable
+  static const String _keyShowFps = 'show_fps';
 
   // Settings values
   String _themeMode = 'dark';
@@ -43,6 +44,7 @@ class SettingsProvider extends ChangeNotifier {
   bool _volumeNormalization = false;
   int _volumeBoost = 0; // -20 to +20 dB
   String _bufferStrength = 'fast'; // fast, balanced, stable
+  bool _showFps = true; // 默认显示FPS
 
   // Getters
   String get themeMode => _themeMode;
@@ -63,6 +65,7 @@ class SettingsProvider extends ChangeNotifier {
   bool get volumeNormalization => _volumeNormalization;
   int get volumeBoost => _volumeBoost;
   String get bufferStrength => _bufferStrength;
+  bool get showFps => _showFps;
 
   SettingsProvider() {
     _loadSettings();
@@ -95,6 +98,7 @@ class SettingsProvider extends ChangeNotifier {
     _volumeNormalization = prefs.getBool(_keyVolumeNormalization) ?? false;
     _volumeBoost = prefs.getInt(_keyVolumeBoost) ?? 0;
     _bufferStrength = prefs.getString(_keyBufferStrength) ?? 'fast';
+    _showFps = prefs.getBool(_keyShowFps) ?? true;
     // 不在构造函数中调用 notifyListeners()，避免 build 期间触发重建
   }
 
@@ -132,6 +136,7 @@ class SettingsProvider extends ChangeNotifier {
     await prefs.setBool(_keyVolumeNormalization, _volumeNormalization);
     await prefs.setInt(_keyVolumeBoost, _volumeBoost);
     await prefs.setString(_keyBufferStrength, _bufferStrength);
+    await prefs.setBool(_keyShowFps, _showFps);
   }
 
   // Setters with persistence
@@ -255,6 +260,12 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setShowFps(bool show) async {
+    _showFps = show;
+    await _saveSettings();
+    notifyListeners();
+  }
+
   // Reset all settings to defaults
   Future<void> resetSettings() async {
     _themeMode = 'dark';
@@ -272,6 +283,7 @@ class SettingsProvider extends ChangeNotifier {
     _volumeNormalization = false;
     _volumeBoost = 0;
     _bufferStrength = 'fast';
+    _showFps = true;
 
     await _saveSettings();
     notifyListeners();

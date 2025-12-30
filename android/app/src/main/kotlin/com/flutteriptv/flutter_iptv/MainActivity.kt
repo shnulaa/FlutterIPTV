@@ -87,11 +87,12 @@ class MainActivity: FlutterFragmentActivity() {
                     val groups = call.argument<List<String>>("groups")
                     val isDlnaMode = call.argument<Boolean>("isDlnaMode") ?: false
                     val bufferStrength = call.argument<String>("bufferStrength") ?: "fast"
+                    val showFps = call.argument<Boolean>("showFps") ?: true
                     
                     if (url != null) {
-                        Log.d(TAG, "Launching native player fragment: $name (index $index of ${urls?.size ?: 0}, isDlna=$isDlnaMode, buffer=$bufferStrength)")
+                        Log.d(TAG, "Launching native player fragment: $name (index $index of ${urls?.size ?: 0}, isDlna=$isDlnaMode, buffer=$bufferStrength, showFps=$showFps)")
                         try {
-                            showPlayerFragment(url, name, index, urls, names, groups, isDlnaMode, bufferStrength)
+                            showPlayerFragment(url, name, index, urls, names, groups, isDlnaMode, bufferStrength, showFps)
                             result.success(true)
                         } catch (e: Exception) {
                             Log.e(TAG, "Failed to launch player", e)
@@ -176,9 +177,10 @@ class MainActivity: FlutterFragmentActivity() {
         names: List<String>?,
         groups: List<String>?,
         isDlnaMode: Boolean = false,
-        bufferStrength: String = "fast"
+        bufferStrength: String = "fast",
+        showFps: Boolean = true
     ) {
-        Log.d(TAG, "showPlayerFragment isDlnaMode=$isDlnaMode, bufferStrength=$bufferStrength")
+        Log.d(TAG, "showPlayerFragment isDlnaMode=$isDlnaMode, bufferStrength=$bufferStrength, showFps=$showFps")
         
         // Enable back press callback when player is showing
         backPressedCallback.isEnabled = true
@@ -207,7 +209,8 @@ class MainActivity: FlutterFragmentActivity() {
             names?.let { ArrayList(it) },
             groups?.let { ArrayList(it) },
             isDlnaMode,
-            bufferStrength
+            bufferStrength,
+            showFps
         ).apply {
             onCloseListener = {
                 runOnUiThread {

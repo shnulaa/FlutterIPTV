@@ -1,23 +1,23 @@
 {
-  "version": "1.1.81",
-  "build": 81,
+  "version": "1.1.82",
+  "build": 82,
   "releaseDate": "2025-12-30",
   "assets": {
-    "windows": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.81/flutteriptv-Windows-x64-Setup.exe",
+    "windows": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.82/flutteriptv-Windows-x64-Setup.exe",
     "android_mobile": {
-      "arm64-v8a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.81/flutteriptv-Android-Mobile-arm64-v8a.apk",
-      "armeabi-v7a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.81/flutteriptv-Android-Mobile-armeabi-v7a.apk",
-      "x86_64": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.81/flutteriptv-Android-Mobile-x86_64.apk"
+      "arm64-v8a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.82/flutteriptv-Android-Mobile-arm64-v8a.apk",
+      "armeabi-v7a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.82/flutteriptv-Android-Mobile-armeabi-v7a.apk",
+      "x86_64": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.82/flutteriptv-Android-Mobile-x86_64.apk"
     },
     "android_tv": {
-      "arm64-v8a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.81/flutteriptv-AndroidTV-arm64-v8a.apk",
-      "armeabi-v7a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.81/flutteriptv-AndroidTV-armeabi-v7a.apk",
-      "x86_64": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.81/flutteriptv-AndroidTV-x86_64.apk"
+      "arm64-v8a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.82/flutteriptv-AndroidTV-arm64-v8a.apk",
+      "armeabi-v7a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.82/flutteriptv-AndroidTV-armeabi-v7a.apk",
+      "x86_64": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.82/flutteriptv-AndroidTV-x86_64.apk"
     }
   },
   "changelog": {
-    "zh": "- 新增缓冲强度设置（快速/平衡/稳定）\n- 优化DLNA投屏帧率检测和HDMI帧率切换请求\n- 默认使用快速缓冲，切换频道更快",
-    "en": "- Add buffer strength setting (fast/balanced/stable)\n- Optimize DLNA frame rate detection and HDMI frame rate switch request\n- Default to fast buffer for quicker channel switching"
+    "zh": "- 新增FPS显示设置（默认开启）\n- 播放器右上角显示实时帧率\n- Windows迷你模式FPS显示在右下角",
+    "en": "- Add FPS display setting (enabled by default)\n- Show real-time frame rate in player top-right corner\n- Windows mini mode shows FPS in bottom-right corner"
   },
   "minVersion": "1.0.0"
 }

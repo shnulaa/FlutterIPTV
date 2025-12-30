@@ -109,6 +109,18 @@ class SettingsScreen extends StatelessWidget {
               _buildDivider(),
               _buildSwitchTile(
                 context,
+                title: '显示 FPS',
+                subtitle: '在播放器右上角显示帧率',
+                icon: Icons.speed_rounded,
+                value: settings.showFps,
+                onChanged: (value) {
+                  settings.setShowFps(value);
+                  _showSuccess(context, value ? '已启用 FPS 显示' : '已关闭 FPS 显示');
+                },
+              ),
+              _buildDivider(),
+              _buildSwitchTile(
+                context,
                 title: AppStrings.of(context)?.volumeNormalization ?? 'Volume Normalization',
                 subtitle: '${AppStrings.of(context)?.volumeNormalizationSubtitle ?? 'Auto-adjust volume differences between channels'} (未实现)',
                 icon: Icons.volume_up_rounded,

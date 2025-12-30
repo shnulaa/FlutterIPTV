@@ -66,6 +66,10 @@ class NativePlayerFragment : Fragment() {
     private lateinit var categoryList: RecyclerView
     private lateinit var channelList: RecyclerView
     private lateinit var channelListTitle: TextView
+    
+    // FPS display
+    private lateinit var fpsText: TextView
+    private var showFps: Boolean = true
 
     private var currentUrl: String = ""
     private var currentName: String = ""
@@ -128,6 +132,7 @@ class NativePlayerFragment : Fragment() {
         private const val ARG_CHANNEL_GROUPS = "channel_groups"
         private const val ARG_IS_DLNA_MODE = "is_dlna_mode"
         private const val ARG_BUFFER_STRENGTH = "buffer_strength"
+        private const val ARG_SHOW_FPS = "show_fps"
 
         fun newInstance(
             videoUrl: String,
@@ -137,7 +142,8 @@ class NativePlayerFragment : Fragment() {
             channelNames: ArrayList<String>? = null,
             channelGroups: ArrayList<String>? = null,
             isDlnaMode: Boolean = false,
-            bufferStrength: String = "fast"
+            bufferStrength: String = "fast",
+            showFps: Boolean = true
         ): NativePlayerFragment {
             return NativePlayerFragment().apply {
                 arguments = Bundle().apply {
@@ -149,6 +155,7 @@ class NativePlayerFragment : Fragment() {
                     channelGroups?.let { putStringArrayList(ARG_CHANNEL_GROUPS, it) }
                     putBoolean(ARG_IS_DLNA_MODE, isDlnaMode)
                     putString(ARG_BUFFER_STRENGTH, bufferStrength)
+                    putBoolean(ARG_SHOW_FPS, showFps)
                 }
             }
         }
@@ -173,6 +180,7 @@ class NativePlayerFragment : Fragment() {
             channelGroups = it.getStringArrayList(ARG_CHANNEL_GROUPS) ?: arrayListOf()
             isDlnaMode = it.getBoolean(ARG_IS_DLNA_MODE, false)
             bufferStrength = it.getString(ARG_BUFFER_STRENGTH, "fast") ?: "fast"
+            showFps = it.getBoolean(ARG_SHOW_FPS, true)
         }
         
         Log.d(TAG, "Playing: $currentName (index $currentIndex of ${channelUrls.size}, isDlna=$isDlnaMode)")
@@ -210,6 +218,9 @@ class NativePlayerFragment : Fragment() {
         progressCurrent = view.findViewById(R.id.progress_current)
         progressDuration = view.findViewById(R.id.progress_duration)
         helpText = view.findViewById(R.id.help_text)
+        
+        // FPS display
+        fpsText = view.findViewById(R.id.fps_text)
 
         channelNameText.text = currentName
         updateStatus("Loading")
@@ -946,6 +957,14 @@ class NativePlayerFragment : Fragment() {
             } else {
                 videoInfoText.visibility = View.GONE
             }
+            
+            // 更新右上角 FPS 显示
+            if (showFps && frameRate > 0) {
+                fpsText.text = "${frameRate.toInt()} FPS"
+                fpsText.visibility = View.VISIBLE
+            } else {
+                fpsText.visibility = View.GONE
+            }
         }
     }
 
@@ -1124,6 +1143,7 @@ class NativePlayerFragment : Fragment() {
             "isPlaying" to (p?.isPlaying ?: false),
             "position" to (p?.currentPosition ?: 0L),
             "duration" to (p?.duration ?: 0L),
+            "fps" to frameRate,
             "state" to when (p?.playbackState) {
                 Player.STATE_IDLE -> "idle"
                 Player.STATE_BUFFERING -> "buffering"

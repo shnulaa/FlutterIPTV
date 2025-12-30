@@ -153,6 +153,11 @@ class PlayerProvider extends ChangeNotifier {
   String _hwdecMode = 'unknown';
   String _videoCodec = '';
   double _fps = 0;
+  
+  // FPS 显示
+  double _currentFps = 0;
+
+  double get currentFps => _currentFps;
 
   String get videoInfo {
     if (_useExoPlayer) {
@@ -273,9 +278,19 @@ class PlayerProvider extends ChangeNotifier {
   Timer? _debugInfoTimer;
   void _updateDebugInfo() {
     _debugInfoTimer?.cancel();
-    _debugInfoTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+    
+    _debugInfoTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_mediaKitPlayer == null) return;
       _hwdecMode = 'mediacodec';
+      
+      // Windows 端直接使用 track 中的 fps 信息
+      // media_kit (mpv) 的渲染帧率基本等于视频源帧率
+      if (_state == PlayerState.playing && _fps > 0) {
+        _currentFps = _fps;
+      } else {
+        _currentFps = 0;
+      }
+      
       notifyListeners();
     });
   }
