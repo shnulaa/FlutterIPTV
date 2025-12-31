@@ -85,6 +85,8 @@ class MainActivity: FlutterFragmentActivity() {
                     val urls = call.argument<List<String>>("urls")
                     val names = call.argument<List<String>>("names")
                     val groups = call.argument<List<String>>("groups")
+                    @Suppress("UNCHECKED_CAST")
+                    val sources = call.argument<List<List<String>>>("sources") // 每个频道的所有源
                     val isDlnaMode = call.argument<Boolean>("isDlnaMode") ?: false
                     val bufferStrength = call.argument<String>("bufferStrength") ?: "fast"
                     val showFps = call.argument<Boolean>("showFps") ?: true
@@ -92,7 +94,7 @@ class MainActivity: FlutterFragmentActivity() {
                     if (url != null) {
                         Log.d(TAG, "Launching native player fragment: $name (index $index of ${urls?.size ?: 0}, isDlna=$isDlnaMode, buffer=$bufferStrength, showFps=$showFps)")
                         try {
-                            showPlayerFragment(url, name, index, urls, names, groups, isDlnaMode, bufferStrength, showFps)
+                            showPlayerFragment(url, name, index, urls, names, groups, sources, isDlnaMode, bufferStrength, showFps)
                             result.success(true)
                         } catch (e: Exception) {
                             Log.e(TAG, "Failed to launch player", e)
@@ -176,6 +178,7 @@ class MainActivity: FlutterFragmentActivity() {
         urls: List<String>?,
         names: List<String>?,
         groups: List<String>?,
+        sources: List<List<String>>?,
         isDlnaMode: Boolean = false,
         bufferStrength: String = "fast",
         showFps: Boolean = true
@@ -201,6 +204,9 @@ class MainActivity: FlutterFragmentActivity() {
         
         playerContainer?.visibility = View.VISIBLE
         
+        // 将 sources 转换为 ArrayList<ArrayList<String>>
+        val sourcesArrayList = sources?.map { ArrayList(it) }?.let { ArrayList(it) }
+        
         playerFragment = NativePlayerFragment.newInstance(
             url,
             name,
@@ -208,6 +214,7 @@ class MainActivity: FlutterFragmentActivity() {
             urls?.let { ArrayList(it) },
             names?.let { ArrayList(it) },
             groups?.let { ArrayList(it) },
+            sourcesArrayList,
             isDlnaMode,
             bufferStrength,
             showFps

@@ -545,6 +545,63 @@ class PlayerProvider extends ChangeNotifier {
     playChannel(channels[idx - 1]);
   }
 
+  /// Switch to next source for current channel (if has multiple sources)
+  void switchToNextSource() {
+    if (_currentChannel == null || !_currentChannel!.hasMultipleSources) return;
+    
+    final newIndex = (_currentChannel!.currentSourceIndex + 1) % _currentChannel!.sourceCount;
+    _currentChannel!.currentSourceIndex = newIndex;
+    
+    debugPrint('PlayerProvider: 切换到源 ${newIndex + 1}/${_currentChannel!.sourceCount}');
+    
+    // Play the new source
+    _playCurrentSource();
+  }
+
+  /// Switch to previous source for current channel (if has multiple sources)
+  void switchToPreviousSource() {
+    if (_currentChannel == null || !_currentChannel!.hasMultipleSources) return;
+    
+    final newIndex = (_currentChannel!.currentSourceIndex - 1 + _currentChannel!.sourceCount) % _currentChannel!.sourceCount;
+    _currentChannel!.currentSourceIndex = newIndex;
+    
+    debugPrint('PlayerProvider: 切换到源 ${newIndex + 1}/${_currentChannel!.sourceCount}');
+    
+    // Play the new source
+    _playCurrentSource();
+  }
+
+  /// Play the current source of the current channel
+  Future<void> _playCurrentSource() async {
+    if (_currentChannel == null) return;
+    
+    final url = _currentChannel!.currentUrl;
+    _state = PlayerState.loading;
+    _error = null;
+    _lastErrorMessage = null;
+    _errorDisplayed = false;
+    notifyListeners();
+
+    try {
+      if (_useExoPlayer) {
+        await _initExoPlayer(url);
+      } else {
+        await _mediaKitPlayer?.open(Media(url));
+        _state = PlayerState.playing;
+      }
+    } catch (e) {
+      _setError('Failed to play source: $e');
+      return;
+    }
+    notifyListeners();
+  }
+
+  /// Get current source index (1-based for display)
+  int get currentSourceIndex => (_currentChannel?.currentSourceIndex ?? 0) + 1;
+
+  /// Get total source count
+  int get sourceCount => _currentChannel?.sourceCount ?? 1;
+
   /// Set current channel without starting playback (for native player coordination)
   void setCurrentChannelOnly(Channel channel) {
     _currentChannel = channel;

@@ -9,9 +9,30 @@ class ChannelTestResult {
   final bool isAvailable;
   final int? responseTime; // 响应时间（毫秒）
   final String? error;
+  final int availableSources; // 可用源数量
+  final int totalSources; // 总源数量
+  final List<SourceTestResult> sourceResults; // 每个源的测试结果
 
   ChannelTestResult({
     required this.channel,
+    required this.isAvailable,
+    this.responseTime,
+    this.error,
+    this.availableSources = 1,
+    this.totalSources = 1,
+    this.sourceResults = const [],
+  });
+}
+
+/// 单个源的测试结果
+class SourceTestResult {
+  final String url;
+  final bool isAvailable;
+  final int? responseTime;
+  final String? error;
+
+  SourceTestResult({
+    required this.url,
     required this.isAvailable,
     this.responseTime,
     this.error,
@@ -23,20 +44,98 @@ class ChannelTestService {
   static const int _timeout = 15; // 超时时间（秒）
   static const int _maxConcurrent = 5; // 最大并发数
 
-  /// 测试单个频道
+  /// 测试单个频道（测试所有源）
   Future<ChannelTestResult> testChannel(Channel channel) async {
+    final sources = channel.sources;
+    
+    // 如果只有一个源，使用简单测试
+    if (sources.length <= 1) {
+      return _testSingleUrl(channel, channel.url);
+    }
+    
+    // 测试所有源
+    final sourceResults = <SourceTestResult>[];
+    int availableCount = 0;
+    int? bestResponseTime;
+    
+    for (final sourceUrl in sources) {
+      final result = await _testUrl(sourceUrl);
+      sourceResults.add(result);
+      
+      if (result.isAvailable) {
+        availableCount++;
+        if (bestResponseTime == null || (result.responseTime ?? 0) < bestResponseTime) {
+          bestResponseTime = result.responseTime;
+        }
+      }
+    }
+    
+    // 频道可用 = 至少有一个源可用
+    final isAvailable = availableCount > 0;
+    
+    return ChannelTestResult(
+      channel: channel,
+      isAvailable: isAvailable,
+      responseTime: bestResponseTime,
+      error: isAvailable ? null : '所有 ${sources.length} 个源均不可用',
+      availableSources: availableCount,
+      totalSources: sources.length,
+      sourceResults: sourceResults,
+    );
+  }
+
+  /// 测试单个 URL
+  Future<SourceTestResult> _testUrl(String url) async {
     final stopwatch = Stopwatch()..start();
 
     try {
-      final uri = Uri.parse(channel.url);
+      final uri = Uri.parse(url);
 
       // 根据协议类型选择测试方法
       if (uri.scheme == 'rtmp' || uri.scheme == 'rtsp') {
-        // RTMP/RTSP 流无法通过 HTTP 测试，尝试 socket 连接
+        return await _testSocketUrl(url, uri, stopwatch);
+      }
+
+      return await _testHttpUrl(url, uri, stopwatch);
+    } on TimeoutException {
+      stopwatch.stop();
+      return SourceTestResult(
+        url: url,
+        isAvailable: false,
+        responseTime: stopwatch.elapsedMilliseconds,
+        error: '连接超时',
+      );
+    } on SocketException catch (e) {
+      stopwatch.stop();
+      return SourceTestResult(
+        url: url,
+        isAvailable: false,
+        responseTime: stopwatch.elapsedMilliseconds,
+        error: '网络错误: ${e.message}',
+      );
+    } catch (e) {
+      stopwatch.stop();
+      return SourceTestResult(
+        url: url,
+        isAvailable: false,
+        responseTime: stopwatch.elapsedMilliseconds,
+        error: e.toString(),
+      );
+    }
+  }
+
+  /// 测试单个频道（单源，兼容旧逻辑）
+  Future<ChannelTestResult> _testSingleUrl(Channel channel, String url) async {
+    final stopwatch = Stopwatch()..start();
+
+    try {
+      final uri = Uri.parse(url);
+
+      // 根据协议类型选择测试方法
+      if (uri.scheme == 'rtmp' || uri.scheme == 'rtsp') {
         return await _testSocketConnection(channel, uri, stopwatch);
       }
 
-      // HTTP/HTTPS 流测试 - 使用 GET 请求并只读取少量数据
       return await _testHttpStream(channel, uri, stopwatch);
     } on TimeoutException {
       stopwatch.stop();
@@ -96,13 +195,10 @@ class ChannelTestService {
       stopwatch.stop();
 
       // 检查响应状态
-      // 流媒体服务器可能返回 200, 206 (部分内容), 或 302/301 (重定向)
       final statusCode = response.statusCode;
       final isAvailable = statusCode >= 200 && statusCode < 400;
 
-      // 检查 Content-Type 是否像流媒体 (用于调试日志)
       final contentType = response.headers.contentType?.toString() ?? '';
-
       debugPrint('测试频道 ${channel.name}: HTTP $statusCode, Content-Type: $contentType');
 
       return ChannelTestResult(
@@ -112,7 +208,51 @@ class ChannelTestService {
         error: isAvailable ? null : 'HTTP $statusCode',
       );
     } finally {
-      // 确保关闭连接，不读取响应体
+      try {
+        response?.detachSocket().then((socket) => socket.destroy());
+      } catch (_) {}
+      client?.close(force: true);
+    }
+  }
+
+  /// 测试 HTTP/HTTPS URL（返回 SourceTestResult）
+  Future<SourceTestResult> _testHttpUrl(
+    String url,
+    Uri uri,
+    Stopwatch stopwatch,
+  ) async {
+    HttpClient? client;
+    HttpClientRequest? request;
+    HttpClientResponse? response;
+
+    try {
+      client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: _timeout);
+
+      request = await client.getUrl(uri).timeout(
+            const Duration(seconds: _timeout),
+          );
+
+      request.headers.set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+      request.headers.set('Accept', '*/*');
+      request.headers.set('Connection', 'keep-alive');
+
+      response = await request.close().timeout(
+            const Duration(seconds: _timeout),
+          );
+
+      stopwatch.stop();
+
+      final statusCode = response.statusCode;
+      final isAvailable = statusCode >= 200 && statusCode < 400;
+
+      return SourceTestResult(
+        url: url,
+        isAvailable: isAvailable,
+        responseTime: stopwatch.elapsedMilliseconds,
+        error: isAvailable ? null : 'HTTP $statusCode',
+      );
+    } finally {
       try {
         response?.detachSocket().then((socket) => socket.destroy());
       } catch (_) {}
@@ -142,6 +282,36 @@ class ChannelTestService {
 
       return ChannelTestResult(
         channel: channel,
+        isAvailable: true,
+        responseTime: stopwatch.elapsedMilliseconds,
+      );
+    } finally {
+      socket?.destroy();
+    }
+  }
+
+  /// 测试 Socket URL（返回 SourceTestResult）
+  Future<SourceTestResult> _testSocketUrl(
+    String url,
+    Uri uri,
+    Stopwatch stopwatch,
+  ) async {
+    Socket? socket;
+
+    try {
+      final host = uri.host;
+      final port = uri.port != 0 ? uri.port : (uri.scheme == 'rtmp' ? 1935 : 554);
+
+      socket = await Socket.connect(
+        host,
+        port,
+        timeout: const Duration(seconds: _timeout),
+      );
+
+      stopwatch.stop();
+
+      return SourceTestResult(
+        url: url,
         isAvailable: true,
         responseTime: stopwatch.elapsedMilliseconds,
       );

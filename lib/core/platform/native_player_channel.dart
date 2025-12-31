@@ -65,6 +65,7 @@ class NativePlayerChannel {
     List<String>? urls,
     List<String>? names,
     List<String>? groups,
+    List<List<String>>? sources, // 每个频道的所有源
     bool isDlnaMode = false,
     String bufferStrength = 'fast',
     bool showFps = true,
@@ -82,6 +83,7 @@ class NativePlayerChannel {
         'urls': urls,
         'names': names,
         'groups': groups,
+        'sources': sources, // 传递每个频道的所有源
         'isDlnaMode': isDlnaMode,
         'bufferStrength': bufferStrength,
         'showFps': showFps,

@@ -94,11 +94,13 @@ class M3UParser {
     }
   }
 
+
   /// Parse M3U content string
+  /// Merges channels with same tvg-name/epgId into single channel with multiple sources
   static List<Channel> parse(String content, int playlistId) {
     debugPrint('DEBUG: 开始解析M3U内容，播放列表ID: $playlistId');
 
-    final List<Channel> channels = [];
+    final List<Channel> rawChannels = [];
     final lines = LineSplitter.split(content).toList();
     String? epgUrl;
 
@@ -106,7 +108,7 @@ class M3UParser {
 
     if (lines.isEmpty) {
       debugPrint('DEBUG: 内容为空，返回空频道列表');
-      return channels;
+      return rawChannels;
     }
 
     // Check for valid M3U header and extract EPG URL from first few lines
@@ -127,7 +129,6 @@ class M3UParser {
 
     if (!foundHeader) {
       debugPrint('DEBUG: 警告 - 缺少M3U头部标记，尝试继续解析');
-      // Try parsing anyway, some files don't have the header
     }
 
     String? currentName;
@@ -158,20 +159,18 @@ class M3UParser {
       } else if (line.isNotEmpty && !line.startsWith('#')) {
         // This is a URL line
         if (currentName != null) {
-          if (_isValidUrl(line)) {
+          final url = line.split('\n').first.trim();
+          if (_isValidUrl(url)) {
             final channel = Channel(
               playlistId: playlistId,
               name: currentName,
-              url: line.split('\$').first.trim(),
+              url: url,
               logoUrl: currentLogo,
               groupName: currentGroup ?? 'Uncategorized',
               epgId: currentEpgId,
             );
 
-            // Debug logging for channel creation
-            debugPrint('DEBUG: 创建频道 - 名称: ${channel.name}, 台标: ${channel.logoUrl ?? "无"}');
-
-            channels.add(channel);
+            rawChannels.add(channel);
             validChannelCount++;
           } else {
             invalidUrlCount++;
@@ -189,13 +188,73 @@ class M3UParser {
       }
     }
 
-    debugPrint('DEBUG: 解析完成 - 有效频道: $validChannelCount, 无效URL: $invalidUrlCount');
+    debugPrint('DEBUG: 原始解析完成 - 有效频道: $validChannelCount, 无效URL: $invalidUrlCount');
+
+    // Merge channels with same epgId (tvg-name) into single channel with multiple sources
+    final List<Channel> mergedChannels = _mergeChannelSources(rawChannels);
+    
+    debugPrint('DEBUG: 合并后频道数: ${mergedChannels.length} (原始: ${rawChannels.length})');
 
     // Save parse result with EPG URL
-    _lastParseResult = M3UParseResult(channels: channels, epgUrl: epgUrl);
+    _lastParseResult = M3UParseResult(channels: mergedChannels, epgUrl: epgUrl);
 
-    return channels;
+    return mergedChannels;
   }
+
+  /// Merge channels with same epgId into single channel with multiple sources
+  /// Preserves the order of first occurrence, but prefers non-special groups
+  static List<Channel> _mergeChannelSources(List<Channel> channels) {
+    final Map<String, Channel> mergedMap = {};
+    final List<String> orderKeys = []; // Preserve order
+
+    // Special groups that should not be the primary group
+    final specialGroups = {'🕘️更新时间', '更新时间', 'update', 'info'};
+
+    for (final channel in channels) {
+      // Use epgId as merge key
+      final mergeKey = channel.epgId ?? channel.name;
+      
+      if (mergedMap.containsKey(mergeKey)) {
+        // Add source to existing channel
+        final existing = mergedMap[mergeKey]!;
+        final newSources = [...existing.sources];
+        
+        // Add URL if not duplicate
+        if (!newSources.contains(channel.url)) {
+          newSources.add(channel.url);
+        }
+        
+        // Check if we should replace the primary channel info
+        // (prefer non-special group over special group)
+        final existingIsSpecial = specialGroups.any(
+          (g) => existing.groupName?.toLowerCase().contains(g.toLowerCase()) ?? false
+        );
+        final newIsSpecial = specialGroups.any(
+          (g) => channel.groupName?.toLowerCase().contains(g.toLowerCase()) ?? false
+        );
+        
+        if (existingIsSpecial && !newIsSpecial) {
+          // Replace with the new channel's info but keep all sources
+          mergedMap[mergeKey] = channel.copyWith(
+            sources: newSources,
+            // Keep the first URL as primary
+            url: newSources.first,
+          );
+        } else {
+          // Just add the new source
+          mergedMap[mergeKey] = existing.copyWith(sources: newSources);
+        }
+      } else {
+        // New channel
+        mergedMap[mergeKey] = channel.copyWith(sources: [channel.url]);
+        orderKeys.add(mergeKey);
+      }
+    }
+
+    // Return in original order
+    return orderKeys.map((key) => mergedMap[key]!).toList();
+  }
+
 
   /// Extract EPG URL from M3U header line
   /// Supports: x-tvg-url="url" or url-tvg="url"
@@ -282,8 +341,10 @@ class M3UParser {
   static bool _isValidUrl(String url) {
     try {
       final uri = Uri.parse(url);
-      final isValid =
-          uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https' || uri.scheme == 'rtmp' || uri.scheme == 'rtsp' || uri.scheme == 'mms' || uri.scheme == 'mmsh' || uri.scheme == 'mmst');
+      final isValid = uri.hasScheme && 
+          (uri.scheme == 'http' || uri.scheme == 'https' || 
+           uri.scheme == 'rtmp' || uri.scheme == 'rtsp' || 
+           uri.scheme == 'mms' || uri.scheme == 'mmsh' || uri.scheme == 'mmst');
 
       if (!isValid) {
         debugPrint('DEBUG: URL验证失败 - Scheme: ${uri.scheme}, Host: ${uri.host}');
@@ -318,21 +379,24 @@ class M3UParser {
     buffer.writeln();
 
     for (final channel in channels) {
-      buffer.write('#EXTINF:-1');
+      // Generate entry for each source
+      for (final sourceUrl in channel.sources) {
+        buffer.write('#EXTINF:-1');
 
-      if (channel.epgId != null) {
-        buffer.write(' tvg-id="${channel.epgId}"');
-      }
-      if (channel.logoUrl != null) {
-        buffer.write(' tvg-logo="${channel.logoUrl}"');
-      }
-      if (channel.groupName != null) {
-        buffer.write(' group-title="${channel.groupName}"');
-      }
+        if (channel.epgId != null) {
+          buffer.write(' tvg-id="${channel.epgId}"');
+        }
+        if (channel.logoUrl != null) {
+          buffer.write(' tvg-logo="${channel.logoUrl}"');
+        }
+        if (channel.groupName != null) {
+          buffer.write(' group-title="${channel.groupName}"');
+        }
 
-      buffer.writeln(',${channel.name}');
-      buffer.writeln(channel.url);
-      buffer.writeln();
+        buffer.writeln(',${channel.name}');
+        buffer.writeln(sourceUrl);
+        buffer.writeln();
+      }
     }
 
     return buffer.toString();

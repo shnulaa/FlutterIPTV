@@ -160,6 +160,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         final urls = channels.map((c) => c.url).toList();
         final names = channels.map((c) => c.name).toList();
         final groups = channels.map((c) => c.groupName ?? '').toList();
+        final sources = channels.map((c) => c.sources).toList(); // 每个频道的所有源
 
         debugPrint('PlayerScreen: Launching native player for ${widget.channelName} (isDlna=$isDlnaMode, index $currentIndex of ${channels.length})');
 
@@ -176,6 +177,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           urls: urls,
           names: names,
           groups: groups,
+          sources: sources,
           isDlnaMode: isDlnaMode,
           bufferStrength: bufferStrength,
           showFps: showFps,
@@ -353,6 +355,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     WidgetsBinding.instance.removeObserver(this);
     _hideControlsTimer?.cancel();
     _dlnaSyncTimer?.cancel(); // 清理 DLNA 同步定时器
+    _longPressTimer?.cancel(); // 清理长按定时器
     _playerFocusNode.dispose();
     _categoryScrollController.dispose();
     _channelScrollController.dispose();
@@ -376,6 +379,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
     super.dispose();
+  }
+
+  /// 显示源切换指示器 (已移除，因为顶部已有显示)
+  void _showSourceSwitchIndicator(PlayerProvider provider) {
+    // 不再显示 SnackBar，顶部已有源指示器
   }
 
   void _saveLastChannelId(Channel? channel) {
@@ -582,6 +590,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
   }
 
   DateTime? _lastSelectKeyDownTime;
+  DateTime? _lastLeftKeyDownTime; // 用于检测长按左键
+  Timer? _longPressTimer; // 长按定时器
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     _showControlsTemporarily();
@@ -640,58 +650,77 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       return KeyEventResult.handled;
     }
 
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-
-    // Seek backward (Left) - 打开分类面板
+    // Left key - 切换上一个源 / 长按打开分类面板
     if (key == LogicalKeyboardKey.arrowLeft) {
-      if (_showCategoryPanel) {
-        // 如果分类面板已显示且在频道列表，返回分类列表
-        if (_selectedCategory != null) {
-          setState(() => _selectedCategory = null);
-          return KeyEventResult.handled;
-        }
-        // 如果在分类列表，关闭面板
-        setState(() {
-          _showCategoryPanel = false;
-          _selectedCategory = null;
+      if (event is KeyDownEvent) {
+        if (event is KeyRepeatEvent) return KeyEventResult.handled;
+        _lastLeftKeyDownTime = DateTime.now();
+        // 启动长按定时器
+        _longPressTimer?.cancel();
+        _longPressTimer = Timer(const Duration(milliseconds: 500), () {
+          if (mounted && _lastLeftKeyDownTime != null) {
+            // 长按：打开分类面板
+            setState(() {
+              _showCategoryPanel = true;
+              _selectedCategory = null;
+            });
+            _lastLeftKeyDownTime = null; // 标记已处理长按
+          }
         });
         return KeyEventResult.handled;
       }
-      // 打开分类面板
-      setState(() {
-        _showCategoryPanel = true;
-        _selectedCategory = null;
-      });
-      _showControlsTemporarily();
+      
+      if (event is KeyUpEvent) {
+        _longPressTimer?.cancel();
+        if (_lastLeftKeyDownTime != null) {
+          // 短按：切换上一个源或关闭分类面板
+          _lastLeftKeyDownTime = null;
+          
+          if (_showCategoryPanel) {
+            // 如果分类面板已显示且在频道列表，返回分类列表
+            if (_selectedCategory != null) {
+              setState(() => _selectedCategory = null);
+              return KeyEventResult.handled;
+            }
+            // 如果在分类列表，关闭面板
+            setState(() {
+              _showCategoryPanel = false;
+              _selectedCategory = null;
+            });
+            return KeyEventResult.handled;
+          }
+          
+          // 切换到上一个源
+          final channel = playerProvider.currentChannel;
+          if (channel != null && channel.hasMultipleSources) {
+            playerProvider.switchToPreviousSource();
+            _showSourceSwitchIndicator(playerProvider);
+          }
+        }
+        return KeyEventResult.handled;
+      }
       return KeyEventResult.handled;
     }
 
-    // Right key - 直播流不需要快进，禁用
+    // Right key - 切换下一个源
     if (key == LogicalKeyboardKey.arrowRight) {
       if (_showCategoryPanel) {
         // 如果在分类面板，右键不做任何事
         return KeyEventResult.handled;
       }
-      // 直播流禁用快进
+      
+      if (event is KeyDownEvent && event is! KeyRepeatEvent) {
+        // 切换到下一个源
+        final channel = playerProvider.currentChannel;
+        if (channel != null && channel.hasMultipleSources) {
+          playerProvider.switchToNextSource();
+          _showSourceSwitchIndicator(playerProvider);
+        }
+      }
       return KeyEventResult.handled;
     }
 
-    // Previous/Next Channel (Up/Down)
-    // If controls are shown, Up/Down might be needed for navigation too (e.g. Volume -> Play -> Settings row to Top Bar)?
-    // Usually Up/Down in player (if simplistic) is Volume/Channel.
-    // If we have a UI with Top Bar and Bottom Bar, Up from Bottom Bar should go to Top Bar?
-    // Let's allow Up/Down to propagate IF focus is on a control?
-    // But how do we know if focus is on a control?
-    // _playerFocusNode is the parent. We don't know easily which child has focus here without checking FocusManager.
-    // BUT user specifically complained about Left/Right.
-    // User wants Up/Down to switch channels.
-    // If I return ignored for UP/DOWN when controls shown, channel switching might stop working if a button is focused.
-    // But if a button IS focused, Up/Down should probably navigate to other buttons?
-    // Let's assume for now Up/Down ALWAYS switches Channel UNLESS we are in a vertical menu (Settings sheet handles its own).
-    // The main player controls are a single Row (Left/Right).
-    // The Top Bar is above.
-    // If I press Up, should it go to Top Bar? Or switch Channel?
-    // User asked "Up/Down switch channel".
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
     // I will keep Up/Down as Channel Switch for now, unless user explicitly requested navigation.
     // Wait, user complained "Navigate bar displays, Left/Right cannot seek (should move focus)".
     // They didn't complain about Up/Down. So I will ONLY modify Left/Right.
@@ -968,7 +997,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           ),
           child: Column(
             children: [
-              // 顶部：频道名 + 退出/恢复按钮
+              // 顶部：频道名 + 源信息 + 退出/恢复按钮
               Padding(
                 padding: const EdgeInsets.all(8),
                 child: Row(
@@ -976,8 +1005,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                     Expanded(
                       child: Consumer<PlayerProvider>(
                         builder: (context, provider, _) {
+                          final hasMultipleSources = provider.currentChannel?.hasMultipleSources ?? false;
+                          final sourceInfo = hasMultipleSources 
+                              ? ' [${provider.currentSourceIndex}/${provider.sourceCount}]' 
+                              : '';
                           return Text(
-                            provider.currentChannel?.name ?? widget.channelName,
+                            '${provider.currentChannel?.name ?? widget.channelName}$sourceInfo',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
@@ -1205,6 +1238,28 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                                 Icon(Icons.circle, color: Colors.white, size: 6),
                                 SizedBox(width: 4),
                                 Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        // Source indicator (if multiple sources)
+                        if (provider.currentChannel != null && provider.currentChannel!.hasMultipleSources) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor.withOpacity(0.8),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.swap_horiz, color: Colors.white, size: 10),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '源 ${provider.currentSourceIndex}/${provider.sourceCount}',
+                                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                ),
                               ],
                             ),
                           ),

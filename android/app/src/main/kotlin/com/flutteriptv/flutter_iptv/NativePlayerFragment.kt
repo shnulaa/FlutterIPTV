@@ -74,10 +74,12 @@ class NativePlayerFragment : Fragment() {
     private var currentUrl: String = ""
     private var currentName: String = ""
     private var currentIndex: Int = 0
+    private var currentSourceIndex: Int = 0 // 当前源索引
     
     private var channelUrls: ArrayList<String> = arrayListOf()
     private var channelNames: ArrayList<String> = arrayListOf()
     private var channelGroups: ArrayList<String> = arrayListOf()
+    private var channelSources: ArrayList<ArrayList<String>> = arrayListOf() // 每个频道的所有源
     private var isDlnaMode: Boolean = false
     private var bufferStrength: String = "fast"
     
@@ -130,6 +132,7 @@ class NativePlayerFragment : Fragment() {
         private const val ARG_CHANNEL_URLS = "channel_urls"
         private const val ARG_CHANNEL_NAMES = "channel_names"
         private const val ARG_CHANNEL_GROUPS = "channel_groups"
+        private const val ARG_CHANNEL_SOURCES = "channel_sources"
         private const val ARG_IS_DLNA_MODE = "is_dlna_mode"
         private const val ARG_BUFFER_STRENGTH = "buffer_strength"
         private const val ARG_SHOW_FPS = "show_fps"
@@ -141,6 +144,7 @@ class NativePlayerFragment : Fragment() {
             channelUrls: ArrayList<String>? = null,
             channelNames: ArrayList<String>? = null,
             channelGroups: ArrayList<String>? = null,
+            channelSources: ArrayList<ArrayList<String>>? = null,
             isDlnaMode: Boolean = false,
             bufferStrength: String = "fast",
             showFps: Boolean = true
@@ -153,6 +157,7 @@ class NativePlayerFragment : Fragment() {
                     channelUrls?.let { putStringArrayList(ARG_CHANNEL_URLS, it) }
                     channelNames?.let { putStringArrayList(ARG_CHANNEL_NAMES, it) }
                     channelGroups?.let { putStringArrayList(ARG_CHANNEL_GROUPS, it) }
+                    channelSources?.let { putSerializable(ARG_CHANNEL_SOURCES, it) }
                     putBoolean(ARG_IS_DLNA_MODE, isDlnaMode)
                     putString(ARG_BUFFER_STRENGTH, bufferStrength)
                     putBoolean(ARG_SHOW_FPS, showFps)
@@ -178,12 +183,15 @@ class NativePlayerFragment : Fragment() {
             channelUrls = it.getStringArrayList(ARG_CHANNEL_URLS) ?: arrayListOf()
             channelNames = it.getStringArrayList(ARG_CHANNEL_NAMES) ?: arrayListOf()
             channelGroups = it.getStringArrayList(ARG_CHANNEL_GROUPS) ?: arrayListOf()
+            @Suppress("UNCHECKED_CAST")
+            channelSources = it.getSerializable(ARG_CHANNEL_SOURCES) as? ArrayList<ArrayList<String>> ?: arrayListOf()
             isDlnaMode = it.getBoolean(ARG_IS_DLNA_MODE, false)
             bufferStrength = it.getString(ARG_BUFFER_STRENGTH, "fast") ?: "fast"
             showFps = it.getBoolean(ARG_SHOW_FPS, true)
+            currentSourceIndex = 0 // 初始化为第一个源
         }
         
-        Log.d(TAG, "Playing: $currentName (index $currentIndex of ${channelUrls.size}, isDlna=$isDlnaMode)")
+        Log.d(TAG, "Playing: $currentName (index $currentIndex of ${channelUrls.size}, isDlna=$isDlnaMode, sources=${getCurrentSources().size})")
 
         playerView = view.findViewById(R.id.player_view)
         loadingIndicator = view.findViewById(R.id.loading_indicator)
@@ -259,7 +267,11 @@ class NativePlayerFragment : Fragment() {
         initializePlayer()
         
         if (currentUrl.isNotEmpty()) {
-            playUrl(currentUrl)
+            // 使用第一个源播放
+            val sources = getCurrentSources()
+            val urlToPlay = if (sources.isNotEmpty()) sources[0] else currentUrl
+            playUrl(urlToPlay)
+            updateSourceIndicator()
         } else {
             showError("No video URL provided")
         }
@@ -632,7 +644,12 @@ class NativePlayerFragment : Fragment() {
                     hideCategoryPanel()
                     return true
                 }
-                // Show category panel
+                // 如果有多个源，切换到上一个源
+                if (hasMultipleSources()) {
+                    previousSource()
+                    return true
+                }
+                // 没有多个源时，显示分类面板
                 showCategoryPanel()
                 return true
             }
@@ -641,6 +658,11 @@ class NativePlayerFragment : Fragment() {
                 if (isDlnaMode) {
                     showControls()
                     player?.seekForward()
+                    return true
+                }
+                // 如果有多个源，切换到下一个源
+                if (!categoryPanelVisible && hasMultipleSources()) {
+                    nextSource()
                     return true
                 }
                 // 直播流禁用快进
@@ -885,6 +907,71 @@ class NativePlayerFragment : Fragment() {
         }
     }
     
+    // 获取当前频道的所有源
+    private fun getCurrentSources(): List<String> {
+        return if (currentIndex >= 0 && currentIndex < channelSources.size) {
+            channelSources[currentIndex]
+        } else if (currentIndex >= 0 && currentIndex < channelUrls.size) {
+            listOf(channelUrls[currentIndex])
+        } else {
+            listOf(currentUrl)
+        }
+    }
+    
+    // 检查当前频道是否有多个源
+    private fun hasMultipleSources(): Boolean {
+        return getCurrentSources().size > 1
+    }
+    
+    // 切换到下一个源
+    private fun nextSource() {
+        val sources = getCurrentSources()
+        if (sources.size <= 1) return
+        
+        currentSourceIndex = (currentSourceIndex + 1) % sources.size
+        val newUrl = sources[currentSourceIndex]
+        
+        Log.d(TAG, "Switching to source ${currentSourceIndex + 1}/${sources.size}: $newUrl")
+        showSourceIndicator()
+        playUrl(newUrl)
+        showControls()
+    }
+    
+    // 切换到上一个源
+    private fun previousSource() {
+        val sources = getCurrentSources()
+        if (sources.size <= 1) return
+        
+        currentSourceIndex = (currentSourceIndex - 1 + sources.size) % sources.size
+        val newUrl = sources[currentSourceIndex]
+        
+        Log.d(TAG, "Switching to source ${currentSourceIndex + 1}/${sources.size}: $newUrl")
+        showSourceIndicator()
+        playUrl(newUrl)
+        showControls()
+    }
+    
+    // 显示源切换指示器 (已移除，因为频道名称已显示源信息)
+    private fun showSourceIndicator() {
+        // 不再显示 Toast，频道名称已显示源信息
+        updateSourceIndicator()
+    }
+    
+    // 更新源指示器显示
+    private fun updateSourceIndicator() {
+        val sources = getCurrentSources()
+        if (sources.size > 1) {
+            // 在频道名称后显示源信息
+            activity?.runOnUiThread {
+                channelNameText.text = "$currentName [${currentSourceIndex + 1}/${sources.size}]"
+            }
+        } else {
+            activity?.runOnUiThread {
+                channelNameText.text = currentName
+            }
+        }
+    }
+    
     private fun switchChannel(newIndex: Int) {
         if (channelUrls.isEmpty() || newIndex < 0 || newIndex >= channelUrls.size) {
             return
@@ -895,12 +982,17 @@ class NativePlayerFragment : Fragment() {
         retryRunnable?.let { handler.removeCallbacks(it) }
         
         currentIndex = newIndex
+        currentSourceIndex = 0 // 重置源索引
         currentUrl = channelUrls[newIndex]
         currentName = if (newIndex < channelNames.size) channelNames[newIndex] else "Channel ${newIndex + 1}"
         
-        Log.d(TAG, "Switching to channel: $currentName (index $currentIndex)")
-        channelNameText.text = currentName
-        playUrl(currentUrl)
+        Log.d(TAG, "Switching to channel: $currentName (index $currentIndex, sources=${getCurrentSources().size})")
+        updateSourceIndicator()
+        
+        // 使用第一个源播放
+        val sources = getCurrentSources()
+        val urlToPlay = if (sources.isNotEmpty()) sources[0] else currentUrl
+        playUrl(urlToPlay)
         showControls()
     }
     

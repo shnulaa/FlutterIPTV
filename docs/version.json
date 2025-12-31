@@ -1,23 +1,23 @@
 {
-  "version": "1.1.82",
-  "build": 82,
-  "releaseDate": "2025-12-30",
+  "version": "1.1.83",
+  "build": 83,
+  "releaseDate": "2025-12-31",
   "assets": {
-    "windows": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.82/flutteriptv-Windows-x64-Setup.exe",
+    "windows": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.83/flutteriptv-Windows-x64-Setup.exe",
     "android_mobile": {
-      "arm64-v8a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.82/flutteriptv-Android-Mobile-arm64-v8a.apk",
-      "armeabi-v7a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.82/flutteriptv-Android-Mobile-armeabi-v7a.apk",
-      "x86_64": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.82/flutteriptv-Android-Mobile-x86_64.apk"
+      "arm64-v8a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.83/flutteriptv-Android-Mobile-arm64-v8a.apk",
+      "armeabi-v7a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.83/flutteriptv-Android-Mobile-armeabi-v7a.apk",
+      "x86_64": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.83/flutteriptv-Android-Mobile-x86_64.apk"
     },
     "android_tv": {
-      "arm64-v8a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.82/flutteriptv-AndroidTV-arm64-v8a.apk",
-      "armeabi-v7a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.82/flutteriptv-AndroidTV-armeabi-v7a.apk",
-      "x86_64": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.82/flutteriptv-AndroidTV-x86_64.apk"
+      "arm64-v8a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.83/flutteriptv-AndroidTV-arm64-v8a.apk",
+      "armeabi-v7a": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.83/flutteriptv-AndroidTV-armeabi-v7a.apk",
+      "x86_64": "https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.83/flutteriptv-AndroidTV-x86_64.apk"
     }
   },
   "changelog": {
-    "zh": "- 新增FPS显示设置（默认开启）\n- 播放器右上角显示实时帧率\n- Windows迷你模式FPS显示在右下角",
-    "en": "- Add FPS display setting (enabled by default)\n- Show real-time frame rate in player top-right corner\n- Windows mini mode shows FPS in bottom-right corner"
+    "zh": "- 新增多源切换功能：同名频道自动合并多个源\n- 播放器左右键切换源，顶部显示当前源序号\n- 分类侧边栏新增搜索按钮\n- Windows迷你播放器显示源信息\n- Android TV原生播放器支持多源切换",
+    "en": "- Add multi-source switching: channels with same name auto-merge sources\n- Left/Right keys switch sources, top bar shows current source index\n- Add search button to categories sidebar\n- Windows mini player shows source info\n- Android TV native player supports multi-source switching"
   },
   "minVersion": "1.0.0"
 }
