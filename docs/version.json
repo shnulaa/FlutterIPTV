@@ -1,23 +1,23 @@
 {
-  "version": "1.1.87",
-  "build": 87,
+  "version": "1.1.88",
+  "build": 88,
   "releaseDate": "2025-12-31",
   "assets": {
-    "windows": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.87/flutteriptv-Windows-x64-Setup.exe",
+    "windows": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.88/flutteriptv-Windows-x64-Setup.exe",
     "android_mobile": {
-      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.87/flutteriptv-Android-Mobile-arm64-v8a.apk",
-      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.87/flutteriptv-Android-Mobile-armeabi-v7a.apk",
-      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.87/flutteriptv-Android-Mobile-x86_64.apk"
+      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.88/flutteriptv-Android-Mobile-arm64-v8a.apk",
+      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.88/flutteriptv-Android-Mobile-armeabi-v7a.apk",
+      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.88/flutteriptv-Android-Mobile-x86_64.apk"
     },
     "android_tv": {
-      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.87/flutteriptv-AndroidTV-arm64-v8a.apk",
-      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.87/flutteriptv-AndroidTV-armeabi-v7a.apk",
-      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.87/flutteriptv-AndroidTV-x86_64.apk"
+      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.88/flutteriptv-AndroidTV-arm64-v8a.apk",
+      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.88/flutteriptv-AndroidTV-armeabi-v7a.apk",
+      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.1.88/flutteriptv-AndroidTV-x86_64.apk"
     }
   },
   "changelog": {
-    "zh": "- 优化国内访问：使用 gh-proxy 加速下载\n- 新增 EPG 数据自动更新（每3小时）\n- EPG 镜像地址支持国内访问",
-    "en": "- Optimize China access: use gh-proxy for faster downloads\n- Add auto EPG data update (every 3 hours)\n- EPG mirror URLs accessible in China"
+    "zh": "- Android TV: 播放器右上角显示实时时钟（精确到秒）\n- Android TV: 时钟与FPS并排显示",
+    "en": "- Android TV: Show real-time clock in player top-right corner (with seconds)\n- Android TV: Clock displayed alongside FPS"
   },
   "minVersion": "1.0.0"
 }

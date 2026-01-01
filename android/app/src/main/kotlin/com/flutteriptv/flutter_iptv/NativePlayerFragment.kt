@@ -71,6 +71,11 @@ class NativePlayerFragment : Fragment() {
     private lateinit var fpsText: TextView
     private var showFps: Boolean = true
     
+    // Clock display
+    private lateinit var clockText: TextView
+    private var clockUpdateRunnable: Runnable? = null
+    private val CLOCK_UPDATE_INTERVAL = 1000L
+    
     // Source indicator
     private lateinit var sourceIndicator: View
     private lateinit var sourceText: TextView
@@ -241,6 +246,9 @@ class NativePlayerFragment : Fragment() {
         // FPS display
         fpsText = view.findViewById(R.id.fps_text)
         
+        // Clock display
+        clockText = view.findViewById(R.id.clock_text)
+        
         // Source indicator
         sourceIndicator = view.findViewById(R.id.source_indicator)
         sourceText = view.findViewById(R.id.source_text)
@@ -290,6 +298,9 @@ class NativePlayerFragment : Fragment() {
         } else {
             showError("No video URL provided")
         }
+        
+        // Start clock update
+        startClockUpdate()
         
         showControls()
     }
@@ -1004,6 +1015,28 @@ class NativePlayerFragment : Fragment() {
         }
     }
     
+    // 时钟更新
+    private fun startClockUpdate() {
+        stopClockUpdate()
+        clockUpdateRunnable = Runnable {
+            updateClock()
+            handler.postDelayed(clockUpdateRunnable!!, CLOCK_UPDATE_INTERVAL)
+        }
+        handler.post(clockUpdateRunnable!!)
+    }
+    
+    private fun stopClockUpdate() {
+        clockUpdateRunnable?.let { handler.removeCallbacks(it) }
+        clockUpdateRunnable = null
+    }
+    
+    private fun updateClock() {
+        activity?.runOnUiThread {
+            val sdf = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
+            clockText.text = sdf.format(java.util.Date())
+        }
+    }
+    
     // 获取当前频道的所有源
     private fun getCurrentSources(): List<String> {
         return if (currentIndex >= 0 && currentIndex < channelSources.size) {
@@ -1364,6 +1397,7 @@ class NativePlayerFragment : Fragment() {
         sourceIndicatorHideRunnable?.let { handler.removeCallbacks(it) }
         stopProgressUpdate() // 停止进度更新
         stopFpsCalculation() // 停止 FPS 计算
+        stopClockUpdate() // 停止时钟更新
         player?.release()
         player = null
         activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
