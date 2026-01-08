@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 import '../theme/app_theme.dart';
+import '../platform/windows_pip_channel.dart';
 
 /// 自动隐藏的Windows标题栏
 /// 鼠标移到顶部区域时显示，移开后自动隐藏
@@ -34,9 +35,23 @@ class _WindowTitleBarState extends State<WindowTitleBar> {
   static const Duration _hideDelay = Duration(milliseconds: 1500);
 
   @override
+  void initState() {
+    super.initState();
+    // 监听 mini 模式状态变化
+    WindowsPipChannel.pipModeNotifier.addListener(_onPipModeChanged);
+  }
+
+  @override
   void dispose() {
     _hideTimer?.cancel();
+    WindowsPipChannel.pipModeNotifier.removeListener(_onPipModeChanged);
     super.dispose();
+  }
+
+  void _onPipModeChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _showTitleBar() {
@@ -62,6 +77,11 @@ class _WindowTitleBarState extends State<WindowTitleBar> {
   @override
   Widget build(BuildContext context) {
     if (!Platform.isWindows) {
+      return const SizedBox.shrink();
+    }
+
+    // Mini 模式下完全不显示标题栏
+    if (WindowsPipChannel.isInPipMode) {
       return const SizedBox.shrink();
     }
 

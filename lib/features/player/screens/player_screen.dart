@@ -403,6 +403,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     _categoryScrollController.dispose();
     _channelScrollController.dispose();
 
+    // 如果在 Windows mini 模式，退出 mini 模式
+    if (WindowsPipChannel.isInPipMode) {
+      WindowsPipChannel.exitPipMode();
+    }
+
     // Only stop playback if we're using Flutter player (not native)
     if (!_usingNativePlayer && _playerProvider != null) {
       debugPrint('PlayerScreen: calling _playerProvider.stop()');

@@ -18,6 +18,9 @@ class WindowsPipChannel {
   static const double _miniHeight = 225; // 16:9 比例
   static const double _margin = 20;
 
+  // 状态变化通知器
+  static final ValueNotifier<bool> pipModeNotifier = ValueNotifier<bool>(false);
+
   /// 是否在迷你模式
   static bool get isInPipMode => _isInMiniMode;
 
@@ -58,12 +61,15 @@ class WindowsPipChannel {
       
       debugPrint('WindowsPipChannel: 屏幕尺寸 - $screenWidth x $screenHeight');
       
-      // 计算右下角位置（考虑任务栏高度约 40px）
+      // 计算右下角位置，紧贴屏幕底部（覆盖任务栏）
       final x = screenWidth - _miniWidth - _margin;
-      final y = screenHeight - _miniHeight - _margin - 50; // 50 for taskbar
+      final y = screenHeight - _miniHeight - _margin;
 
       debugPrint('WindowsPipChannel: 目标位置 - ($x, $y)');
 
+      // 隐藏标题栏
+      await windowManager.setTitleBarStyle(TitleBarStyle.hidden);
+      
       // 设置窗口属性
       await windowManager.setMinimumSize(const Size(320, 180));
       await windowManager.setSize(const Size(_miniWidth, _miniHeight));
@@ -73,12 +79,13 @@ class WindowsPipChannel {
       await windowManager.setPosition(Offset(x, y));
       await Future.delayed(const Duration(milliseconds: 100));
       
-      // 置顶 + 跳过任务栏（这样 Win+D 不会最小化）
+      // 置顶 + 跳过任务栏（这样 Win+D 不会最小化，且任务栏不显示图标）
       await windowManager.setAlwaysOnTop(true);
       await windowManager.setSkipTaskbar(true);
       
       _isInMiniMode = true;
       _isPinned = true;
+      pipModeNotifier.value = true; // 通知状态变化
       
       debugPrint('WindowsPipChannel: 进入迷你模式成功');
       return true;
@@ -96,6 +103,9 @@ class WindowsPipChannel {
       // 取消置顶和跳过任务栏
       await windowManager.setAlwaysOnTop(false);
       await windowManager.setSkipTaskbar(false);
+      
+      // 恢复标题栏
+      await windowManager.setTitleBarStyle(TitleBarStyle.hidden);
       
       // 恢复最小尺寸限制
       await windowManager.setMinimumSize(const Size(800, 600));
@@ -125,6 +135,7 @@ class WindowsPipChannel {
 
       _isInMiniMode = false;
       _isPinned = false;
+      pipModeNotifier.value = false; // 通知状态变化
       
       debugPrint('WindowsPipChannel: 退出迷你模式');
       return true;
