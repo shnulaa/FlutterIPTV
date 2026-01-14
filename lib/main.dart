@@ -222,10 +222,20 @@ class _DlnaAwareAppState extends State<_DlnaAwareApp> with WindowListener {
       return;
     }
     
-    // 如果已经在播放其他内容，先返回再导航
-    if (_currentDlnaUrl != null) {
-      _navigatorKey.currentState?.pop();
+    // 停止当前播放（包括分屏模式）
+    try {
+      final playerProvider = context.read<PlayerProvider>();
+      playerProvider.stop();
+      
+      // 停止分屏播放
+      final multiScreenProvider = context.read<MultiScreenProvider>();
+      multiScreenProvider.clearAllScreens();
+    } catch (e) {
+      debugPrint('DLNA: 停止当前播放失败 - $e');
     }
+    
+    // 先返回到首页，再导航到播放器
+    _navigatorKey.currentState?.popUntil((route) => route.isFirst);
     
     _currentDlnaUrl = url;
     debugPrint('DLNA: 播放 - ${title ?? url}');

@@ -37,6 +37,7 @@ class AppRouter {
             channelUrl: args?['channelUrl'] ?? '',
             channelName: args?['channelName'] ?? 'Unknown',
             channelLogo: args?['channelLogo'],
+            isMultiScreen: args?['isMultiScreen'] ?? false,
           ),
           settings,
         );

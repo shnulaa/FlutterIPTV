@@ -241,7 +241,7 @@
             android:layout_height="wrap_content"
             android:textColor="#66FFFFFF"
             android:textSize="11sp"
-            android:text="↑↓ 切换频道 · ←→ 切换源 · 长按← 分类列表 · OK 播放/暂停"
+            android:text="↑↓ 切换频道 · ←→ 切换源 · 长按← 分类 · OK 播放/暂停 · 双击OK 收藏 · 长按OK 分屏"
             android:gravity="end" />
 
         <!-- Progress Bar (DLNA mode) -->

@@ -28,12 +28,14 @@ class PlayerScreen extends StatefulWidget {
   final String channelUrl;
   final String channelName;
   final String? channelLogo;
+  final bool isMultiScreen; // 是否强制进入分屏模式
 
   const PlayerScreen({
     super.key,
     required this.channelUrl,
     required this.channelName,
     this.channelLogo,
+    this.isMultiScreen = false,
   });
 
   @override
@@ -53,12 +55,17 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   // 保存 provider 引用，用于 dispose 时释放资源
   PlayerProvider? _playerProvider;
+  MultiScreenProvider? _multiScreenProvider;
+  SettingsProvider? _settingsProvider;
   
   // 本地分屏模式状态（不影响设置）
   bool _localMultiScreenMode = false;
   
   // 保存分屏模式状态，用于 dispose 时判断
   bool _wasMultiScreenMode = false;
+  
+  // 标记是否已经保存了分屏状态（避免重复保存）
+  bool _multiScreenStateSaved = false;
 
   // 手势控制相关变量
   double _gestureStartY = 0;
@@ -96,14 +103,25 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
       _playerProvider!.addListener(_onProviderUpdate);
       _isLoading = _playerProvider!.isLoading;
       
-      // 初始化本地分屏模式状态（根据设置）
-      final settingsProvider = context.read<SettingsProvider>();
-      _localMultiScreenMode = settingsProvider.enableMultiScreen && PlatformDetector.isDesktop;
+      // 保存 settings 和 multi-screen provider 引用（用于 dispose 时保存状态）
+      _settingsProvider = context.read<SettingsProvider>();
+      _multiScreenProvider = context.read<MultiScreenProvider>();
+      
+      // 检查是否是 DLNA 投屏模式
+      bool isDlnaMode = false;
+      try {
+        final dlnaProvider = context.read<DlnaProvider>();
+        isDlnaMode = dlnaProvider.isActiveSession;
+      } catch (_) {}
+      
+      // 初始化本地分屏模式状态（根据设置或传入参数）
+      // 如果传入了 isMultiScreen=true，强制进入分屏模式
+      // DLNA 投屏模式下不进入分屏
+      _localMultiScreenMode = !isDlnaMode && (widget.isMultiScreen || _settingsProvider!.enableMultiScreen) && PlatformDetector.isDesktop;
       
       // 如果是分屏模式，设置音量增强到分屏Provider
       if (_localMultiScreenMode) {
-        final multiScreenProvider = context.read<MultiScreenProvider>();
-        multiScreenProvider.setVolumeSettings(_playerProvider!.volume, settingsProvider.volumeBoost);
+        _multiScreenProvider!.setVolumeSettings(_playerProvider!.volume, _settingsProvider!.volumeBoost);
       }
     }
     // 保存分屏模式状态
@@ -178,15 +196,17 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         final channelProvider = context.read<ChannelProvider>();
         final channels = channelProvider.channels;
         
-        // 设置 providers 用于收藏功能
+        // 设置 providers 用于收藏功能和状态保存
         final favoritesProvider = context.read<FavoritesProvider>();
-        NativePlayerChannel.setProviders(favoritesProvider, channelProvider);
+        final settingsProvider = context.read<SettingsProvider>();
+        NativePlayerChannel.setProviders(favoritesProvider, channelProvider, settingsProvider);
 
         // DLNA 模式下不使用频道列表，直接播放传入的 URL
         List<String> urls;
         List<String> names;
         List<String> groups;
         List<List<String>> sources;
+        List<String> logos;
         int currentIndex = 0;
         
         if (isDlnaMode) {
@@ -195,6 +215,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           names = [widget.channelName];
           groups = ['DLNA'];
           sources = [[widget.channelUrl]];
+          logos = [''];
           currentIndex = 0;
         } else {
           // 正常模式：使用频道列表
@@ -209,12 +230,12 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           names = channels.map((c) => c.name).toList();
           groups = channels.map((c) => c.groupName ?? '').toList();
           sources = channels.map((c) => c.sources).toList();
+          logos = channels.map((c) => c.logoUrl ?? '').toList();
         }
 
         debugPrint('PlayerScreen: Launching native player for ${widget.channelName} (isDlna=$isDlnaMode, index $currentIndex of ${urls.length})');
 
         // 获取缓冲强度设置和显示设置
-        final settingsProvider = context.read<SettingsProvider>();
         final bufferStrength = settingsProvider.bufferStrength;
         final showFps = settingsProvider.showFps;
         final showClock = settingsProvider.showClock;
@@ -230,6 +251,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
           names: names,
           groups: groups,
           sources: sources,
+          logos: logos,
           isDlnaMode: isDlnaMode,
           bufferStrength: bufferStrength,
           showFps: showFps,
@@ -426,7 +448,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   @override
   void dispose() {
-    debugPrint('PlayerScreen: dispose() called, _usingNativePlayer=$_usingNativePlayer');
+    debugPrint('PlayerScreen: dispose() called, _usingNativePlayer=$_usingNativePlayer, _wasMultiScreenMode=$_wasMultiScreenMode');
     WidgetsBinding.instance.removeObserver(this);
     _hideControlsTimer?.cancel();
     _dlnaSyncTimer?.cancel(); // 清理 DLNA 同步定时器
@@ -438,6 +460,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     // 如果在 Windows mini 模式，退出 mini 模式
     if (WindowsPipChannel.isInPipMode) {
       WindowsPipChannel.exitPipMode();
+    }
+
+    // 保存分屏状态（Windows 平台）
+    if (_wasMultiScreenMode && PlatformDetector.isDesktop) {
+      _saveMultiScreenState();
     }
 
     // Only stop playback if we're using Flutter player (not native) and not in multi-screen mode
@@ -463,6 +490,39 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     super.dispose();
   }
 
+  /// 保存分屏状态（Windows 平台）
+  void _saveMultiScreenState() {
+    // 避免重复保存
+    if (_multiScreenStateSaved) {
+      debugPrint('PlayerScreen: Multi-screen state already saved, skipping');
+      return;
+    }
+    
+    try {
+      if (_multiScreenProvider == null || _settingsProvider == null) {
+        debugPrint('PlayerScreen: Cannot save multi-screen state - providers not available');
+        return;
+      }
+      
+      // 获取每个屏幕的频道ID
+      final List<int?> channelIds = [];
+      for (int i = 0; i < 4; i++) {
+        final screen = _multiScreenProvider!.getScreen(i);
+        channelIds.add(screen.channel?.id);
+      }
+      
+      final activeIndex = _multiScreenProvider!.activeScreenIndex;
+      
+      debugPrint('PlayerScreen: Saving multi-screen state - channelIds: $channelIds, activeIndex: $activeIndex');
+      
+      // 保存分屏状态
+      _settingsProvider!.saveLastMultiScreen(channelIds, activeIndex);
+      _multiScreenStateSaved = true;
+    } catch (e) {
+      debugPrint('PlayerScreen: Error saving multi-screen state: $e');
+    }
+  }
+
   /// 显示源切换指示器 (已移除，因为顶部已有显示)
   void _showSourceSwitchIndicator(PlayerProvider provider) {
     // 不再显示 SnackBar，顶部已有源指示器
@@ -470,9 +530,9 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
   void _saveLastChannelId(Channel? channel) {
     if (channel == null || channel.id == null) return;
-    final settingsProvider = context.read<SettingsProvider>();
-    if (settingsProvider.rememberLastChannel) {
-      settingsProvider.setLastChannelId(channel.id);
+    if (_settingsProvider != null && _settingsProvider!.rememberLastChannel) {
+      // 保存单频道播放状态
+      _settingsProvider!.saveLastSingleChannel(channel.id);
     }
   }
 
@@ -1195,6 +1255,8 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
         }
       },
       onBack: () {
+        // 先保存分屏状态，再清空
+        _saveMultiScreenState();
         // 返回时清空所有分屏
         final multiScreenProvider = context.read<MultiScreenProvider>();
         multiScreenProvider.clearAllScreens();

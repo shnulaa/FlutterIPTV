@@ -4,19 +4,23 @@ import 'platform_detector.dart';
 import '../services/epg_service.dart';
 import '../../features/favorites/providers/favorites_provider.dart';
 import '../../features/channels/providers/channel_provider.dart';
+import '../../features/settings/providers/settings_provider.dart';
 
 /// Service to launch native Android player via MethodChannel
 class NativePlayerChannel {
   static const _channel = MethodChannel('com.flutteriptv/native_player');
   static bool _initialized = false;
   static Function? _onPlayerClosedCallback;
+  static Function? _onMultiScreenClosedCallback;
   static FavoritesProvider? _favoritesProvider;
   static ChannelProvider? _channelProvider;
+  static SettingsProvider? _settingsProvider;
 
   /// Set providers for favorite functionality
-  static void setProviders(FavoritesProvider favoritesProvider, ChannelProvider channelProvider) {
+  static void setProviders(FavoritesProvider favoritesProvider, ChannelProvider channelProvider, [SettingsProvider? settingsProvider]) {
     _favoritesProvider = favoritesProvider;
     _channelProvider = channelProvider;
+    _settingsProvider = settingsProvider;
   }
 
   /// Initialize the channel
@@ -28,8 +32,16 @@ class NativePlayerChannel {
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'onPlayerClosed') {
         debugPrint('NativePlayerChannel: Player closed from native');
+        // 保存单频道播放状态
+        _saveSingleChannelState(call.arguments);
         _onPlayerClosedCallback?.call();
         _onPlayerClosedCallback = null;
+      } else if (call.method == 'onMultiScreenClosed') {
+        debugPrint('NativePlayerChannel: Multi-screen closed from native');
+        // 保存分屏状态
+        _saveMultiScreenState(call.arguments);
+        _onMultiScreenClosedCallback?.call();
+        _onMultiScreenClosedCallback = null;
       } else if (call.method == 'getEpgInfo') {
         // Native player requests EPG info for a channel
         final channelName = call.arguments['channelName'] as String?;
@@ -122,6 +134,99 @@ class NativePlayerChannel {
     return isFav;
   }
 
+  /// 保存分屏状态
+  static void _saveMultiScreenState(dynamic arguments) {
+    if (_settingsProvider == null || _channelProvider == null) {
+      debugPrint('NativePlayerChannel: _saveMultiScreenState - providers not set');
+      return;
+    }
+    
+    if (arguments == null) {
+      debugPrint('NativePlayerChannel: _saveMultiScreenState - no arguments');
+      return;
+    }
+    
+    try {
+      final Map<dynamic, dynamic> args = arguments as Map<dynamic, dynamic>;
+      final List<dynamic>? screenStates = args['screenStates'] as List<dynamic>?;
+      final int activeIndex = args['activeIndex'] as int? ?? 0;
+      
+      if (screenStates == null) {
+        debugPrint('NativePlayerChannel: _saveMultiScreenState - no screenStates');
+        return;
+      }
+      
+      // 将频道索引转换为频道ID
+      final channels = _channelProvider!.channels;
+      final List<int?> channelIds = [];
+      
+      for (final state in screenStates) {
+        if (state == null) {
+          channelIds.add(null);
+        } else {
+          final channelIndex = state as int;
+          if (channelIndex >= 0 && channelIndex < channels.length) {
+            channelIds.add(channels[channelIndex].id);
+          } else {
+            channelIds.add(null);
+          }
+        }
+      }
+      
+      debugPrint('NativePlayerChannel: _saveMultiScreenState - channelIds: $channelIds, activeIndex: $activeIndex');
+      
+      // 保存分屏状态
+      _settingsProvider!.saveLastMultiScreen(channelIds, activeIndex);
+    } catch (e) {
+      debugPrint('NativePlayerChannel: _saveMultiScreenState error: $e');
+    }
+  }
+
+  /// 保存单频道播放状态
+  static void _saveSingleChannelState(dynamic arguments) {
+    if (_settingsProvider == null || _channelProvider == null) {
+      debugPrint('NativePlayerChannel: _saveSingleChannelState - providers not set');
+      return;
+    }
+    
+    try {
+      int? channelIndex;
+      bool skipSave = false;
+      
+      if (arguments != null && arguments is Map) {
+        channelIndex = arguments['channelIndex'] as int?;
+        skipSave = arguments['skipSave'] as bool? ?? false;
+      }
+      
+      // 如果是从分屏退出到单频道播放的，不覆盖分屏状态
+      if (skipSave) {
+        debugPrint('NativePlayerChannel: _saveSingleChannelState - skipSave=true, keeping multi-screen state');
+        return;
+      }
+      
+      if (channelIndex == null || channelIndex < 0) {
+        debugPrint('NativePlayerChannel: _saveSingleChannelState - no valid channelIndex');
+        return;
+      }
+      
+      final channels = _channelProvider!.channels;
+      if (channelIndex >= channels.length) {
+        debugPrint('NativePlayerChannel: _saveSingleChannelState - channelIndex out of range');
+        return;
+      }
+      
+      final channelId = channels[channelIndex].id;
+      debugPrint('NativePlayerChannel: _saveSingleChannelState - channelIndex: $channelIndex, channelId: $channelId');
+      
+      if (channelId != null) {
+        // 保存单频道播放状态
+        _settingsProvider!.saveLastSingleChannel(channelId);
+      }
+    } catch (e) {
+      debugPrint('NativePlayerChannel: _saveSingleChannelState error: $e');
+    }
+  }
+
   /// Check if native player is available (Android TV only)
   static Future<bool> isAvailable() async {
     if (!PlatformDetector.isAndroid) return false;
@@ -145,6 +250,7 @@ class NativePlayerChannel {
     List<String>? names,
     List<String>? groups,
     List<List<String>>? sources, // 每个频道的所有源
+    List<String>? logos, // 每个频道的台标URL
     bool isDlnaMode = false,
     String bufferStrength = 'fast',
     bool showFps = true,
@@ -166,6 +272,7 @@ class NativePlayerChannel {
         'names': names,
         'groups': groups,
         'sources': sources, // 传递每个频道的所有源
+        'logos': logos, // 传递每个频道的台标URL
         'isDlnaMode': isDlnaMode,
         'bufferStrength': bufferStrength,
         'showFps': showFps,
@@ -238,5 +345,55 @@ class NativePlayerChannel {
       debugPrint('NativePlayerChannel: getPlaybackState error: $e');
     }
     return null;
+  }
+
+  /// Launch native multi-screen player (TV only)
+  /// Returns true if launched successfully
+  static Future<bool> launchMultiScreen({
+    required List<String> urls,
+    required List<String> names,
+    required List<String> groups,
+    List<List<String>>? sources,
+    List<String>? logos,
+    int initialChannelIndex = 0,
+    int volumeBoostDb = 0,
+    int defaultScreenPosition = 1,  // 1-4 对应四个屏幕位置
+    int restoreActiveIndex = -1,  // 恢复时的活动屏幕索引
+    List<int?>? restoreScreenChannels,  // 恢复时每个屏幕的频道索引
+    Function? onClosed,
+  }) async {
+    try {
+      init(); // Ensure initialized
+      _onMultiScreenClosedCallback = onClosed;
+
+      debugPrint('NativePlayerChannel: launching multi-screen with ${urls.length} channels, initial=$initialChannelIndex, volumeBoost=$volumeBoostDb, defaultScreen=$defaultScreenPosition, restoreActive=$restoreActiveIndex, restoreChannels=$restoreScreenChannels');
+      final result = await _channel.invokeMethod<bool>('launchMultiScreen', {
+        'urls': urls,
+        'names': names,
+        'groups': groups,
+        'sources': sources,
+        'logos': logos,
+        'initialChannelIndex': initialChannelIndex,
+        'volumeBoostDb': volumeBoostDb,
+        'defaultScreenPosition': defaultScreenPosition,
+        'restoreActiveIndex': restoreActiveIndex,
+        'restoreScreenChannels': restoreScreenChannels,
+      });
+      debugPrint('NativePlayerChannel: multi-screen launch result=$result');
+      return result ?? false;
+    } catch (e) {
+      debugPrint('NativePlayerChannel: launchMultiScreen error: $e');
+      _onMultiScreenClosedCallback = null;
+      return false;
+    }
+  }
+
+  /// Close the native multi-screen player
+  static Future<void> closeMultiScreen() async {
+    try {
+      await _channel.invokeMethod('closeMultiScreen');
+    } catch (e) {
+      debugPrint('NativePlayerChannel: closeMultiScreen error: $e');
+    }
   }
 }

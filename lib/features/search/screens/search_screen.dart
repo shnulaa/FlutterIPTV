@@ -14,6 +14,7 @@ import '../../favorites/providers/favorites_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../epg/providers/epg_provider.dart';
 import '../../multi_screen/providers/multi_screen_provider.dart';
+import '../../../core/platform/native_player_channel.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -602,19 +603,60 @@ class _SearchScreenState extends State<SearchScreen> {
                     settingsProvider.setLastChannelId(channel.id);
                   }
 
-                  // 检查是否启用了分屏模式且在桌面平台
-                  if (settingsProvider.enableMultiScreen && PlatformDetector.isDesktop) {
-                    final multiScreenProvider = context.read<MultiScreenProvider>();
-                    final defaultPosition = settingsProvider.defaultScreenPosition;
-                    // 设置音量增强到分屏Provider
-                    multiScreenProvider.setVolumeSettings(1.0, settingsProvider.volumeBoost);
-                    multiScreenProvider.playChannelAtDefaultPosition(channel, defaultPosition);
-                    
-                    Navigator.pushNamed(context, AppRouter.player, arguments: {
-                      'channelUrl': '',
-                      'channelName': '',
-                      'channelLogo': null,
-                    });
+                  // 检查是否启用了分屏模式
+                  if (settingsProvider.enableMultiScreen) {
+                    // TV 端使用原生分屏播放器
+                    if (PlatformDetector.isTV && PlatformDetector.isAndroid) {
+                      final channelProvider = context.read<ChannelProvider>();
+                      final channels = channelProvider.channels;
+                      
+                      // 找到当前点击频道的索引
+                      final clickedIndex = channels.indexWhere((c) => c.url == channel.url);
+                      
+                      // 准备频道数据
+                      final urls = channels.map((c) => c.url).toList();
+                      final names = channels.map((c) => c.name).toList();
+                      final groups = channels.map((c) => c.groupName ?? '').toList();
+                      final sources = channels.map((c) => c.sources).toList();
+                      final logos = channels.map((c) => c.logoUrl ?? '').toList();
+                      
+                      // 启动原生分屏播放器
+                      NativePlayerChannel.launchMultiScreen(
+                        urls: urls,
+                        names: names,
+                        groups: groups,
+                        sources: sources,
+                        logos: logos,
+                        initialChannelIndex: clickedIndex >= 0 ? clickedIndex : 0,
+                        volumeBoostDb: settingsProvider.volumeBoost,
+                        defaultScreenPosition: settingsProvider.defaultScreenPosition,
+                        onClosed: () {
+                          debugPrint('SearchScreen: Native multi-screen closed');
+                        },
+                      );
+                    } else if (PlatformDetector.isDesktop) {
+                      final multiScreenProvider = context.read<MultiScreenProvider>();
+                      final defaultPosition = settingsProvider.defaultScreenPosition;
+                      // 设置音量增强到分屏Provider
+                      multiScreenProvider.setVolumeSettings(1.0, settingsProvider.volumeBoost);
+                      multiScreenProvider.playChannelAtDefaultPosition(channel, defaultPosition);
+                      
+                      Navigator.pushNamed(context, AppRouter.player, arguments: {
+                        'channelUrl': '',
+                        'channelName': '',
+                        'channelLogo': null,
+                      });
+                    } else {
+                      Navigator.pushNamed(
+                        context,
+                        AppRouter.player,
+                        arguments: {
+                          'channelUrl': channel.url,
+                          'channelName': channel.name,
+                          'channelLogo': channel.logoUrl,
+                        },
+                      );
+                    }
                   } else {
                     Navigator.pushNamed(
                       context,

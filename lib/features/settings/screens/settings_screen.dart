@@ -159,7 +159,7 @@ class SettingsScreen extends StatelessWidget {
                   _showSuccess(context, value ? (strings?.videoInfoEnabled ?? 'Resolution display enabled') : (strings?.videoInfoDisabled ?? 'Resolution display disabled'));
                 },
               ),
-              if (PlatformDetector.isDesktop) ...[
+              if (PlatformDetector.isDesktop || PlatformDetector.isTV) ...[
                 _buildDivider(),
                 _buildSwitchTile(
                   context,
@@ -173,7 +173,7 @@ class SettingsScreen extends StatelessWidget {
                     _showSuccess(context, value ? (strings?.multiScreenEnabled ?? 'Multi-screen mode enabled') : (strings?.multiScreenDisabled ?? 'Multi-screen mode disabled'));
                   },
                 ),
-                if (settings.enableMultiScreen) ...[
+                if (settings.enableMultiScreen && PlatformDetector.isDesktop) ...[
                   _buildDivider(),
                   _buildSelectTile(
                     context,

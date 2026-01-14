@@ -119,6 +119,10 @@ class NativePlayerFragment : Fragment() {
     private var lastBackPressTime = 0L
     private val BACK_PRESS_INTERVAL = 2000L // 2秒内按两次返回才退出
     
+    // 双击OK键收藏
+    private var lastOkPressTime = 0L
+    private val OK_DOUBLE_CLICK_INTERVAL = 600L // 600ms内按两次OK键收藏
+    
     private var videoWidth = 0
     private var videoHeight = 0
     private var videoCodec = ""
@@ -163,6 +167,7 @@ class NativePlayerFragment : Fragment() {
     private var isFavorite: Boolean = false
     
     var onCloseListener: (() -> Unit)? = null
+    var onEnterMultiScreen: ((Int) -> Unit)? = null  // 进入分屏模式，传递当前频道索引
 
     companion object {
         private const val ARG_VIDEO_URL = "video_url"
@@ -744,11 +749,14 @@ class NativePlayerFragment : Fragment() {
                         centerKeyDownTime = System.currentTimeMillis()
                         centerLongPressHandled = false
                     }
-                    // 检测长按 - 添加/移除收藏
+                    // 检测长按 - 进入分屏模式
                     if (event.repeatCount > 0 && !centerLongPressHandled && 
                         System.currentTimeMillis() - centerKeyDownTime >= LONG_PRESS_THRESHOLD) {
                         centerLongPressHandled = true
-                        toggleFavorite()
+                        // 长按OK键进入分屏模式
+                        if (!isDlnaMode && channelUrls.isNotEmpty()) {
+                            onEnterMultiScreen?.invoke(currentIndex)
+                        }
                         return true
                     }
                 }
@@ -858,12 +866,24 @@ class NativePlayerFragment : Fragment() {
                     return true
                 }
                 
-                // 短按 - 播放/暂停
+                // 短按处理
                 val pressDuration = System.currentTimeMillis() - centerKeyDownTime
                 if (centerKeyDownTime > 0 && pressDuration < LONG_PRESS_THRESHOLD) {
-                    showControls()
-                    player?.let {
-                        if (it.isPlaying) it.pause() else it.play()
+                    val currentTime = System.currentTimeMillis()
+                    val timeSinceLastOk = currentTime - lastOkPressTime
+                    Log.d(TAG, "OK key up: pressDuration=$pressDuration, timeSinceLastOk=$timeSinceLastOk, lastOkPressTime=$lastOkPressTime")
+                    // 检测双击 - 收藏
+                    if (lastOkPressTime > 0 && timeSinceLastOk < OK_DOUBLE_CLICK_INTERVAL) {
+                        Log.d(TAG, "Double click detected, toggling favorite")
+                        toggleFavorite()
+                        lastOkPressTime = 0L
+                    } else {
+                        // 单击 - 播放/暂停
+                        lastOkPressTime = currentTime
+                        showControls()
+                        player?.let {
+                            if (it.isPlaying) it.pause() else it.play()
+                        }
                     }
                 }
                 centerKeyDownTime = 0L
@@ -1494,10 +1514,21 @@ class NativePlayerFragment : Fragment() {
     }
     
     private fun toggleFavorite() {
-        if (currentIndex < 0 || isDlnaMode) return
+        Log.d(TAG, "toggleFavorite called: currentIndex=$currentIndex, isDlnaMode=$isDlnaMode")
+        if (currentIndex < 0 || isDlnaMode) {
+            Log.d(TAG, "toggleFavorite: skipped - invalid index or DLNA mode")
+            return
+        }
         
-        val activity = activity as? MainActivity ?: return
+        val activity = activity as? MainActivity
+        if (activity == null) {
+            Log.e(TAG, "toggleFavorite: activity is null")
+            return
+        }
+        
+        Log.d(TAG, "toggleFavorite: calling MainActivity.toggleFavorite")
         activity.toggleFavorite(currentIndex) { newFavoriteStatus ->
+            Log.d(TAG, "toggleFavorite callback: newFavoriteStatus=$newFavoriteStatus")
             activity.runOnUiThread {
                 if (newFavoriteStatus != null) {
                     isFavorite = newFavoriteStatus
@@ -1509,6 +1540,7 @@ class NativePlayerFragment : Fragment() {
                     }
                     android.widget.Toast.makeText(requireContext(), message, android.widget.Toast.LENGTH_SHORT).show()
                 } else {
+                    Log.e(TAG, "toggleFavorite: operation failed")
                     android.widget.Toast.makeText(requireContext(), "操作失败", android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
@@ -1584,6 +1616,10 @@ class NativePlayerFragment : Fragment() {
                 else -> "unknown"
             }
         )
+    }
+
+    fun getCurrentChannelIndex(): Int {
+        return currentIndex
     }
 
     override fun onResume() {

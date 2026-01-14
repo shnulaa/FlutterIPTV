@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- 2x2 Grid Layout -->
+    <LinearLayout
+        android:id="@+id/grid_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Top Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <!-- Screen 0 (Top Left) -->
+            <FrameLayout
+                android:id="@+id/screen_container_0"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_margin="2dp">
+
+                <androidx.media3.ui.PlayerView
+                    android:id="@+id/player_view_0"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    app:show_buffering="never"
+                    app:use_controller="false"
+                    app:resize_mode="fit" />
+
+                <!-- Screen Overlay -->
+                <include
+                    layout="@layout/multi_screen_overlay"
+                    android:id="@+id/overlay_0" />
+
+            </FrameLayout>
+
+            <!-- Screen 1 (Top Right) -->
+            <FrameLayout
+                android:id="@+id/screen_container_1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_margin="2dp">
+
+                <androidx.media3.ui.PlayerView
+                    android:id="@+id/player_view_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    app:show_buffering="never"
+                    app:use_controller="false"
+                    app:resize_mode="fit" />
+
+                <include
+                    layout="@layout/multi_screen_overlay"
+                    android:id="@+id/overlay_1" />
+
+            </FrameLayout>
+
+        </LinearLayout>
+
+        <!-- Bottom Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <!-- Screen 2 (Bottom Left) -->
+            <FrameLayout
+                android:id="@+id/screen_container_2"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_margin="2dp">
+
+                <androidx.media3.ui.PlayerView
+                    android:id="@+id/player_view_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    app:show_buffering="never"
+                    app:use_controller="false"
+                    app:resize_mode="fit" />
+
+                <include
+                    layout="@layout/multi_screen_overlay"
+                    android:id="@+id/overlay_2" />
+
+            </FrameLayout>
+
+            <!-- Screen 3 (Bottom Right) -->
+            <FrameLayout
+                android:id="@+id/screen_container_3"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_margin="2dp">
+
+                <androidx.media3.ui.PlayerView
+                    android:id="@+id/player_view_3"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    app:show_buffering="never"
+                    app:use_controller="false"
+                    app:resize_mode="fit" />
+
+                <include
+                    layout="@layout/multi_screen_overlay"
+                    android:id="@+id/overlay_3" />
+
+            </FrameLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Top Control Bar -->
+    <LinearLayout
+        android:id="@+id/top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical"
+        android:background="@drawable/gradient_top">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@android:drawable/ic_menu_view"
+            android:tint="#FFFFFF" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:text="分屏模式"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="返回键退出"
+            android:textColor="#99FFFFFF"
+            android:textSize="12sp"
+            android:background="#33FFFFFF"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp" />
+
+    </LinearLayout>
+
+    <!-- Bottom Help Bar -->
+    <LinearLayout
+        android:id="@+id/bottom_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center"
+        android:background="@drawable/gradient_bottom">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="方向键 移动/切换声音"
+            android:textColor="#99FFFFFF"
+            android:textSize="12sp"
+            android:background="#33000000"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="OK 添加频道"
+            android:textColor="#99FFFFFF"
+            android:textSize="12sp"
+            android:background="#33000000"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="长按OK 清空屏幕"
+            android:textColor="#99FFFFFF"
+            android:textSize="12sp"
+            android:background="#33000000"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="返回 退出到单频道"
+            android:textColor="#99FFFFFF"
+            android:textSize="12sp"
+            android:background="#33000000"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp" />
+
+    </LinearLayout>
+
+    <!-- Channel Selector Panel -->
+    <LinearLayout
+        android:id="@+id/channel_selector_panel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:background="#F0000000"
+        android:visibility="gone">
+
+        <!-- Category List -->
+        <LinearLayout
+            android:id="@+id/selector_category_container"
+            android:layout_width="200dp"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:background="#E6121212">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="16dp"
+                android:background="#1A1A1A">
+
+                <View
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:background="#33E91E63" />
+
+                <TextView
+                    android:id="@+id/selector_screen_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:text="屏幕 1"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/selector_category_list"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingVertical="8dp" />
+
+        </LinearLayout>
+
+        <!-- Channel Grid -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/selector_category_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="全部频道"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/selector_channel_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:text="0 个频道"
+                    android:textColor="#99FFFFFF"
+                    android:textSize="13sp"
+                    android:background="#1A1A1A"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="4dp" />
+
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/selector_channel_grid"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:padding="16dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>

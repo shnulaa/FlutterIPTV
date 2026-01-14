@@ -29,6 +29,8 @@ class SettingsProvider extends ChangeNotifier {
   static const String _keyEnableMultiScreen = 'enable_multi_screen';
   static const String _keyDefaultScreenPosition = 'default_screen_position';
   static const String _keyActiveScreenIndex = 'active_screen_index';
+  static const String _keyLastPlayMode = 'last_play_mode'; // 'single' or 'multi'
+  static const String _keyLastMultiScreenChannels = 'last_multi_screen_channels'; // JSON string of channel IDs
 
   // Settings values
   String _themeMode = 'dark';
@@ -55,8 +57,10 @@ class SettingsProvider extends ChangeNotifier {
   bool _showNetworkSpeed = true; // 默认显示网速
   bool _showVideoInfo = true; // 默认显示分辨率码率
   bool _enableMultiScreen = true; // 默认开启分屏
-  int _defaultScreenPosition = 4; // 默认播放位置（右下角）
+  int _defaultScreenPosition = 1; // 默认播放位置（左上角）
   int _activeScreenIndex = 0; // 当前活动窗口索引
+  String _lastPlayMode = 'single'; // 上次播放模式：'single' 或 'multi'
+  List<int?> _lastMultiScreenChannels = [null, null, null, null]; // 分屏频道ID列表
 
   // Getters
   String get themeMode => _themeMode;
@@ -84,6 +88,8 @@ class SettingsProvider extends ChangeNotifier {
   bool get enableMultiScreen => _enableMultiScreen;
   int get defaultScreenPosition => _defaultScreenPosition;
   int get activeScreenIndex => _activeScreenIndex;
+  String get lastPlayMode => _lastPlayMode;
+  List<int?> get lastMultiScreenChannels => _lastMultiScreenChannels;
 
   SettingsProvider() {
     _loadSettings();
@@ -121,8 +127,25 @@ class SettingsProvider extends ChangeNotifier {
     _showNetworkSpeed = prefs.getBool(_keyShowNetworkSpeed) ?? true;
     _showVideoInfo = prefs.getBool(_keyShowVideoInfo) ?? true;
     _enableMultiScreen = prefs.getBool(_keyEnableMultiScreen) ?? true;
-    _defaultScreenPosition = prefs.getInt(_keyDefaultScreenPosition) ?? 4;
+    _defaultScreenPosition = prefs.getInt(_keyDefaultScreenPosition) ?? 1;
     _activeScreenIndex = prefs.getInt(_keyActiveScreenIndex) ?? 0;
+    _lastPlayMode = prefs.getString(_keyLastPlayMode) ?? 'single';
+    
+    // 加载分屏频道ID列表
+    final multiScreenChannelsJson = prefs.getString(_keyLastMultiScreenChannels);
+    if (multiScreenChannelsJson != null) {
+      try {
+        final List<dynamic> decoded = List<dynamic>.from(
+          multiScreenChannelsJson.split(',').map((s) => s.isEmpty ? null : int.tryParse(s))
+        );
+        _lastMultiScreenChannels = decoded.map((e) => e as int?).toList();
+        while (_lastMultiScreenChannels.length < 4) {
+          _lastMultiScreenChannels.add(null);
+        }
+      } catch (_) {
+        _lastMultiScreenChannels = [null, null, null, null];
+      }
+    }
     // 不在构造函数中调用 notifyListeners()，避免 build 期间触发重建
   }
 
@@ -167,6 +190,8 @@ class SettingsProvider extends ChangeNotifier {
     await prefs.setBool(_keyEnableMultiScreen, _enableMultiScreen);
     await prefs.setInt(_keyDefaultScreenPosition, _defaultScreenPosition);
     await prefs.setInt(_keyActiveScreenIndex, _activeScreenIndex);
+    await prefs.setString(_keyLastPlayMode, _lastPlayMode);
+    await prefs.setString(_keyLastMultiScreenChannels, _lastMultiScreenChannels.map((e) => e?.toString() ?? '').join(','));
   }
 
   // Setters with persistence
@@ -332,6 +357,50 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 设置上次播放模式
+  Future<void> setLastPlayMode(String mode) async {
+    _lastPlayMode = mode;
+    await _saveSettings();
+    notifyListeners();
+  }
+
+  /// 设置分屏频道ID列表
+  Future<void> setLastMultiScreenChannels(List<int?> channelIds) async {
+    _lastMultiScreenChannels = List<int?>.from(channelIds);
+    while (_lastMultiScreenChannels.length < 4) {
+      _lastMultiScreenChannels.add(null);
+    }
+    await _saveSettings();
+    notifyListeners();
+  }
+
+  /// 保存单频道播放状态
+  Future<void> saveLastSingleChannel(int? channelId) async {
+    _lastPlayMode = 'single';
+    if (channelId != null) {
+      _lastChannelId = channelId;
+    }
+    await _saveSettings();
+    notifyListeners();
+  }
+
+  /// 保存分屏播放状态
+  Future<void> saveLastMultiScreen(List<int?> channelIds, int activeIndex) async {
+    _lastPlayMode = 'multi';
+    _lastMultiScreenChannels = List<int?>.from(channelIds);
+    while (_lastMultiScreenChannels.length < 4) {
+      _lastMultiScreenChannels.add(null);
+    }
+    _activeScreenIndex = activeIndex.clamp(0, 3);
+    await _saveSettings();
+    notifyListeners();
+  }
+
+  /// 检查是否有分屏状态可恢复
+  bool get hasMultiScreenState {
+    return _lastPlayMode == 'multi' && _lastMultiScreenChannels.any((id) => id != null);
+  }
+
   // Reset all settings to defaults
   Future<void> resetSettings() async {
     _themeMode = 'dark';
@@ -354,7 +423,7 @@ class SettingsProvider extends ChangeNotifier {
     _showNetworkSpeed = true;
     _showVideoInfo = true;
     _enableMultiScreen = true;
-    _defaultScreenPosition = 4;
+    _defaultScreenPosition = 1;
     _activeScreenIndex = 0;
 
     await _saveSettings();

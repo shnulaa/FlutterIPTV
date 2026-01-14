@@ -5,18 +5,23 @@
     android:orientation="horizontal"
     android:gravity="center_vertical"
     android:paddingHorizontal="12dp"
-    android:paddingVertical="10dp"
-    android:layout_marginHorizontal="8dp"
-    android:layout_marginVertical="2dp"
-    android:background="@drawable/item_selector"
-    android:focusable="true"
-    android:focusableInTouchMode="true">
+    android:paddingVertical="10dp">
+
+    <!-- 选中指示器 -->
+    <View
+        android:id="@+id/category_indicator"
+        android:layout_width="3dp"
+        android:layout_height="20dp"
+        android:background="#E91E63"
+        android:visibility="invisible" />
 
     <TextView
         android:id="@+id/category_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:layout_marginStart="10dp"
+        android:text="分类名称"
         android:textColor="#FFFFFF"
         android:textSize="13sp"
         android:maxLines="1"
@@ -26,7 +31,11 @@
         android:id="@+id/category_count"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:text="0"
         android:textColor="#99FFFFFF"
-        android:textSize="11sp" />
+        android:textSize="11sp"
+        android:background="#1A1A1A"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="2dp" />
 
 </LinearLayout>
