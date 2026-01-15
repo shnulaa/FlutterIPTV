@@ -58,9 +58,15 @@ class MultiScreenPlayerFragment : Fragment() {
         var isLoading: Boolean = false,
         var hasError: Boolean = false,
         var videoWidth: Int = 0,
-        var videoHeight: Int = 0
+        var videoHeight: Int = 0,
+        var retryCount: Int = 0,  // 重试计数
+        var currentSourceIndex: Int = 0  // 当前源索引
     )
     private val screenStates = Array(4) { ScreenState() }
+    
+    // 重试相关常量
+    private val MAX_RETRIES = 3
+    private val RETRY_DELAY = 2000L
 
     // 当前焦点和活动屏幕
     private var focusedScreenIndex = 0
@@ -363,8 +369,50 @@ class MultiScreenPlayerFragment : Fragment() {
                     override fun onPlayerError(error: PlaybackException) {
                         Log.e(TAG, "Player $index error: ${error.message}")
                         screenStates[index].isLoading = false
-                        screenStates[index].hasError = true
-                        updateScreenOverlay(index)
+                        
+                        // 尝试重试或切换源
+                        val state = screenStates[index]
+                        val sources = if (state.channelIndex >= 0 && state.channelIndex < channelSources.size) {
+                            channelSources[state.channelIndex]
+                        } else {
+                            arrayListOf()
+                        }
+                        
+                        if (state.currentSourceIndex + 1 < sources.size) {
+                            // 还有其他源，切换到下一个源
+                            Log.d(TAG, "Switching to next source for screen $index")
+                            state.currentSourceIndex++
+                            state.retryCount = 0
+                            val nextUrl = sources[state.currentSourceIndex]
+                            state.channelUrl = nextUrl
+                            state.isLoading = true
+                            updateScreenOverlay(index)
+                            
+                            handler.postDelayed({
+                                players[index]?.let { player ->
+                                    player.setMediaItem(MediaItem.fromUri(nextUrl))
+                                    player.prepare()
+                                }
+                            }, RETRY_DELAY)
+                        } else if (state.retryCount < MAX_RETRIES) {
+                            // 重试当前源
+                            Log.d(TAG, "Retrying screen $index (attempt ${state.retryCount + 1}/$MAX_RETRIES)")
+                            state.retryCount++
+                            state.isLoading = true
+                            updateScreenOverlay(index)
+                            
+                            handler.postDelayed({
+                                players[index]?.let { player ->
+                                    player.setMediaItem(MediaItem.fromUri(state.channelUrl))
+                                    player.prepare()
+                                }
+                            }, RETRY_DELAY)
+                        } else {
+                            // 所有重试都失败了
+                            Log.e(TAG, "All retries failed for screen $index")
+                            state.hasError = true
+                            updateScreenOverlay(index)
+                        }
                     }
                 })
             }
@@ -402,6 +450,8 @@ class MultiScreenPlayerFragment : Fragment() {
             this.hasError = false
             this.videoWidth = 0
             this.videoHeight = 0
+            this.retryCount = 0  // 重置重试计数
+            this.currentSourceIndex = 0  // 重置源索引
         }
 
         updateScreenOverlay(screenIndex)

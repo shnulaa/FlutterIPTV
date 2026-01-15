@@ -5,7 +5,10 @@
     android:orientation="horizontal"
     android:gravity="center_vertical"
     android:paddingHorizontal="12dp"
-    android:paddingVertical="10dp">
+    android:paddingVertical="10dp"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    android:background="@drawable/category_item_selector">
 
     <!-- 选中指示器 -->
     <View
