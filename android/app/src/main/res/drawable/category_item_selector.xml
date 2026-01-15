@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 焦点状态 - 显示边框 -->
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#33E91E63" />
+            <corners android:radius="8dp" />
+            <stroke android:width="2dp" android:color="#E91E63" />
+        </shape>
+    </item>
+    <!-- 选中状态 - 也显示边框（代码中焦点时设置isSelected=true） -->
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#33E91E63" />
+            <corners android:radius="8dp" />
+            <stroke android:width="2dp" android:color="#E91E63" />
+        </shape>
+    </item>
+    <!-- 默认状态 -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+</selector>
