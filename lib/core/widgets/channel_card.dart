@@ -84,9 +84,9 @@ class ChannelCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Logo area - 固定高度
-            SizedBox(
-              height: 80,
+            // Logo area - 使用flex比例自动计算高度
+            Expanded(
+              flex: PlatformDetector.isMobile ? 50 : 60,
               child: ClipRRect(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(AppTheme.radiusMedium),
@@ -162,17 +162,25 @@ class ChannelCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Expanded 填充剩余空间，内容靠下
+            // 内容区域 - 使用flex比例自动计算高度
             Expanded(
+              flex: PlatformDetector.isMobile ? 50 : 40,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(
+                  horizontal: PlatformDetector.isMobile ? 6 : 8,
+                  vertical: PlatformDetector.isMobile ? 3 : 5,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     Text(
                       name,
-                      style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 11, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        color: AppTheme.getTextPrimary(context),
+                        fontSize: PlatformDetector.isMobile ? 10 : 11,
+                        fontWeight: FontWeight.w600,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -180,10 +188,15 @@ class ChannelCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          const Icon(Icons.play_circle_filled, color: AppTheme.primaryColor, size: 9),
+                          Icon(Icons.play_circle_filled, color: AppTheme.primaryColor, size: PlatformDetector.isMobile ? 8 : 9),
                           const SizedBox(width: 3),
                           Expanded(
-                            child: Text(currentProgram!, style: const TextStyle(color: AppTheme.primaryColor, fontSize: 9), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            child: Text(
+                              currentProgram!,
+                              style: TextStyle(color: AppTheme.primaryColor, fontSize: PlatformDetector.isMobile ? 8 : 9),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ),
@@ -192,16 +205,26 @@ class ChannelCard extends StatelessWidget {
                       const SizedBox(height: 1),
                       Row(
                         children: [
-                          Icon(Icons.schedule, color: AppTheme.getTextMuted(context), size: 9),
+                          Icon(Icons.schedule, color: AppTheme.getTextMuted(context), size: PlatformDetector.isMobile ? 8 : 9),
                           const SizedBox(width: 3),
                           Expanded(
-                            child: Text(nextProgram!, style: TextStyle(color: AppTheme.getTextMuted(context), fontSize: 8), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            child: Text(
+                              nextProgram!,
+                              style: TextStyle(color: AppTheme.getTextMuted(context), fontSize: PlatformDetector.isMobile ? 7 : 8),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ),
                     ] else if (currentProgram == null && groupName != null) ...[
                       const SizedBox(height: 2),
-                      Text(groupName!, style: TextStyle(color: AppTheme.getTextMuted(context), fontSize: 9), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(
+                        groupName!,
+                        style: TextStyle(color: AppTheme.getTextMuted(context), fontSize: PlatformDetector.isMobile ? 8 : 9),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ],
                 ),

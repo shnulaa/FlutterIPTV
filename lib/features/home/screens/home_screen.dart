@@ -13,10 +13,14 @@ import '../../../core/i18n/app_strings.dart';
 import '../../../core/services/update_service.dart';
 import '../../../core/models/app_update.dart';
 import '../../channels/providers/channel_provider.dart';
+import '../../channels/screens/channels_screen.dart';
 import '../../playlist/providers/playlist_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
+import '../../favorites/screens/favorites_screen.dart';
 import '../../player/providers/player_provider.dart';
 import '../../settings/providers/settings_provider.dart';
+import '../../settings/screens/settings_screen.dart';
+import '../../search/screens/search_screen.dart';
 import '../../epg/providers/epg_provider.dart';
 import '../../multi_screen/providers/multi_screen_provider.dart';
 import '../../../core/platform/native_player_channel.dart';
@@ -194,24 +198,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onNavItemTap(int index) {
-    if (index == 0) {
-      setState(() => _selectedNavIndex = 0);
-      return;
-    }
-    switch (index) {
-      case 1:
-        Navigator.pushNamed(context, AppRouter.channels);
-        break;
-      case 2:
-        Navigator.pushNamed(context, AppRouter.favorites);
-        break;
-      case 3:
-        Navigator.pushNamed(context, AppRouter.search);
-        break;
-      case 4:
-        Navigator.pushNamed(context, AppRouter.settings);
-        break;
-    }
+    if (index == _selectedNavIndex) return;
+    setState(() => _selectedNavIndex = index);
   }
 
   @override
@@ -229,11 +217,29 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
+    // 手机端使用底部导航栏切换页面
     return Scaffold(
       backgroundColor: AppTheme.getBackgroundColor(context),
-      body: _buildMainContent(context),
+      body: _buildMobileBody(),
       bottomNavigationBar: _buildBottomNav(context),
     );
+  }
+
+  Widget _buildMobileBody() {
+    switch (_selectedNavIndex) {
+      case 0:
+        return _buildMainContent(context);
+      case 1:
+        return const _EmbeddedChannelsScreen();
+      case 2:
+        return const _EmbeddedFavoritesScreen();
+      case 3:
+        return const _EmbeddedSearchScreen();
+      case 4:
+        return const _EmbeddedSettingsScreen();
+      default:
+        return _buildMainContent(context);
+    }
   }
 
   Widget _buildBottomNav(BuildContext context) {
@@ -280,22 +286,22 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildCompactHeader(channelProvider),
             // 固定分类标签
             _buildCategoryChips(channelProvider),
-            const SizedBox(height: 16),
+            SizedBox(height: PlatformDetector.isMobile ? 10 : 16),
             // 可滚动的频道列表
             Expanded(
               child: CustomScrollView(
                 slivers: [
                   SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: EdgeInsets.symmetric(horizontal: PlatformDetector.isMobile ? 12 : 24),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
                         _buildChannelRow(AppStrings.of(context)?.recommendedChannels ?? 'Recommended', _recommendedChannels, showRefresh: true, onRefresh: _refreshRecommendedChannels),
-                        const SizedBox(height: 12),
+                        SizedBox(height: PlatformDetector.isMobile ? 8 : 12),
                         ...channelProvider.groups.take(5).map((group) {
                           // 取足够多的频道，实际显示数量由宽度决定
                           final channels = channelProvider.channels.where((c) => c.groupName == group.name).take(20).toList();
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
+                            padding: EdgeInsets.only(bottom: PlatformDetector.isMobile ? 8 : 12),
                             child: _buildChannelRow(
                               group.name,
                               channels,
@@ -306,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         }),
                         if (favChannels.isNotEmpty) ...[
                           _buildChannelRow(AppStrings.of(context)?.myFavorites ?? 'My Favorites', favChannels, showMore: true, onMoreTap: () => Navigator.pushNamed(context, AppRouter.favorites)),
-                          const SizedBox(height: 12),
+                          SizedBox(height: PlatformDetector.isMobile ? 8 : 12),
                         ],
                       ]),
                     ),
@@ -360,9 +366,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // 继续播放按钮 - 名字固定为 "Continue"，不根据模式变化
     final continueLabel = AppStrings.of(context)?.continueWatching ?? 'Continue';
+    final isMobile = PlatformDetector.isMobile;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
+      padding: EdgeInsets.fromLTRB(isMobile ? 12 : 24, isMobile ? 10 : 16, isMobile ? 12 : 24, isMobile ? 8 : 12),
       child: Row(
         children: [
           Expanded(
@@ -376,7 +383,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
                     children: [
-                      const Text('Lotus IPTV', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                      Text('Lotus IPTV', style: TextStyle(fontSize: isMobile ? 20 : 28, fontWeight: FontWeight.bold, color: Colors.white)),
                       const SizedBox(width: 8),
                       Text('v$_appVersion', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal, color: Colors.white70)),
                       if (_availableUpdate != null) ...[
@@ -610,13 +617,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildChannelRow(String title, List<Channel> channels, {bool showMore = false, bool showRefresh = false, VoidCallback? onMoreTap, VoidCallback? onRefresh}) {
     if (channels.isEmpty && !showRefresh) return const SizedBox.shrink();
+    final isMobile = PlatformDetector.isMobile;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text(title, style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 16, fontWeight: FontWeight.w600)),
+            Text(title, style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w600)),
             if (showRefresh) ...[
               const SizedBox(width: 10),
               TVFocusable(
@@ -633,7 +641,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: child,
                   );
                 },
-                child: Icon(Icons.refresh_rounded, color: AppTheme.getTextPrimary(context), size: 14),
+                child: Icon(Icons.refresh_rounded, color: AppTheme.getTextPrimary(context), size: isMobile ? 12 : 14),
               ),
             ],
             const Spacer(),
@@ -644,7 +652,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 showFocusBorder: false,
                 builder: (context, isFocused, child) {
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 10, vertical: isMobile ? 4 : 5),
                     decoration: BoxDecoration(
                       gradient: isFocused ? AppTheme.lotusGradient : null,
                       borderRadius: BorderRadius.circular(AppTheme.radiusPill),
@@ -655,15 +663,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(AppStrings.of(context)?.more ?? 'More', style: TextStyle(color: AppTheme.getTextMuted(context), fontSize: 12)),
+                    Text(AppStrings.of(context)?.more ?? 'More', style: TextStyle(color: AppTheme.getTextMuted(context), fontSize: isMobile ? 10 : 12)),
                     const SizedBox(width: 2),
-                    Icon(Icons.chevron_right_rounded, color: AppTheme.getTextMuted(context), size: 16),
+                    Icon(Icons.chevron_right_rounded, color: AppTheme.getTextMuted(context), size: isMobile ? 14 : 16),
                   ],
                 ),
               ),
           ],
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: isMobile ? 6 : 8),
         LayoutBuilder(
           builder: (context, constraints) {
             // 如果没有频道，不显示任何内容
@@ -671,9 +679,11 @@ class _HomeScreenState extends State<HomeScreen> {
               return const SizedBox.shrink();
             }
 
-            // 每个卡片宽度 160 + 间距 12
-            const cardWidth = 160.0;
-            const cardSpacing = 12.0;
+            // 手机端使用更小的卡片
+            final isMobile = PlatformDetector.isMobile;
+            final cardWidth = isMobile ? 95.0 : 160.0;
+            final cardSpacing = isMobile ? 6.0 : 12.0;
+            final cardHeight = isMobile ? 100.0 : 140.0;
             final availableWidth = constraints.maxWidth;
 
             // 计算能显示多少个卡片，多加1个让布局更美观
@@ -682,7 +692,7 @@ class _HomeScreenState extends State<HomeScreen> {
             final displayCount = maxCards.clamp(1, channels.length);
 
             return SizedBox(
-              height: 140,
+              height: cardHeight,
               child: Row(
                 children: List.generate(displayCount, (index) {
                   final channel = channels[index];
@@ -846,73 +856,76 @@ class _ResponsiveCategoryChipsState extends State<_ResponsiveCategoryChips> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = PlatformDetector.isMobile;
+    
     return LayoutBuilder(
       builder: (context, constraints) {
-        final availableWidth = constraints.maxWidth - 48; // 减去左右 padding
+        final horizontalPadding = isMobile ? 12.0 : 24.0;
+        final availableWidth = constraints.maxWidth - horizontalPadding * 2;
 
         // 计算每个 chip 的大致宽度（图标 + 文字 + padding）
-        // 估算每个 chip 平均宽度约 100px
-        const estimatedChipWidth = 110.0;
+        // 手机端使用更小的估算宽度
+        final estimatedChipWidth = isMobile ? 75.0 : 110.0;
         final maxVisibleCount = (availableWidth / estimatedChipWidth).floor();
 
         // 如果所有分类都能显示，直接用 Wrap
         if (widget.groups.length <= maxVisibleCount || _isExpanded) {
-          return _buildExpandedView();
+          return _buildExpandedView(isMobile, horizontalPadding);
         }
 
         // 否则显示部分 + 展开按钮
-        return _buildCollapsedView(maxVisibleCount);
+        return _buildCollapsedView(maxVisibleCount, isMobile, horizontalPadding);
       },
     );
   }
 
-  Widget _buildExpandedView() {
+  Widget _buildExpandedView(bool isMobile, double horizontalPadding) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: isMobile ? 6 : 8,
+          runSpacing: isMobile ? 6 : 8,
           alignment: WrapAlignment.start,
           children: [
-            ...widget.groups.map((group) => _buildChip(group.name)),
-            if (widget.groups.length > 6) _buildCollapseButton(),
+            ...widget.groups.map((group) => _buildChip(group.name, isMobile)),
+            if (widget.groups.length > 6) _buildCollapseButton(isMobile),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCollapsedView(int maxVisible) {
+  Widget _buildCollapsedView(int maxVisible, bool isMobile, double horizontalPadding) {
     // 至少显示 4 个，留一个位置给展开按钮
     final visibleCount = (maxVisible - 1).clamp(3, widget.groups.length);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: isMobile ? 6 : 8,
+          runSpacing: isMobile ? 6 : 8,
           alignment: WrapAlignment.start,
           children: [
-            ...widget.groups.take(visibleCount).map((group) => _buildChip(group.name)),
-            _buildExpandButton(widget.groups.length - visibleCount),
+            ...widget.groups.take(visibleCount).map((group) => _buildChip(group.name, isMobile)),
+            _buildExpandButton(widget.groups.length - visibleCount, isMobile),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildChip(String name) {
+  Widget _buildChip(String name, bool isMobile) {
     return TVFocusable(
       onSelect: () => widget.onGroupTap(name),
       focusScale: 1.0,
       showFocusBorder: false,
       builder: (context, isFocused, child) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12, vertical: isMobile ? 5 : 8),
           decoration: BoxDecoration(
             gradient: isFocused ? AppTheme.lotusGradient : null,
             color: isFocused ? null : AppTheme.getGlassColor(context),
@@ -925,22 +938,22 @@ class _ResponsiveCategoryChipsState extends State<_ResponsiveCategoryChips> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(CategoryCard.getIconForCategory(name), size: 14, color: AppTheme.getTextSecondary(context)),
-          const SizedBox(width: 6),
-          Text(name, style: TextStyle(color: AppTheme.getTextSecondary(context), fontSize: 12)),
+          Icon(CategoryCard.getIconForCategory(name), size: isMobile ? 12 : 14, color: AppTheme.getTextSecondary(context)),
+          SizedBox(width: isMobile ? 4 : 6),
+          Text(name, style: TextStyle(color: AppTheme.getTextSecondary(context), fontSize: isMobile ? 10 : 12)),
         ],
       ),
     );
   }
 
-  Widget _buildExpandButton(int hiddenCount) {
+  Widget _buildExpandButton(int hiddenCount, bool isMobile) {
     return TVFocusable(
       onSelect: () => setState(() => _isExpanded = true),
       focusScale: 1.0,
       showFocusBorder: false,
       builder: (context, isFocused, child) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12, vertical: isMobile ? 5 : 8),
           decoration: BoxDecoration(
             gradient: isFocused ? AppTheme.lotusGradient : null,
             color: isFocused ? null : AppTheme.getGlassColor(context),
@@ -953,22 +966,22 @@ class _ResponsiveCategoryChipsState extends State<_ResponsiveCategoryChips> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.more_horiz_rounded, size: 14, color: AppTheme.getTextSecondary(context)),
-          const SizedBox(width: 4),
-          Text('+$hiddenCount', style: TextStyle(color: AppTheme.getTextSecondary(context), fontSize: 12)),
+          Icon(Icons.more_horiz_rounded, size: isMobile ? 12 : 14, color: AppTheme.getTextSecondary(context)),
+          SizedBox(width: isMobile ? 3 : 4),
+          Text('+$hiddenCount', style: TextStyle(color: AppTheme.getTextSecondary(context), fontSize: isMobile ? 10 : 12)),
         ],
       ),
     );
   }
 
-  Widget _buildCollapseButton() {
+  Widget _buildCollapseButton(bool isMobile) {
     return TVFocusable(
       onSelect: () => setState(() => _isExpanded = false),
       focusScale: 1.0,
       showFocusBorder: false,
       builder: (context, isFocused, child) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12, vertical: isMobile ? 5 : 8),
           decoration: BoxDecoration(
             gradient: isFocused ? AppTheme.lotusGradient : null,
             color: isFocused ? null : AppTheme.getGlassColor(context),
@@ -981,9 +994,9 @@ class _ResponsiveCategoryChipsState extends State<_ResponsiveCategoryChips> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.unfold_less_rounded, size: 14, color: AppTheme.getTextSecondary(context)),
-          const SizedBox(width: 4),
-          Text('收起', style: TextStyle(color: AppTheme.getTextSecondary(context), fontSize: 12)),
+          Icon(Icons.unfold_less_rounded, size: isMobile ? 12 : 14, color: AppTheme.getTextSecondary(context)),
+          SizedBox(width: isMobile ? 3 : 4),
+          Text(AppStrings.of(context)?.collapse ?? 'Collapse', style: TextStyle(color: AppTheme.getTextSecondary(context), fontSize: isMobile ? 10 : 12)),
         ],
       ),
     );
@@ -1052,4 +1065,44 @@ class _ChannelCardData {
 
   @override
   int get hashCode => Object.hash(isFavorite, currentProgram, nextProgram);
+}
+
+/// 嵌入式频道页面（手机端底部导航用）
+class _EmbeddedChannelsScreen extends StatelessWidget {
+  const _EmbeddedChannelsScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ChannelsScreen(embedded: true);
+  }
+}
+
+/// 嵌入式收藏页面
+class _EmbeddedFavoritesScreen extends StatelessWidget {
+  const _EmbeddedFavoritesScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const FavoritesScreen(embedded: true);
+  }
+}
+
+/// 嵌入式搜索页面
+class _EmbeddedSearchScreen extends StatelessWidget {
+  const _EmbeddedSearchScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SearchScreen(embedded: true);
+  }
+}
+
+/// 嵌入式设置页面
+class _EmbeddedSettingsScreen extends StatelessWidget {
+  const _EmbeddedSettingsScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SettingsScreen(embedded: true);
+  }
 }

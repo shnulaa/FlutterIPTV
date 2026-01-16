@@ -17,7 +17,9 @@ import '../../multi_screen/providers/multi_screen_provider.dart';
 import '../../../core/platform/native_player_channel.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  final bool embedded;
+  
+  const SearchScreen({super.key, this.embedded = false});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -66,6 +68,11 @@ class _SearchScreenState extends State<SearchScreen> {
           child: content,
         ),
       );
+    }
+
+    // 嵌入模式不使用Scaffold
+    if (widget.embedded) {
+      return content;
     }
 
     return Scaffold(
@@ -570,12 +577,12 @@ class _SearchScreenState extends State<SearchScreen> {
         // Results Grid
         Expanded(
           child: GridView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 180,
-              childAspectRatio: 1.11,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
+            padding: EdgeInsets.symmetric(horizontal: PlatformDetector.isMobile ? 8 : 20),
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: PlatformDetector.isMobile ? 95 : 180,
+              childAspectRatio: PlatformDetector.isMobile ? 0.95 : 1.11,
+              crossAxisSpacing: PlatformDetector.isMobile ? 6 : 16,
+              mainAxisSpacing: PlatformDetector.isMobile ? 6 : 16,
             ),
             itemCount: results.length,
             itemBuilder: (context, index) {

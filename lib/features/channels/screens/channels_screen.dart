@@ -8,6 +8,7 @@ import '../../../core/navigation/app_router.dart';
 import '../../../core/widgets/tv_focusable.dart';
 import '../../../core/widgets/tv_sidebar.dart';
 import '../../../core/widgets/channel_card.dart';
+import '../../../core/widgets/category_card.dart';
 import '../../../core/platform/platform_detector.dart';
 import '../../../core/platform/native_player_channel.dart';
 import '../../../core/i18n/app_strings.dart';
@@ -24,10 +25,12 @@ import '../../multi_screen/providers/multi_screen_provider.dart';
 
 class ChannelsScreen extends StatefulWidget {
   final String? groupName;
+  final bool embedded; // 是否嵌入到首页底部导航
 
   const ChannelsScreen({
     super.key,
     this.groupName,
+    this.embedded = false,
   });
 
   @override
@@ -126,9 +129,109 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
       );
     }
 
+    // 嵌入模式不使用Scaffold，直接返回内容
+    if (widget.embedded) {
+      return Stack(
+        children: [
+          content,
+          // 手机端嵌入模式使用浮动按钮打开分类
+          Positioned(
+            left: 8,
+            top: 8,
+            child: SafeArea(
+              child: Material(
+                color: AppTheme.getSurfaceColor(context),
+                borderRadius: BorderRadius.circular(8),
+                child: InkWell(
+                  onTap: () => _showMobileGroupsBottomSheet(context),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.menu_rounded, color: AppTheme.getTextPrimary(context), size: 18),
+                        const SizedBox(width: 6),
+                        Text(
+                          _selectedGroup ?? (AppStrings.of(context)?.allChannels ?? 'All'),
+                          style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 13),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.arrow_drop_down, color: AppTheme.getTextMuted(context), size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.getBackgroundColor(context),
       body: content,
+      // 手机端添加分类抽屉
+      drawer: _buildMobileGroupsDrawer(),
+    );
+  }
+
+  /// 手机端嵌入模式的分类底部弹窗
+  void _showMobileGroupsBottomSheet(BuildContext context) {
+    final provider = context.read<ChannelProvider>();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.getSurfaceColor(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                AppStrings.of(context)?.categories ?? 'Categories',
+                style: TextStyle(
+                  color: AppTheme.getTextPrimary(context),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const Divider(height: 1),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  _buildMobileGroupItem(
+                    name: AppStrings.of(context)?.allChannels ?? 'All Channels',
+                    count: provider.totalChannelCount,
+                    isSelected: _selectedGroup == null,
+                    onTap: () {
+                      setState(() => _selectedGroup = null);
+                      provider.clearGroupFilter();
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                  ...provider.groups.map((group) => _buildMobileGroupItem(
+                    name: group.name,
+                    count: group.channelCount,
+                    isSelected: _selectedGroup == group.name,
+                    onTap: () {
+                      setState(() => _selectedGroup = group.name);
+                      provider.selectGroup(group.name);
+                      Navigator.pop(ctx);
+                    },
+                  )),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -254,6 +357,120 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
           ),
         );
       },
+    );
+  }
+
+  /// 手机端分类抽屉
+  Widget _buildMobileGroupsDrawer() {
+    return Consumer<ChannelProvider>(
+      builder: (context, provider, _) {
+        return Drawer(
+          backgroundColor: AppTheme.getSurfaceColor(context),
+          width: 220,
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: const BoxDecoration(
+                    gradient: AppTheme.lotusGradient,
+                  ),
+                  child: Text(
+                    AppStrings.of(context)?.categories ?? 'Categories',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+
+                // All Channels Option
+                _buildMobileGroupItem(
+                  name: AppStrings.of(context)?.allChannels ?? 'All Channels',
+                  count: provider.totalChannelCount,
+                  isSelected: _selectedGroup == null,
+                  onTap: () {
+                    setState(() => _selectedGroup = null);
+                    provider.clearGroupFilter();
+                    Navigator.pop(context);
+                  },
+                ),
+
+                const Divider(height: 1),
+
+                // Groups List
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: provider.groups.length,
+                    itemBuilder: (context, index) {
+                      final group = provider.groups[index];
+                      return _buildMobileGroupItem(
+                        name: group.name,
+                        count: group.channelCount,
+                        isSelected: _selectedGroup == group.name,
+                        onTap: () {
+                          setState(() => _selectedGroup = group.name);
+                          provider.selectGroup(group.name);
+                          Navigator.pop(context);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// 手机端分类列表项
+  Widget _buildMobileGroupItem({
+    required String name,
+    required int count,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+      leading: Icon(
+        CategoryCard.getIconForCategory(name),
+        color: isSelected ? AppTheme.primaryColor : AppTheme.getTextSecondary(context),
+        size: 20,
+      ),
+      title: Text(
+        name,
+        style: TextStyle(
+          color: isSelected ? AppTheme.primaryColor : AppTheme.getTextPrimary(context),
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          fontSize: 13,
+        ),
+      ),
+      trailing: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primaryColor.withOpacity(0.2) : AppTheme.getCardColor(context),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          count.toString(),
+          style: TextStyle(
+            color: isSelected ? AppTheme.primaryColor : AppTheme.getTextMuted(context),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      selected: isSelected,
+      selectedTileColor: AppTheme.primaryColor.withOpacity(0.1),
+      onTap: onTap,
     );
   }
 
@@ -392,6 +609,13 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
             SliverAppBar(
               floating: true,
               backgroundColor: AppTheme.getBackgroundColor(context).withOpacity(0.95),
+              // 手机端显示菜单按钮打开分类抽屉
+              leading: PlatformDetector.isMobile
+                  ? IconButton(
+                      icon: Icon(Icons.menu_rounded, color: AppTheme.getTextPrimary(context)),
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                    )
+                  : null,
               title: Text(
                 _selectedGroup ?? (AppStrings.of(context)?.allChannels ?? 'All Channels'),
                 style: TextStyle(
@@ -468,13 +692,13 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(PlatformDetector.isMobile ? 8 : 20),
                 sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 180,
-                    childAspectRatio: 1.11,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
+                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: PlatformDetector.isMobile ? 95 : 180,
+                    childAspectRatio: PlatformDetector.isMobile ? 0.95 : 1.11,
+                    crossAxisSpacing: PlatformDetector.isMobile ? 6 : 16,
+                    mainAxisSpacing: PlatformDetector.isMobile ? 6 : 16,
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {

@@ -12,7 +12,9 @@ import '../providers/dlna_provider.dart';
 import '../../epg/providers/epg_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
+  final bool embedded;
+  
+  const SettingsScreen({super.key, this.embedded = false});
 
   // 显示设置成功消息
   void _showSuccess(BuildContext context, String message) {
@@ -414,6 +416,34 @@ class SettingsScreen extends StatelessWidget {
           selectedIndex: 4, // 设置页
           child: content,
         ),
+      );
+    }
+
+    // 嵌入模式不使用Scaffold
+    if (embedded) {
+      return Column(
+        children: [
+          // 简化的标题栏
+          SafeArea(
+            bottom: false,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                children: [
+                  Text(
+                    AppStrings.of(context)?.settings ?? 'Settings',
+                    style: TextStyle(
+                      color: AppTheme.getTextPrimary(context),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(child: content),
+        ],
       );
     }
 

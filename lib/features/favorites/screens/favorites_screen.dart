@@ -14,7 +14,9 @@ import '../../multi_screen/providers/multi_screen_provider.dart';
 import '../../../core/platform/native_player_channel.dart';
 
 class FavoritesScreen extends StatefulWidget {
-  const FavoritesScreen({super.key});
+  final bool embedded;
+  
+  const FavoritesScreen({super.key, this.embedded = false});
 
   @override
   State<FavoritesScreen> createState() => _FavoritesScreenState();
@@ -108,6 +110,45 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           selectedIndex: 2, // 收藏页
           child: content,
         ),
+      );
+    }
+
+    // 嵌入模式不使用Scaffold
+    if (widget.embedded) {
+      return Column(
+        children: [
+          // 简化的标题栏
+          SafeArea(
+            bottom: false,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                children: [
+                  Text(
+                    AppStrings.of(context)?.favorites ?? 'Favorites',
+                    style: TextStyle(
+                      color: AppTheme.getTextPrimary(context),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  Consumer<FavoritesProvider>(
+                    builder: (context, provider, _) {
+                      if (provider.favorites.isEmpty) return const SizedBox.shrink();
+                      return IconButton(
+                        icon: Icon(Icons.delete_sweep_rounded, color: AppTheme.getTextSecondary(context)),
+                        onPressed: () => _confirmClearAll(context, provider),
+                        tooltip: AppStrings.of(context)?.clearAll ?? 'Clear All',
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(child: content),
+        ],
       );
     }
 
