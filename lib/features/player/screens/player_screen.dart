@@ -45,6 +45,7 @@ class PlayerScreen extends StatefulWidget {
 class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver {
   Timer? _hideControlsTimer;
   Timer? _dlnaSyncTimer; // DLNA 状态同步定时器（Android TV 原生播放器用）
+  Timer? _wakelockTimer; // 定期刷新wakelock（手机端用）
   bool _showControls = true;
   final FocusNode _playerFocusNode = FocusNode();
   bool _usingNativePlayer = false;
@@ -90,9 +91,25 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     // 保持屏幕常亮
-    WakelockPlus.enable();
+    _enableWakelock();
     // 延迟到 didChangeDependencies 之后再检查播放器
     // 因为需要先初始化 _localMultiScreenMode
+  }
+
+  Future<void> _enableWakelock() async {
+    // 手机端使用原生方法确保屏幕常亮
+    if (PlatformDetector.isMobile) {
+      await PlatformDetector.setKeepScreenOn(true);
+    } else {
+      // 其他平台使用wakelock_plus
+      try {
+        await WakelockPlus.enable();
+        final enabled = await WakelockPlus.enabled;
+        debugPrint('PlayerScreen: WakelockPlus enabled: $enabled');
+      } catch (e) {
+        debugPrint('PlayerScreen: Failed to enable wakelock: $e');
+      }
+    }
   }
 
   @override
@@ -316,6 +333,16 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     // Hide system UI for immersive experience
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
+    // 手机端定期刷新wakelock，防止某些设备上wakelock失效
+    if (PlatformDetector.isMobile) {
+      _wakelockTimer?.cancel();
+      _wakelockTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
+        if (mounted) {
+          await _enableWakelock();
+        }
+      });
+    }
+
     // 不再使用持续监听，改为一次性错误检查
   }
   
@@ -457,6 +484,7 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     WidgetsBinding.instance.removeObserver(this);
     _hideControlsTimer?.cancel();
     _dlnaSyncTimer?.cancel(); // 清理 DLNA 同步定时器
+    _wakelockTimer?.cancel(); // 清理 wakelock 刷新定时器
     _longPressTimer?.cancel(); // 清理长按定时器
     _playerFocusNode.dispose();
     _categoryScrollController.dispose();
@@ -487,7 +515,11 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
     } catch (_) {}
 
     // 关闭屏幕常亮
-    WakelockPlus.disable();
+    if (PlatformDetector.isMobile) {
+      PlatformDetector.setKeepScreenOn(false);
+    } else {
+      WakelockPlus.disable();
+    }
 
     // Restore system UI
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);

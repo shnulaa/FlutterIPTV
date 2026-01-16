@@ -68,6 +68,18 @@ class MainActivity: FlutterFragmentActivity() {
                 "getCpuAbi" -> {
                     result.success(Build.SUPPORTED_ABIS.firstOrNull() ?: "armeabi-v7a")
                 }
+                "setKeepScreenOn" -> {
+                    val enable = call.argument<Boolean>("enable") ?: true
+                    runOnUiThread {
+                        if (enable) {
+                            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        } else {
+                            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        }
+                    }
+                    Log.d(TAG, "setKeepScreenOn: $enable")
+                    result.success(true)
+                }
                 else -> {
                     result.notImplemented()
                 }

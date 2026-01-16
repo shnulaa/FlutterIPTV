@@ -92,6 +92,19 @@ class PlatformDetector {
     if (isDesktop) return 3;
     return 2;
   }
+
+  /// Set screen keep on (Android only)
+  static Future<bool> setKeepScreenOn(bool enable) async {
+    if (!isAndroid) return false;
+    try {
+      final result = await _channel.invokeMethod<bool>('setKeepScreenOn', {'enable': enable});
+      debugPrint('PlatformDetector: setKeepScreenOn($enable) result: $result');
+      return result ?? false;
+    } catch (e) {
+      debugPrint('PlatformDetector: setKeepScreenOn error: $e');
+      return false;
+    }
+  }
 }
 
 enum PlatformType {
