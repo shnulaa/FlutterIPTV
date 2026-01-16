@@ -391,7 +391,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (_availableUpdate != null) ...[
                         const SizedBox(width: 8),
                         TVFocusable(
-                          onSelect: () => Navigator.pushNamed(context, AppRouter.settings),
+                          onSelect: () => Navigator.pushNamed(context, AppRouter.settings, arguments: {'autoCheckUpdate': true}),
                           focusScale: 1.0,
                           showFocusBorder: false,
                           builder: (context, isFocused, child) {

@@ -11,10 +11,27 @@ import '../providers/settings_provider.dart';
 import '../providers/dlna_provider.dart';
 import '../../epg/providers/epg_provider.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   final bool embedded;
+  final bool autoCheckUpdate;
   
-  const SettingsScreen({super.key, this.embedded = false});
+  const SettingsScreen({super.key, this.embedded = false, this.autoCheckUpdate = false});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // 如果需要自动检查更新，延迟执行
+    if (widget.autoCheckUpdate) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkForUpdates(context);
+      });
+    }
+  }
 
   // 显示设置成功消息
   void _showSuccess(BuildContext context, String message) {
@@ -420,7 +437,7 @@ class SettingsScreen extends StatelessWidget {
     }
 
     // 嵌入模式不使用Scaffold
-    if (embedded) {
+    if (widget.embedded) {
       return Column(
         children: [
           // 简化的标题栏

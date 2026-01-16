@@ -61,7 +61,8 @@ class AppRouter {
         return _buildRoute(const SearchScreen(), settings);
 
       case AppRouter.settings:
-        return _buildRoute(const SettingsScreen(), settings);
+        final args = settings.arguments as Map<String, dynamic>?;
+        return _buildRoute(SettingsScreen(autoCheckUpdate: args?['autoCheckUpdate'] ?? false), settings);
 
       case epg:
         final args = settings.arguments as Map<String, dynamic>?;

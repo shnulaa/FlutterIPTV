@@ -1870,6 +1870,35 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
 
                   const SizedBox(width: 16),
 
+                  // 手机端源切换按钮 - 上一个源
+                  if (PlatformDetector.isMobile && provider.currentChannel != null && provider.currentChannel!.hasMultipleSources)
+                    TVFocusable(
+                      onSelect: () {
+                        provider.switchToPreviousSource();
+                        _showSourceSwitchIndicator(provider);
+                      },
+                      focusScale: 1.0,
+                      showFocusBorder: false,
+                      builder: (context, isFocused, child) {
+                        return Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isFocused ? AppTheme.primaryColor : const Color(0x33FFFFFF),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isFocused ? AppTheme.focusBorderColor : const Color(0x1AFFFFFF),
+                              width: isFocused ? 2 : 1,
+                            ),
+                          ),
+                          child: child,
+                        );
+                      },
+                      child: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 18),
+                    ),
+
+                  if (PlatformDetector.isMobile && provider.currentChannel != null && provider.currentChannel!.hasMultipleSources)
+                    const SizedBox(width: 8),
+
                   // Play/Pause - Lotus gradient button (smaller)
                   TVFocusable(
                     autofocus: true,
@@ -1904,6 +1933,35 @@ class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver
                       size: 22,
                     ),
                   ),
+
+                  // 手机端源切换按钮 - 下一个源
+                  if (PlatformDetector.isMobile && provider.currentChannel != null && provider.currentChannel!.hasMultipleSources)
+                    const SizedBox(width: 8),
+
+                  if (PlatformDetector.isMobile && provider.currentChannel != null && provider.currentChannel!.hasMultipleSources)
+                    TVFocusable(
+                      onSelect: () {
+                        provider.switchToNextSource();
+                        _showSourceSwitchIndicator(provider);
+                      },
+                      focusScale: 1.0,
+                      showFocusBorder: false,
+                      builder: (context, isFocused, child) {
+                        return Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isFocused ? AppTheme.primaryColor : const Color(0x33FFFFFF),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isFocused ? AppTheme.focusBorderColor : const Color(0x1AFFFFFF),
+                              width: isFocused ? 2 : 1,
+                            ),
+                          ),
+                          child: child,
+                        );
+                      },
+                      child: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 18),
+                    ),
 
                   const SizedBox(width: 16),
 
