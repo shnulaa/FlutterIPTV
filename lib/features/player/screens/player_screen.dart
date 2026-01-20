@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:video_player/video_player.dart';
@@ -81,6 +82,10 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   // 错误已显示标记，防止重复显示
   bool _errorShown = false;
+
+  // Windows 全屏状态
+  bool _isFullScreen = false;
+  bool _isTogglingFullScreen = false; // 防抖标志
 
   // 检查是否处于分屏模式（使用本地状态）
   bool _isMultiScreenMode() {
@@ -511,6 +516,11 @@ class _PlayerScreenState extends State<PlayerScreen>
       WindowsPipChannel.exitPipMode();
     }
 
+
+    // 如果是全屏模式，退出全屏
+    if (_isFullScreen && PlatformDetector.isWindows) {
+      windowManager.setFullScreen(false);
+    }
     // 保存分屏状态（Windows 平台�?
     if (_wasMultiScreenMode && PlatformDetector.isDesktop) {
       _saveMultiScreenState();
@@ -1425,6 +1435,11 @@ class _PlayerScreenState extends State<PlayerScreen>
                   GestureDetector(
                     onTap: () async {
                       await WindowsPipChannel.exitPipMode();
+                      // 延迟同步全屏状态，等待窗口恢复完成
+                      if (PlatformDetector.isWindows) {
+                        await Future.delayed(const Duration(milliseconds: 300));
+                        _isFullScreen = await windowManager.isFullScreen();
+                      }
                       setState(() {});
                       // 恢复焦点到播放器
                       _playerFocusNode.requestFocus();
@@ -1829,6 +1844,11 @@ class _PlayerScreenState extends State<PlayerScreen>
             TVFocusable(
               onSelect: () async {
                 await WindowsPipChannel.togglePipMode();
+                // 延迟同步全屏状态，等待窗口状态稳定
+                if (PlatformDetector.isWindows) {
+                  await Future.delayed(const Duration(milliseconds: 300));
+                  _isFullScreen = await windowManager.isFullScreen();
+                }
                 setState(() {});
               },
               focusScale: 1.0,
@@ -2172,6 +2192,39 @@ class _PlayerScreenState extends State<PlayerScreen>
                     child: const Icon(Icons.settings_rounded,
                         color: Colors.white, size: 18),
                   ),
+
+                  // Windows 全屏按钮
+                  if (PlatformDetector.isWindows) ...[
+                    const SizedBox(width: 16),
+                    TVFocusable(
+                      onSelect: () => _toggleFullScreen(),
+                      focusScale: 1.0,
+                      showFocusBorder: false,
+                      builder: (context, isFocused, child) {
+                        return Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isFocused
+                                ? AppTheme.getPrimaryColor(context)
+                                : const Color(0x33FFFFFF),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isFocused
+                                  ? AppTheme.getPrimaryColor(context)
+                                  : const Color(0x1AFFFFFF),
+                              width: isFocused ? 2 : 1,
+                            ),
+                          ),
+                          child: child,
+                        );
+                      },
+                      child: Icon(
+                        _isFullScreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                        color: Colors.white, 
+                        size: 18
+                      ),
+                    ),
+                  ],
                 ],
               ),
 
@@ -2312,6 +2365,56 @@ class _PlayerScreenState extends State<PlayerScreen>
         ),
       ],
     );
+  }
+
+  // 切换全屏模式 (仅 Windows)
+  Future<void> _toggleFullScreen() async {
+    if (!PlatformDetector.isWindows) return;
+    
+    // 防抖：如果正在切换中，忽略新的请求
+    if (_isTogglingFullScreen) {
+      debugPrint('Fullscreen toggle already in progress, ignoring');
+      return;
+    }
+    
+    try {
+      _isTogglingFullScreen = true;
+      final newFullScreenState = !_isFullScreen;
+      debugPrint('Toggling fullscreen: $newFullScreenState');
+      
+      // 立即更新UI状态，让按钮图标先变化
+      if (mounted) {
+        setState(() {
+          _isFullScreen = newFullScreenState;
+        });
+      }
+      
+      // 延迟一帧，让UI先渲染
+      await Future.delayed(const Duration(milliseconds: 16));
+      
+      // 在独立的异步任务中执行全屏切换
+      unawaited(Future(() async {
+        try {
+          await windowManager.setFullScreen(newFullScreenState);
+          debugPrint('Fullscreen set successfully: $newFullScreenState');
+        } catch (e) {
+          debugPrint('setFullScreen error: $e');
+          // 如果失败，恢复状态
+          if (mounted) {
+            setState(() {
+              _isFullScreen = !newFullScreenState;
+            });
+          }
+        } finally {
+          // 延迟重置防抖标志，避免过快切换
+          await Future.delayed(const Duration(milliseconds: 500));
+          _isTogglingFullScreen = false;
+        }
+      }));
+    } catch (e) {
+      debugPrint('Toggle fullscreen error: $e');
+      _isTogglingFullScreen = false;
+    }
   }
 
   void _showSettingsSheet(BuildContext context) {

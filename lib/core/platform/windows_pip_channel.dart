@@ -127,10 +127,17 @@ class WindowsPipChannel {
         await windowManager.maximize();
       }
       
-      // 恢复全屏状态
+      // 恢复全屏状态 - 使用 microtask 避免阻塞
       if (_wasFullScreen) {
-        await Future.delayed(const Duration(milliseconds: 100));
-        await windowManager.setFullScreen(true);
+        Future.microtask(() async {
+          await Future.delayed(const Duration(milliseconds: 200));
+          try {
+            await windowManager.setFullScreen(true);
+            debugPrint('WindowsPipChannel: 全屏状态已恢复');
+          } catch (e) {
+            debugPrint('WindowsPipChannel: 恢复全屏失败: $e');
+          }
+        });
       }
 
       _isInMiniMode = false;
