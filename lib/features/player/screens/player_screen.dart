@@ -1978,24 +1978,32 @@ class _PlayerScreenState extends State<PlayerScreen>
                                 children: [
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
+                                        horizontal: 8, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color: const Color(0x66FFFFFF),
-                                      borderRadius: BorderRadius.circular(4),
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          AppTheme.getPrimaryColor(context).withOpacity(0.7),
+                                          AppTheme.getSecondaryColor(context).withOpacity(0.7),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
                                         AppStrings.of(context)?.upNext ??
                                             'Up next',
                                         style: const TextStyle(
-                                            color: Colors.white, fontSize: 10)),
+                                            color: Colors.white, 
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600)),
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
                                       nextProgram.title,
                                       style: const TextStyle(
-                                          color: Color(0xCCFFFFFF),
-                                          fontSize: 12),
+                                          color: Colors.white,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),

@@ -248,15 +248,16 @@ class ChannelCard extends StatelessWidget {
             SizedBox(height: isMobile ? 1 : 2),
             Row(
               children: [
-                Icon(Icons.schedule, color: AppTheme.getTextMuted(context), size: isMobile ? 7 : 9),
+                Icon(Icons.schedule, color: AppTheme.getPrimaryColor(context).withOpacity(0.7), size: isMobile ? 7 : 9),
                 SizedBox(width: isMobile ? 2 : 3),
                 Expanded(
                   child: Text(
                     nextProgram!,
                     style: TextStyle(
-                      color: AppTheme.getTextMuted(context), 
-                      fontSize: isMobile ? 6 : 8,
+                      color: AppTheme.getPrimaryColor(context).withOpacity(0.8), 
+                      fontSize: isMobile ? 7 : 9,
                       height: 1.1,
+                      fontWeight: FontWeight.w500,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -273,9 +274,10 @@ class ChannelCard extends StatelessWidget {
             Text(
               groupName!,
               style: TextStyle(
-                color: AppTheme.getTextMuted(context), 
-                fontSize: isMobile ? 7 : 9,
+                color: AppTheme.getPrimaryColor(context).withOpacity(0.8), 
+                fontSize: isMobile ? 8 : 10,
                 height: 1.1,
+                fontWeight: FontWeight.w500,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -285,8 +287,8 @@ class ChannelCard extends StatelessWidget {
           Text(
             AppStrings.of(context)?.noProgramInfo ?? 'No Program Info',
             style: TextStyle(
-              color: AppTheme.getTextMuted(context).withOpacity(0.6), 
-              fontSize: isMobile ? 6 : 8,
+              color: AppTheme.getPrimaryColor(context).withOpacity(0.6), 
+              fontSize: isMobile ? 7 : 9,
               height: 1.1,
             ),
             maxLines: 1,
