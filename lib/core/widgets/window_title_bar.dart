@@ -121,7 +121,21 @@ class _WindowTitleBarState extends State<WindowTitleBar> {
               child: Container(
                 height: _barHeight,
                 decoration: BoxDecoration(
-                  color: AppTheme.backgroundColorDark,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: Theme.of(context).brightness == Brightness.dark
+                        ? [
+                            AppTheme.getBackgroundColor(context),
+                            AppTheme.getPrimaryColor(context).withOpacity(0.15),
+                            AppTheme.getBackgroundColor(context),
+                          ]
+                        : [
+                            AppTheme.getBackgroundColor(context),
+                            AppTheme.getBackgroundColor(context).withOpacity(0.9),
+                            AppTheme.getPrimaryColor(context).withOpacity(0.08),
+                          ],
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.3),
@@ -151,8 +165,8 @@ class _WindowTitleBarState extends State<WindowTitleBar> {
                     // Title
                     Text(
                       widget.title,
-                      style: const TextStyle(
-                        color: AppTheme.textSecondaryDark,
+                      style: TextStyle(
+                        color: AppTheme.getTextSecondary(context),
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         decoration: TextDecoration.none,
@@ -214,7 +228,7 @@ class _WindowButtonState extends State<_WindowButton> {
           child: Icon(
             widget.icon,
             size: 16,
-            color: _isHovered && widget.hoverColor != null ? Colors.white : AppTheme.textSecondaryDark,
+            color: _isHovered && widget.hoverColor != null ? Colors.white : AppTheme.getTextSecondary(context),
           ),
         ),
       ),
@@ -263,7 +277,7 @@ class _MaximizeButtonState extends State<_MaximizeButton> {
           child: Icon(
             _isMaximized ? Icons.filter_none : Icons.crop_square,
             size: 14,
-            color: AppTheme.textSecondaryDark,
+            color: AppTheme.getTextSecondary(context),
           ),
         ),
       ),

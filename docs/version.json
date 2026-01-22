@@ -1,23 +1,23 @@
 {
-  "version": "1.3.9",
-  "build": 119,
-  "releaseDate": "2026-01-21",
+  "version": "1.4.0",
+  "build": 120,
+  "releaseDate": "2026-01-22",
   "assets": {
-    "windows": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.3.9/flutteriptv-Windows-x64-Setup.exe",
+    "windows": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.0/flutteriptv-Windows-x64-Setup.exe",
     "android_mobile": {
-      "arm64-v8a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.3.9/flutteriptv-Android-Mobile-arm64-v8a.apk",
-      "armeabi-v8a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.3.9/flutteriptv-Android-Mobile-armeabi-v7a.apk",
-      "x86_64": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.3.9/flutteriptv-Android-Mobile-x86_64.apk"
+      "arm64-v8a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.0/flutteriptv-Android-Mobile-arm64-v8a.apk",
+      "armeabi-v8a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.0/flutteriptv-Android-Mobile-armeabi-v7a.apk",
+      "x86_64": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.0/flutteriptv-Android-Mobile-x86_64.apk"
     },
     "android_tv": {
-      "arm64-v8a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.3.9/flutteriptv-AndroidTV-arm64-v8a.apk",
-      "armeabi-v7a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.3.9/flutteriptv-AndroidTV-armeabi-v7a.apk",
-      "x86_64": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.3.9/flutteriptv-AndroidTV-x86_64.apk"
+      "arm64-v8a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.0/flutteriptv-AndroidTV-arm64-v8a.apk",
+      "armeabi-v7a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.0/flutteriptv-AndroidTV-armeabi-v7a.apk",
+      "x86_64": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.0/flutteriptv-AndroidTV-x86_64.apk"
     }
   },
   "changelog": {
-    "zh": "- 优化Windows全屏切换逻辑，确保播放流畅\n- 添加窗口大小变化检测，意外停止播放时自动恢复\n- 简化全屏切换代码，提升稳定性",
-    "en": "- Optimized Windows fullscreen toggle logic for smoother playback\n- Added window size change detection to auto-resume if playback stops unexpectedly\n- Simplified fullscreen toggle code for better stability"
+    "zh": "- 优化UI渐变背景效果，支持黑暗和明亮模式\n- 改进多个页面的视觉体验\n- 调整组件尺寸和间距，提升界面美观度",
+    "en": "- Enhanced UI with gradient backgrounds for dark and light modes\n- Improved visual experience across multiple screens\n- Adjusted component sizes and spacing for better aesthetics"
   },
   "minVersion": "1.0.0"
 }

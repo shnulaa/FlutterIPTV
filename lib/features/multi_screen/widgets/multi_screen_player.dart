@@ -323,7 +323,21 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
           Container(
             width: 200,
             decoration: BoxDecoration(
-              color: AppTheme.getSurfaceColor(context),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: Theme.of(context).brightness == Brightness.dark
+                    ? [
+                        AppTheme.getBackgroundColor(context),
+                        AppTheme.getPrimaryColor(context).withOpacity(0.15),
+                        AppTheme.getBackgroundColor(context),
+                      ]
+                    : [
+                        AppTheme.getBackgroundColor(context),
+                        AppTheme.getBackgroundColor(context).withOpacity(0.9),
+                        AppTheme.getPrimaryColor(context).withOpacity(0.08),
+                      ],
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.2),
@@ -408,7 +422,26 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
           ),
           // 右侧频道网格
           Expanded(
-            child: _buildChannelGrid(context, channelProvider, multiScreenProvider),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: Theme.of(context).brightness == Brightness.dark
+                      ? [
+                          AppTheme.getBackgroundColor(context),
+                          AppTheme.getPrimaryColor(context).withOpacity(0.15),
+                          AppTheme.getBackgroundColor(context),
+                        ]
+                      : [
+                          AppTheme.getBackgroundColor(context),
+                          AppTheme.getBackgroundColor(context).withOpacity(0.9),
+                          AppTheme.getPrimaryColor(context).withOpacity(0.08),
+                        ],
+                ),
+              ),
+              child: _buildChannelGrid(context, channelProvider, multiScreenProvider),
+            ),
           ),
         ],
       ),

@@ -578,8 +578,8 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
     if (isTV) {
       return FocusTraversalGroup(
         child: Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             gradient: isActive
                 ? LinearGradient(
@@ -618,19 +618,19 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
                     children: [
                       // Icon
                       Container(
-                        width: 48,
-                        height: 48,
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
                           color: AppTheme.getPrimaryColor(context).withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
                           playlist.isRemote ? Icons.cloud_outlined : Icons.folder_outlined,
                           color: AppTheme.getPrimaryColor(context),
-                          size: 24,
+                          size: 20,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 12),
                       // Info
                       Expanded(
                         child: Column(
@@ -643,7 +643,7 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
                                     playlist.name,
                                     style: TextStyle(
                                       color: AppTheme.getTextPrimary(context),
-                                      fontSize: 16,
+                                      fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                     ),
                                     maxLines: 1,
@@ -652,35 +652,35 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
                                 ),
                                 if (isActive)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                                     decoration: BoxDecoration(
                                       color: AppTheme.getPrimaryColor(context),
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
                                       AppStrings.of(context)?.active ?? 'ACTIVE',
                                       style: const TextStyle(
                                         color: Colors.white,
-                                        fontSize: 10,
+                                        fontSize: 9,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ),
                               ],
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 2),
                             Row(
                               children: [
                                 Icon(
                                   playlist.isRemote ? Icons.cloud_outlined : Icons.folder_outlined,
                                   color: AppTheme.getTextMuted(context),
-                                  size: 12,
+                                  size: 11,
                                 ),
-                                const SizedBox(width: 4),
+                                const SizedBox(width: 3),
                                 Flexible(
                                   child: Text(
                                     '${playlist.format} · ${playlist.isRemote ? 'URL' : (AppStrings.of(context)?.localFile ?? 'Local File')} · ${playlist.channelCount} ${AppStrings.of(context)?.channels ?? 'channels'} · ${playlist.groupCount} ${AppStrings.of(context)?.categories ?? 'groups'}',
-                                    style: TextStyle(color: AppTheme.getTextSecondary(context), fontSize: 11),
+                                    style: TextStyle(color: AppTheme.getTextSecondary(context), fontSize: 10),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -688,10 +688,10 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
                               ],
                             ),
                             if (playlist.lastUpdated != null) ...[
-                              const SizedBox(height: 2),
+                              const SizedBox(height: 1),
                               Text(
                                 '${AppStrings.of(context)?.updated ?? 'Updated'}: ${_formatDate(playlist.lastUpdated!)}',
-                                style: TextStyle(color: AppTheme.getTextMuted(context), fontSize: 11),
+                                style: TextStyle(color: AppTheme.getTextMuted(context), fontSize: 10),
                               ),
                             ],
                           ],
@@ -701,48 +701,48 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               // 复制URL按钮（仅远程播放列表显示）
               if (playlist.isRemote && playlist.url != null) ...[
                 TVFocusable(
                   onSelect: () => _copyUrl(playlist.url!),
                   focusScale: 1.1,
                   child: Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: AppTheme.getCardColor(context),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Icon(Icons.copy_rounded, color: AppTheme.getTextSecondary(context), size: 22),
+                    child: Icon(Icons.copy_rounded, color: AppTheme.getTextSecondary(context), size: 18),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
               ],
               // 刷新按钮
               TVFocusable(
                 onSelect: () => _refreshPlaylist(provider, playlist),
                 focusScale: 1.1,
                 child: Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: AppTheme.getCardColor(context),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Icon(Icons.refresh_rounded, color: AppTheme.getTextSecondary(context), size: 22),
+                  child: Icon(Icons.refresh_rounded, color: AppTheme.getTextSecondary(context), size: 18),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               // 删除按钮
               TVFocusable(
                 onSelect: () => _confirmDelete(provider, playlist),
                 focusScale: 1.1,
                 child: Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: AppTheme.getCardColor(context),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Icon(Icons.delete_outline_rounded, color: AppTheme.errorColor, size: 22),
+                  child: const Icon(Icons.delete_outline_rounded, color: AppTheme.errorColor, size: 18),
                 ),
               ),
             ],
@@ -770,8 +770,8 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
 
         return AnimatedContainer(
           duration: AppTheme.animationFast,
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             gradient: isActive
                 ? LinearGradient(
@@ -811,113 +811,113 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
             children: [
               // Icon
               Container(
-                width: 48,
-                height: 48,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: AppTheme.getPrimaryColor(context).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   playlist.isRemote ? Icons.cloud_outlined : Icons.folder_outlined,
                   color: AppTheme.getPrimaryColor(context),
-                  size: 24,
+                  size: 20,
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
 
-              // Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            playlist.name,
-                            style: TextStyle(
-                              color: AppTheme.getTextPrimary(context),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (provider.activePlaylist?.id == playlist.id)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppTheme.getPrimaryColor(context),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              AppStrings.of(context)?.active ?? 'ACTIVE',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    // 在 Windows/TV 上单行显示，手机上允许换行
-                    Platform.isWindows || PlatformDetector.isTV
-                        ? Row(
-                            children: [
-                              Icon(
-                                playlist.isRemote ? Icons.cloud_outlined : Icons.folder_outlined,
-                                color: AppTheme.getTextMuted(context),
-                                size: 12,
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  '${playlist.format} · ${playlist.isRemote ? 'URL' : (AppStrings.of(context)?.localFile ?? 'Local File')} · ${playlist.channelCount} ${AppStrings.of(context)?.channels ?? 'channels'} · ${playlist.groupCount} ${AppStrings.of(context)?.categories ?? 'groups'}',
-                                  style: TextStyle(
-                                    color: AppTheme.getTextSecondary(context),
-                                    fontSize: 11,
+                          // Info
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        playlist.name,
+                                        style: TextStyle(
+                                          color: AppTheme.getTextPrimary(context),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (provider.activePlaylist?.id == playlist.id)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.getPrimaryColor(context),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          AppStrings.of(context)?.active ?? 'ACTIVE',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                            // 在 Windows/TV 上单行显示，手机上允许换行
+                            Platform.isWindows || PlatformDetector.isTV
+                                ? Row(
+                                    children: [
+                                      Icon(
+                                        playlist.isRemote ? Icons.cloud_outlined : Icons.folder_outlined,
+                                        color: AppTheme.getTextMuted(context),
+                                        size: 11,
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Expanded(
+                                        child: Text(
+                                          '${playlist.format} · ${playlist.isRemote ? 'URL' : (AppStrings.of(context)?.localFile ?? 'Local File')} · ${playlist.channelCount} ${AppStrings.of(context)?.channels ?? 'channels'} · ${playlist.groupCount} ${AppStrings.of(context)?.categories ?? 'groups'}',
+                                          style: TextStyle(
+                                            color: AppTheme.getTextSecondary(context),
+                                            fontSize: 10,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Wrap(
+                                    spacing: 4,
+                                    runSpacing: 2,
+                                    crossAxisAlignment: WrapCrossAlignment.center,
+                                    children: [
+                                      Icon(
+                                        playlist.isRemote ? Icons.cloud_outlined : Icons.folder_outlined,
+                                        color: AppTheme.getTextMuted(context),
+                                        size: 11,
+                                      ),
+                                      Text(
+                                        '${playlist.format} · ${playlist.isRemote ? 'URL' : (AppStrings.of(context)?.localFile ?? 'Local File')} · ${playlist.channelCount} ${AppStrings.of(context)?.channels ?? 'channels'} · ${playlist.groupCount} ${AppStrings.of(context)?.categories ?? 'groups'}',
+                                        style: TextStyle(
+                                          color: AppTheme.getTextSecondary(context),
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          )
-                        : Wrap(
-                            spacing: 4,
-                            runSpacing: 2,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              Icon(
-                                playlist.isRemote ? Icons.cloud_outlined : Icons.folder_outlined,
-                                color: AppTheme.getTextMuted(context),
-                                size: 12,
-                              ),
+                            if (playlist.lastUpdated != null) ...[
+                              const SizedBox(height: 1),
                               Text(
-                                '${playlist.format} · ${playlist.isRemote ? 'URL' : (AppStrings.of(context)?.localFile ?? 'Local File')} · ${playlist.channelCount} ${AppStrings.of(context)?.channels ?? 'channels'} · ${playlist.groupCount} ${AppStrings.of(context)?.categories ?? 'groups'}',
+                                '${AppStrings.of(context)?.updated ?? 'Updated'}: ${_formatDate(playlist.lastUpdated!)}',
                                 style: TextStyle(
-                                  color: AppTheme.getTextSecondary(context),
-                                  fontSize: 11,
+                                  color: AppTheme.getTextMuted(context),
+                                  fontSize: 10,
                                 ),
                               ),
                             ],
-                          ),
-                    if (playlist.lastUpdated != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        '${AppStrings.of(context)?.updated ?? 'Updated'}: ${_formatDate(playlist.lastUpdated!)}',
-                        style: TextStyle(
-                          color: AppTheme.getTextMuted(context),
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -925,7 +925,7 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
           ),
 
           // Actions - 手机端放到下面一行
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [

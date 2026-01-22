@@ -439,10 +439,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (isTV) {
       return Scaffold(
-        backgroundColor: AppTheme.getBackgroundColor(context),
-        body: TVSidebar(
-          selectedIndex: 4, // 设置�?
-          child: content,
+        body: Container(
+          decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: Theme.of(context).brightness == Brightness.dark
+                        ? [
+                            AppTheme.getBackgroundColor(context),
+                            AppTheme.getPrimaryColor(context).withOpacity(0.15),
+                            AppTheme.getBackgroundColor(context),
+                          ]
+                        : [
+                            AppTheme.getBackgroundColor(context),
+                            AppTheme.getBackgroundColor(context).withOpacity(0.9),
+                            AppTheme.getPrimaryColor(context).withOpacity(0.08),
+                          ],
+                  ),
+          ),
+          child: TVSidebar(
+            selectedIndex: 4, // 设置页
+            child: content,
+          ),
         ),
       );
     }
@@ -476,19 +494,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.getBackgroundColor(context),
-      appBar: AppBar(
-        backgroundColor: AppTheme.getBackgroundColor(context),
-        title: Text(
-          AppStrings.of(context)?.settings ?? 'Settings',
-          style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 20, fontWeight: FontWeight.bold),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.getBackgroundColor(context),
+              AppTheme.getBackgroundColor(context).withOpacity(0.8),
+              AppTheme.getPrimaryColor(context).withOpacity(0.05),
+            ],
+          ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
+        child: Column(
+          children: [
+            AppBar(
+              backgroundColor: Colors.transparent,
+              title: Text(
+                AppStrings.of(context)?.settings ?? 'Settings',
+                style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+            Expanded(child: content),
+          ],
         ),
       ),
-      body: content,
     );
   }
 

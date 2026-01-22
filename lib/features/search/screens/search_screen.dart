@@ -63,10 +63,28 @@ class _SearchScreenState extends State<SearchScreen> {
 
     if (isTV) {
       return Scaffold(
-        backgroundColor: AppTheme.getBackgroundColor(context),
-        body: TVSidebar(
-          selectedIndex: 3, // 搜索页
-          child: content,
+        body: Container(
+          decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: Theme.of(context).brightness == Brightness.dark
+                        ? [
+                            AppTheme.getBackgroundColor(context),
+                            AppTheme.getPrimaryColor(context).withOpacity(0.15),
+                            AppTheme.getBackgroundColor(context),
+                          ]
+                        : [
+                            AppTheme.getBackgroundColor(context),
+                            AppTheme.getBackgroundColor(context).withOpacity(0.9),
+                            AppTheme.getPrimaryColor(context).withOpacity(0.08),
+                          ],
+                  ),
+          ),
+          child: TVSidebar(
+            selectedIndex: 3, // 搜索页
+            child: content,
+          ),
         ),
       );
     }
@@ -77,8 +95,20 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.getBackgroundColor(context),
-      body: content,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.getBackgroundColor(context),
+              AppTheme.getBackgroundColor(context).withOpacity(0.8),
+              AppTheme.getPrimaryColor(context).withOpacity(0.05),
+            ],
+          ),
+        ),
+        child: content,
+      ),
     );
   }
 

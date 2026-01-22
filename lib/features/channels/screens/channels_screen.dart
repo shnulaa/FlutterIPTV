@@ -121,16 +121,34 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
 
     if (isTV) {
       return Scaffold(
-        backgroundColor: AppTheme.getBackgroundColor(context),
-        body: TVSidebar(
-          selectedIndex: 1, // 频道页
-          onRight: () {
-            // 主菜单按右键，跳转到当前分类
-            if (_groupFocusNodes.isNotEmpty && _currentGroupIndex < _groupFocusNodes.length) {
-              _groupFocusNodes[_currentGroupIndex].requestFocus();
-            }
-          },
-          child: content,
+        body: Container(
+          decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: Theme.of(context).brightness == Brightness.dark
+                        ? [
+                            AppTheme.getBackgroundColor(context),
+                            AppTheme.getPrimaryColor(context).withOpacity(0.15),
+                            AppTheme.getBackgroundColor(context),
+                          ]
+                        : [
+                            AppTheme.getBackgroundColor(context),
+                            AppTheme.getBackgroundColor(context).withOpacity(0.9),
+                            AppTheme.getPrimaryColor(context).withOpacity(0.08),
+                          ],
+                  ),
+          ),
+          child: TVSidebar(
+            selectedIndex: 1, // 频道页
+            onRight: () {
+              // 主菜单按右键，跳转到当前分类
+              if (_groupFocusNodes.isNotEmpty && _currentGroupIndex < _groupFocusNodes.length) {
+                _groupFocusNodes[_currentGroupIndex].requestFocus();
+              }
+            },
+            child: content,
+          ),
         ),
       );
     }
@@ -176,8 +194,20 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.getBackgroundColor(context),
-      body: content,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.getBackgroundColor(context),
+              AppTheme.getBackgroundColor(context).withOpacity(0.8),
+              AppTheme.getPrimaryColor(context).withOpacity(0.05),
+            ],
+          ),
+        ),
+        child: content,
+      ),
       // 手机端添加分类抽屉
       drawer: _buildMobileGroupsDrawer(),
     );
@@ -257,7 +287,21 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
           child: Container(
             width: 240,
             decoration: BoxDecoration(
-              color: AppTheme.getSurfaceColor(context),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: Theme.of(context).brightness == Brightness.dark
+                    ? [
+                        AppTheme.getBackgroundColor(context),
+                        AppTheme.getPrimaryColor(context).withOpacity(0.15),
+                        AppTheme.getBackgroundColor(context),
+                      ]
+                    : [
+                        AppTheme.getBackgroundColor(context),
+                        AppTheme.getBackgroundColor(context).withOpacity(0.9),
+                        AppTheme.getPrimaryColor(context).withOpacity(0.08),
+                      ],
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.2),

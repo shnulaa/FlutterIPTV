@@ -226,72 +226,92 @@ class _QrImportDialogState extends State<QrImportDialog> {
     final isMobile = MediaQuery.of(context).size.width < 600;
     
     return Dialog(
-      backgroundColor: AppTheme.getSurfaceColor(context),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Container(
-        width: isMobile ? null : 520,
-        constraints: isMobile ? const BoxConstraints(maxWidth: 400) : null,
-        padding: EdgeInsets.all(isMobile ? 16 : 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Title
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withAlpha(51),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.qr_code_scanner_rounded,
-                    color: AppTheme.primaryColor,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    AppStrings.of(context)?.scanToImport ?? 'Scan to Import Playlist',
-                    style: TextStyle(
-                      color: AppTheme.getTextPrimary(context),
-                      fontSize: isMobile ? 16 : 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+      backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: isMobile ? null : 520,
+          constraints: isMobile ? const BoxConstraints(maxWidth: 400) : null,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: Theme.of(context).brightness == Brightness.dark
+                  ? [
+                      AppTheme.getBackgroundColor(context),
+                      AppTheme.getPrimaryColor(context).withOpacity(0.15),
+                      AppTheme.getBackgroundColor(context),
+                    ]
+                  : [
+                      AppTheme.getBackgroundColor(context),
+                      AppTheme.getBackgroundColor(context).withOpacity(0.9),
+                      AppTheme.getPrimaryColor(context).withOpacity(0.08),
+                    ],
             ),
-
-            const SizedBox(height: 20),
-
-            // Content
-            if (_isLoading) _buildLoadingState() else if (_error != null) _buildErrorState() else if (_isServerRunning) _buildQrCodeState(isMobile),
-
-            const SizedBox(height: 20),
-
-            // Close button
-            TVFocusable(
-              autofocus: true,
-              onSelect: () => Navigator.of(context).pop(false),
-              child: SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.getTextSecondary(context),
-                    side: BorderSide(color: AppTheme.getCardColor(context)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
+          ),
+          padding: EdgeInsets.all(isMobile ? 16 : 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Title
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withAlpha(51),
                       borderRadius: BorderRadius.circular(10),
                     ),
+                    child: const Icon(
+                      Icons.qr_code_scanner_rounded,
+                      color: AppTheme.primaryColor,
+                      size: 22,
+                    ),
                   ),
-                  child: Text(AppStrings.of(context)?.close ?? 'Close'),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      AppStrings.of(context)?.scanToImport ?? 'Scan to Import Playlist',
+                      style: TextStyle(
+                        color: AppTheme.getTextPrimary(context),
+                        fontSize: isMobile ? 16 : 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Content
+              if (_isLoading) _buildLoadingState() else if (_error != null) _buildErrorState() else if (_isServerRunning) _buildQrCodeState(isMobile),
+
+              const SizedBox(height: 20),
+
+              // Close button
+              TVFocusable(
+                autofocus: true,
+                onSelect: () => Navigator.of(context).pop(false),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.getTextSecondary(context),
+                      side: BorderSide(color: AppTheme.getCardColor(context)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(AppStrings.of(context)?.close ?? 'Close'),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

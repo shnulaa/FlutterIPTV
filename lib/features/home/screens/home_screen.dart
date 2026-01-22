@@ -269,18 +269,48 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (isTV) {
       return Scaffold(
-        backgroundColor: AppTheme.getBackgroundColor(context),
-        body: TVSidebar(
-          selectedIndex: 0,
-          child: _buildMainContent(context),
+        body: Container(
+          decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: Theme.of(context).brightness == Brightness.dark
+                        ? [
+                            AppTheme.getBackgroundColor(context),
+                            AppTheme.getPrimaryColor(context).withOpacity(0.15),
+                            AppTheme.getBackgroundColor(context),
+                          ]
+                        : [
+                            AppTheme.getBackgroundColor(context),
+                            AppTheme.getBackgroundColor(context).withOpacity(0.9),
+                            AppTheme.getPrimaryColor(context).withOpacity(0.08),
+                          ],
+                  ),
+          ),
+          child: TVSidebar(
+            selectedIndex: 0,
+            child: _buildMainContent(context),
+          ),
         ),
       );
     }
 
     // 手机端使用底部导航栏切换页面
     return Scaffold(
-      backgroundColor: AppTheme.getBackgroundColor(context),
-      body: _buildMobileBody(),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.getBackgroundColor(context),
+              AppTheme.getBackgroundColor(context).withOpacity(0.8),
+              AppTheme.getPrimaryColor(context).withOpacity(0.05),
+            ],
+          ),
+        ),
+        child: _buildMobileBody(),
+      ),
       bottomNavigationBar: _buildBottomNav(context),
     );
   }

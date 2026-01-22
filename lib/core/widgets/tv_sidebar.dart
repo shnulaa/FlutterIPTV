@@ -117,7 +117,23 @@ class _TVSidebarState extends State<TVSidebar> {
           },
           child: Container(
             width: width,
-            color: AppTheme.getSurfaceColor(context),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: Theme.of(context).brightness == Brightness.dark
+                    ? [
+                        AppTheme.getBackgroundColor(context),
+                        AppTheme.getPrimaryColor(context).withOpacity(0.15),
+                        AppTheme.getBackgroundColor(context),
+                      ]
+                    : [
+                        AppTheme.getBackgroundColor(context),
+                        AppTheme.getBackgroundColor(context).withOpacity(0.9),
+                        AppTheme.getPrimaryColor(context).withOpacity(0.08),
+                      ],
+              ),
+            ),
             child: Column(
               children: [
                 const SizedBox(height: 12),

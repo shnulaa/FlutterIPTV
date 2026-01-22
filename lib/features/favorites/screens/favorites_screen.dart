@@ -105,10 +105,28 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
     if (isTV) {
       return Scaffold(
-        backgroundColor: AppTheme.getBackgroundColor(context),
-        body: TVSidebar(
-          selectedIndex: 2, // 收藏页
-          child: content,
+        body: Container(
+          decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: Theme.of(context).brightness == Brightness.dark
+                        ? [
+                            AppTheme.getBackgroundColor(context),
+                            AppTheme.getPrimaryColor(context).withOpacity(0.15),
+                            AppTheme.getBackgroundColor(context),
+                          ]
+                        : [
+                            AppTheme.getBackgroundColor(context),
+                            AppTheme.getBackgroundColor(context).withOpacity(0.9),
+                            AppTheme.getPrimaryColor(context).withOpacity(0.08),
+                          ],
+                  ),
+          ),
+          child: TVSidebar(
+            selectedIndex: 2, // 收藏页
+            child: content,
+          ),
         ),
       );
     }
@@ -153,36 +171,52 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.getBackgroundColor(context),
-      appBar: AppBar(
-        backgroundColor: AppTheme.getBackgroundColor(context),
-        title: Text(
-          AppStrings.of(context)?.favorites ?? 'Favorites',
-          style: TextStyle(
-            color: AppTheme.getTextPrimary(context),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.getBackgroundColor(context),
+              AppTheme.getBackgroundColor(context).withOpacity(0.8),
+              AppTheme.getPrimaryColor(context).withOpacity(0.05),
+            ],
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          Consumer<FavoritesProvider>(
-            builder: (context, provider, _) {
-              if (provider.favorites.isEmpty) return const SizedBox.shrink();
+        child: Column(
+          children: [
+            AppBar(
+              backgroundColor: Colors.transparent,
+              title: Text(
+                AppStrings.of(context)?.favorites ?? 'Favorites',
+                style: TextStyle(
+                  color: AppTheme.getTextPrimary(context),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => Navigator.pop(context),
+              ),
+              actions: [
+                Consumer<FavoritesProvider>(
+                  builder: (context, provider, _) {
+                    if (provider.favorites.isEmpty) return const SizedBox.shrink();
 
-              return IconButton(
-                icon: const Icon(Icons.delete_sweep_rounded),
-                onPressed: () => _confirmClearAll(context, provider),
-                tooltip: AppStrings.of(context)?.clearAll ?? 'Clear All',
-              );
-            },
-          ),
-        ],
+                    return IconButton(
+                      icon: const Icon(Icons.delete_sweep_rounded),
+                      onPressed: () => _confirmClearAll(context, provider),
+                      tooltip: AppStrings.of(context)?.clearAll ?? 'Clear All',
+                    );
+                  },
+                ),
+              ],
+            ),
+            Expanded(child: content),
+          ],
+        ),
       ),
-      body: content,
     );
   }
 
@@ -321,18 +355,18 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         );
       },
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(10),
         child: Row(
           children: [
             // Drag Handle
             ReorderableDragStartListener(
               index: index,
               child: Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(6),
                 child: const Icon(
                   Icons.drag_indicator_rounded,
                   color: AppTheme.textMuted,
-                  size: 20,
+                  size: 18,
                 ),
               ),
             ),
@@ -341,11 +375,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
             // Channel Logo
             Container(
-              width: 60,
-              height: 60,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 color: AppTheme.getCardColor(context),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 image: channel.logoUrl != null
                     ? DecorationImage(
                         image: NetworkImage(channel.logoUrl!),
@@ -357,7 +391,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   ? Icon(
                       Icons.live_tv_rounded,
                       color: AppTheme.getTextMuted(context),
-                      size: 28,
+                      size: 24,
                     )
                   : null,
             ),
@@ -373,19 +407,19 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     channel.name,
                     style: TextStyle(
                       color: AppTheme.getTextPrimary(context),
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (channel.groupName != null) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       channel.groupName!,
                       style: TextStyle(
                         color: AppTheme.getTextSecondary(context),
-                        fontSize: 13,
+                        fontSize: 11,
                       ),
                     ),
                   ],
@@ -401,19 +435,19 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 TVFocusable(
                   onSelect: () => _playChannel(channel),
                   child: Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(10),
+                      color: AppTheme.getPrimaryColor(context).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.play_arrow_rounded,
-                      color: AppTheme.primaryColor,
-                      size: 24,
+                      color: AppTheme.getPrimaryColor(context),
+                      size: 20,
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
 
                 // Remove Button
                 TVFocusable(
@@ -433,15 +467,15 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     }
                   },
                   child: Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: AppTheme.errorColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
                       Icons.favorite,
-                      color: AppTheme.accentColor,
-                      size: 24,
+                      color: AppTheme.errorColor,
+                      size: 20,
                     ),
                   ),
                 ),
