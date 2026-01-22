@@ -20,6 +20,10 @@ class PlaylistProvider extends ChangeNotifier {
   String? _lastExtractedEpgUrl;
   String? get lastExtractedEpgUrl => _lastExtractedEpgUrl;
 
+  /// Last unsupported schemes from import (for UI display only)
+  Set<String>? _lastUnsupportedSchemes;
+  Set<String>? get lastUnsupportedSchemes => _lastUnsupportedSchemes;
+
   // Getters
   List<Playlist> get playlists => _playlists;
   Playlist? get activePlaylist => _activePlaylist;
@@ -241,7 +245,9 @@ class PlaylistProvider extends ChangeNotifier {
       if (format == 'txt') {
         channels = TXTParser.parse(content, playlistId);
       } else {
-        channels = M3UParser.parse(content, playlistId);
+        final result = M3UParser.parse(content, playlistId);
+        channels = result.channels;
+        _lastUnsupportedSchemes = result.unsupportedSchemes;
       }
 
       // Check for EPG URL in M3U header (only for M3U format)
@@ -333,10 +339,13 @@ class PlaylistProvider extends ChangeNotifier {
       debugPrint('DEBUG: 检测到播放列表格式: $format');
 
       final List<Channel> channels;
+      Set<String>? unsupportedSchemes;
       if (format == 'txt') {
         channels = await TXTParser.parseFromFile(filePath, playlistId);
       } else {
-        channels = await M3UParser.parseFromFile(filePath, playlistId);
+        final result = await M3UParser.parseFromFileWithResult(filePath, playlistId);
+        channels = result.channels;
+        unsupportedSchemes = result.unsupportedSchemes;
       }
 
       // Check for EPG URL in M3U header (only for M3U format)
@@ -346,6 +355,9 @@ class PlaylistProvider extends ChangeNotifier {
           debugPrint('DEBUG: 从M3U提取到EPG URL: $_lastExtractedEpgUrl');
         }
       }
+
+      // Store unsupported schemes for showing warning after import
+      _lastUnsupportedSchemes = unsupportedSchemes;
 
       _importProgress = 0.6;
       notifyListeners();
@@ -425,13 +437,15 @@ class PlaylistProvider extends ChangeNotifier {
         // Detect format and parse accordingly
         final format = _detectPlaylistFormat(freshPlaylist.url!);
         debugPrint('DEBUG: 检测到播放列表格式: $format');
-        
+
         if (format == 'txt') {
           channels = await TXTParser.parseFromUrl(freshPlaylist.url!, playlist.id!);
         } else {
-          channels = await M3UParser.parseFromUrl(freshPlaylist.url!, playlist.id!);
+          final result = await M3UParser.parseFromUrlWithResult(freshPlaylist.url!, playlist.id!);
+          channels = result.channels;
+          _lastUnsupportedSchemes = result.unsupportedSchemes;
         }
-        
+
         // Check for EPG URL in M3U header (only for M3U format)
         if (format == 'm3u') {
           _lastExtractedEpgUrl = M3UParser.lastParseResult?.epgUrl;
@@ -452,13 +466,15 @@ class PlaylistProvider extends ChangeNotifier {
         // Detect format and parse accordingly
         final format = _detectPlaylistFormat(freshPlaylist.filePath!);
         debugPrint('DEBUG: 检测到播放列表格式: $format');
-        
+
         if (format == 'txt') {
           channels = await TXTParser.parseFromFile(freshPlaylist.filePath!, playlist.id!);
         } else {
-          channels = await M3UParser.parseFromFile(freshPlaylist.filePath!, playlist.id!);
+          final result = await M3UParser.parseFromFileWithResult(freshPlaylist.filePath!, playlist.id!);
+          channels = result.channels;
+          _lastUnsupportedSchemes = result.unsupportedSchemes;
         }
-        
+
         // Check for EPG URL in M3U header (only for M3U format)
         if (format == 'm3u') {
           _lastExtractedEpgUrl = M3UParser.lastParseResult?.epgUrl;

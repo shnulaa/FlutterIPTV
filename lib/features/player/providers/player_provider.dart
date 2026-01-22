@@ -257,10 +257,31 @@ class PlayerProvider extends ChangeNotifier {
   int _videoHeight = 0;
   double _downloadSpeed = 0; // bytes per second
 
+  // Catch-up TV state
+  bool _isInCatchUpMode = false;
+  DateTime? _catchUpStartTime; // 回放开始时间（绝对时间）
+  DateTime? _catchUpEndTime;   // 回放结束时间（绝对时间）
+  String? _liveUrl; // 直播URL（用于切换回直播）
+  Channel? _liveChannel; // 直播频道（用于切换回直播）
+
   double get currentFps => _currentFps;
   int get videoWidth => _videoWidth;
   int get videoHeight => _videoHeight;
   double get downloadSpeed => _downloadSpeed;
+
+  // Catch-up getters
+  bool get isInCatchUpMode => _isInCatchUpMode;
+  DateTime? get catchUpStartTime => _catchUpStartTime;
+  DateTime? get catchUpEndTime => _catchUpEndTime;
+  Duration get catchUpDuration {
+    if (_catchUpStartTime == null || _catchUpEndTime == null) return Duration.zero;
+    return _catchUpEndTime!.difference(_catchUpStartTime!);
+  }
+  Duration get catchUpCurrentPosition {
+    if (_position == Duration.zero || _catchUpStartTime == null) return Duration.zero;
+    final relative = _position.inMilliseconds - _catchUpStartTime!.millisecondsSinceEpoch;
+    return Duration(milliseconds: relative.clamp(0, catchUpDuration.inMilliseconds));
+  }
 
   String get videoInfo {
     if (_useExoPlayer) {
@@ -648,14 +669,134 @@ class PlayerProvider extends ChangeNotifier {
     _useExoPlayer ? _exoPlayer?.seekTo(position) : _mediaKitPlayer?.seek(position);
   }
 
+  // ========== Catch-up TV Methods ==========
+
+  /// Enter catch-up mode and play the catch-up URL
+  Future<void> playCatchUp({
+    required String url,
+    required DateTime startTime,
+    required DateTime endTime,
+    required String liveUrl,
+    Channel? liveChannel,
+  }) async {
+    _isInCatchUpMode = true;
+    _catchUpStartTime = startTime;
+    _catchUpEndTime = endTime;
+    _liveUrl = liveUrl;
+    _liveChannel = liveChannel;
+
+    debugPrint('PlayerProvider: Entering catch-up mode');
+    debugPrint('  URL: $url');
+    debugPrint('  Start: $startTime, End: $endTime');
+    debugPrint('  Live URL: $liveUrl');
+
+    // Play the catch-up URL
+    await playUrl(url, name: 'Catch-up');
+
+    notifyListeners();
+  }
+
+  /// Exit catch-up mode and return to live TV
+  Future<void> switchToLive() async {
+    if (!_isInCatchUpMode) return;
+
+    debugPrint('PlayerProvider: Switching to live TV');
+
+    _isInCatchUpMode = false;
+    _catchUpStartTime = null;
+    _catchUpEndTime = null;
+
+    // Play the live URL
+    if (_liveUrl != null) {
+      await playUrl(_liveUrl!, name: _liveChannel?.name ?? '');
+    }
+
+    _liveUrl = null;
+    _liveChannel = null;
+
+    notifyListeners();
+  }
+
+  /// Handle DLNA seek request with catch-up position conversion
+  /// This method converts absolute position to relative position for catch-up mode
+  void handleDlnaSeek(Duration absolutePosition) {
+    if (!_isInCatchUpMode) {
+      // Normal mode: use absolute position directly
+      seek(absolutePosition);
+      return;
+    }
+
+    // Catch-up mode: convert absolute position to relative position
+    if (_catchUpStartTime == null) {
+      seek(absolutePosition);
+      return;
+    }
+
+    final relativeMs = absolutePosition.inMilliseconds - _catchUpStartTime!.millisecondsSinceEpoch;
+    final relativePosition = Duration(milliseconds: relativeMs.clamp(0, catchUpDuration.inMilliseconds));
+
+    debugPrint('PlayerProvider: DLNA seek - Absolute: $absolutePosition, Relative: $relativePosition');
+
+    seek(relativePosition);
+  }
+
+  /// Get the position for DLNA sync
+  /// In catch-up mode, returns relative position (0-based)
+  /// In live mode, returns absolute position
+  Duration getDlnaSyncPosition() {
+    if (!_isInCatchUpMode) {
+      return _position;
+    }
+
+    // Convert absolute position to relative position
+    return catchUpCurrentPosition;
+  }
+
+  /// Seek in catch-up mode with seconds (relative to current position)
   void seekForward(int seconds) {
-    seek(_position + Duration(seconds: seconds));
+    if (!_isInCatchUpMode) {
+      seek(_position + Duration(seconds: seconds));
+      return;
+    }
+
+    // In catch-up mode, seek relative to current position within the catch-up window
+    final newPosition = _position + Duration(seconds: seconds);
+    seek(newPosition);
   }
 
   void seekBackward(int seconds) {
-    final newPos = _position - Duration(seconds: seconds);
-    seek(newPos.isNegative ? Duration.zero : newPos);
+    if (!_isInCatchUpMode) {
+      final newPos = _position - Duration(seconds: seconds);
+      seek(newPos.isNegative ? Duration.zero : newPos);
+      return;
+    }
+
+    // In catch-up mode, seek relative to current position
+    final newPosition = _position - Duration(seconds: seconds);
+    seek(newPosition.isNegative ? Duration.zero : newPosition);
   }
+
+  /// Check if current position is within catch-up window
+  bool isPositionInCatchUpWindow(Duration position) {
+    if (!_isInCatchUpMode || _catchUpStartTime == null) return true;
+
+    final positionMs = position.inMilliseconds;
+    final startMs = _catchUpStartTime!.millisecondsSinceEpoch;
+    final endMs = _catchUpEndTime?.millisecondsSinceEpoch ?? startMs + catchUpDuration.inMilliseconds;
+
+    return positionMs >= startMs && positionMs <= endMs;
+  }
+
+  /// Reset catch-up mode state
+  void resetCatchUpMode() {
+    _isInCatchUpMode = false;
+    _catchUpStartTime = null;
+    _catchUpEndTime = null;
+    _liveUrl = null;
+    _liveChannel = null;
+  }
+
+  // ========== End Catch-up TV Methods ==========
 
   void setVolume(double volume) {
     _volume = volume.clamp(0.0, 1.0);

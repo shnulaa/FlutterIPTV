@@ -1081,10 +1081,21 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
         _nameController.clear();
         _urlController.clear();
 
+        String message = (AppStrings.of(context)?.playlistAdded ?? 'Added "{name}"').replaceAll('{name}', playlist.name).replaceAll('{count}', '${playlist.channelCount}');
+        Color backgroundColor = AppTheme.successColor;
+
+        if (provider.lastUnsupportedSchemes != null && provider.lastUnsupportedSchemes!.isNotEmpty) {
+          final unsupported = provider.lastUnsupportedSchemes!.join(', ');
+          final unsupportedProtocol = AppStrings.of(context)?.unsupportedProtocol ?? 'Unsupported protocol';
+          message = '${AppStrings.of(context)?.importSuccessWithWarning ?? "Import successful, but some channels unsupported"}\n$unsupportedProtocol: $unsupported';
+          backgroundColor = Colors.orange;
+          debugPrint('DEBUG: 检测到不支持的协议: $unsupported');
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text((AppStrings.of(context)?.playlistAdded ?? 'Added "{name}"').replaceAll('{name}', playlist.name).replaceAll('{count}', '${playlist.channelCount}')),
-            backgroundColor: AppTheme.successColor,
+            content: Text(message),
+            backgroundColor: backgroundColor,
           ),
         );
       }
@@ -1141,12 +1152,23 @@ class _PlaylistManagerScreenState extends State<PlaylistManagerScreen> {
       }
 
       if (mounted) {
+        String message = success
+            ? (AppStrings.of(context)?.playlistRefreshed ?? 'Playlist refreshed successfully')
+            : (AppStrings.of(context)?.playlistRefreshFailed ?? 'Failed to refresh playlist');
+        Color backgroundColor = success ? AppTheme.successColor : AppTheme.errorColor;
+
+        if (success && provider.lastUnsupportedSchemes != null && provider.lastUnsupportedSchemes!.isNotEmpty) {
+          final unsupported = provider.lastUnsupportedSchemes!.join(', ');
+          final unsupportedProtocol = AppStrings.of(context)?.unsupportedProtocol ?? 'Unsupported protocol';
+          message = '${AppStrings.of(context)?.importSuccessWithWarning ?? 'Import successful, but some channels unsupported'}\n$unsupportedProtocol: $unsupported';
+          backgroundColor = Colors.orange;
+          debugPrint('DEBUG: 检测到不支持的协议: $unsupported');
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              success ? (AppStrings.of(context)?.playlistRefreshed ?? 'Playlist refreshed successfully') : (AppStrings.of(context)?.playlistRefreshFailed ?? 'Failed to refresh playlist'),
-            ),
-            backgroundColor: success ? AppTheme.successColor : AppTheme.errorColor,
+            content: Text(message),
+            backgroundColor: backgroundColor,
           ),
         );
       }

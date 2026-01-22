@@ -9,8 +9,13 @@ import '../models/channel.dart';
 class M3UParseResult {
   final List<Channel> channels;
   final String? epgUrl;
+  final Set<String> unsupportedSchemes;
 
-  M3UParseResult({required this.channels, this.epgUrl});
+  M3UParseResult({
+    required this.channels,
+    this.epgUrl,
+    this.unsupportedSchemes = const {},
+  });
 }
 
 /// Parser for M3U/M3U8 playlist files
@@ -25,8 +30,14 @@ class M3UParser {
   /// Get the last parse result (for accessing EPG URL)
   static M3UParseResult? get lastParseResult => _lastParseResult;
 
-  /// Parse M3U content from a URL
+  /// Parse M3U content from a URL (backwards compatible, returns channels only)
   static Future<List<Channel>> parseFromUrl(String url, int playlistId) async {
+    final result = await parseFromUrlWithResult(url, playlistId);
+    return result.channels;
+  }
+
+  /// Parse M3U content from a URL (returns full result with unsupported schemes)
+  static Future<M3UParseResult> parseFromUrlWithResult(String url, int playlistId) async {
     try {
       debugPrint('DEBUG: 开始从URL获取播放列表内容: $url');
 
@@ -46,10 +57,10 @@ class M3UParser {
       debugPrint('DEBUG: 成功获取播放列表内容，状态码: ${response.statusCode}');
       debugPrint('DEBUG: 内容大小: ${response.data.toString().length} 字符');
 
-      final channels = parse(response.data.toString(), playlistId);
-      debugPrint('DEBUG: URL解析完成，共解析出 ${channels.length} 个频道');
+      final result = parse(response.data.toString(), playlistId);
+      debugPrint('DEBUG: URL解析完成，共解析出 ${result.channels.length} 个频道');
 
-      return channels;
+      return result;
     } catch (e) {
       debugPrint('DEBUG: 从URL获取播放列表时出错: $e');
       // 简化错误信息
@@ -70,8 +81,8 @@ class M3UParser {
     }
   }
 
-  /// Parse M3U content from a local file
-  static Future<List<Channel>> parseFromFile(String filePath, int playlistId) async {
+  /// Parse M3U content from a local file (returns full result with unsupported schemes)
+  static Future<M3UParseResult> parseFromFileWithResult(String filePath, int playlistId) async {
     try {
       debugPrint('DEBUG: 开始从本地文件读取播放列表: $filePath');
       final file = File(filePath);
@@ -84,23 +95,31 @@ class M3UParser {
       final content = await file.readAsString();
       debugPrint('DEBUG: 成功读取本地文件，内容大小: ${content.length} 字符');
 
-      final channels = parse(content, playlistId);
-      debugPrint('DEBUG: 本地文件解析完成，共解析出 ${channels.length} 个频道');
+      final result = parse(content, playlistId);
+      debugPrint('DEBUG: 本地文件解析完成，共解析出 ${result.channels.length} 个频道');
 
-      return channels;
+      return result;
     } catch (e) {
       debugPrint('DEBUG: 读取本地播放列表文件时出错: $e');
       throw Exception('Error reading playlist file: $e');
     }
   }
 
+  /// Parse M3U content from a local file (backwards compatible, returns channels only)
+  static Future<List<Channel>> parseFromFile(String filePath, int playlistId) async {
+    final result = await parseFromFileWithResult(filePath, playlistId);
+    return result.channels;
+  }
+
+
 
   /// Parse M3U content string
   /// Merges channels with same tvg-name/epgId into single channel with multiple sources
-  static List<Channel> parse(String content, int playlistId) {
+  static M3UParseResult parse(String content, int playlistId) {
     debugPrint('DEBUG: 开始解析M3U内容，播放列表ID: $playlistId');
 
     final List<Channel> rawChannels = [];
+    final Set<String> unsupportedSchemes = {};
     final lines = LineSplitter.split(content).toList();
     String? epgUrl;
 
@@ -108,7 +127,7 @@ class M3UParser {
 
     if (lines.isEmpty) {
       debugPrint('DEBUG: 内容为空，返回空频道列表');
-      return rawChannels;
+      return M3UParseResult(channels: rawChannels, epgUrl: epgUrl, unsupportedSchemes: unsupportedSchemes);
     }
 
     // Check for valid M3U header and extract EPG URL from first few lines
@@ -135,6 +154,9 @@ class M3UParser {
     String? currentLogo;
     String? currentGroup;
     String? currentEpgId;
+    bool currentSupportsCatchUp = false;
+    String? currentCatchUpSource;
+    String? currentCatchUpType;
     int invalidUrlCount = 0;
     int validChannelCount = 0;
 
@@ -150,6 +172,10 @@ class M3UParser {
         currentLogo = parsed['logo'];
         currentGroup = parsed['group'];
         currentEpgId = parsed['epgId'];
+        // Parse catch-up TV attributes
+        currentSupportsCatchUp = parsed['supportsCatchUp'] == 'true';
+        currentCatchUpSource = parsed['catchUpSource'];
+        currentCatchUpType = parsed['catchUpType'];
       } else if (line.startsWith(_extGrp)) {
         // Parse EXTGRP line (alternative group format)
         currentGroup = line.substring(_extGrp.length).trim();
@@ -168,12 +194,21 @@ class M3UParser {
               logoUrl: currentLogo,
               groupName: currentGroup ?? 'Uncategorized',
               epgId: currentEpgId,
+              supportsCatchUp: currentSupportsCatchUp,
+              catchUpSource: currentCatchUpSource,
+              catchUpType: currentCatchUpType,
             );
 
             rawChannels.add(channel);
             validChannelCount++;
           } else {
             invalidUrlCount++;
+            try {
+              final uri = Uri.parse(url);
+              if (uri.hasScheme) {
+                unsupportedSchemes.add(uri.scheme);
+              }
+            } catch (e) {}
             debugPrint('DEBUG: 无效的URL在第${i + 1}行: $line');
           }
         } else {
@@ -185,10 +220,16 @@ class M3UParser {
         currentLogo = null;
         currentGroup = null;
         currentEpgId = null;
+        currentSupportsCatchUp = false;
+        currentCatchUpSource = null;
+        currentCatchUpType = null;
       }
     }
 
     debugPrint('DEBUG: 原始解析完成 - 有效频道: $validChannelCount, 无效URL: $invalidUrlCount');
+    if (unsupportedSchemes.isNotEmpty) {
+      debugPrint('DEBUG: 不支持的协议: ${unsupportedSchemes.join(", ")}');
+    }
 
     // Merge channels with same epgId (tvg-name) into single channel with multiple sources
     final List<Channel> mergedChannels = _mergeChannelSources(rawChannels);
@@ -196,9 +237,13 @@ class M3UParser {
     debugPrint('DEBUG: 合并后频道数: ${mergedChannels.length} (原始: ${rawChannels.length})');
 
     // Save parse result with EPG URL
-    _lastParseResult = M3UParseResult(channels: mergedChannels, epgUrl: epgUrl);
+    _lastParseResult = M3UParseResult(
+      channels: mergedChannels,
+      epgUrl: epgUrl,
+      unsupportedSchemes: unsupportedSchemes,
+    );
 
-    return mergedChannels;
+    return _lastParseResult!;
   }
 
   /// Merge channels with same epgId into single channel with multiple sources
@@ -286,6 +331,9 @@ class M3UParser {
     String? logo;
     String? group;
     String? epgId;
+    bool supportsCatchUp = false;
+    String? catchUpSource;
+    String? catchUpType;
 
     // Remove #EXTINF: prefix
     String content = line.substring(_extInf.length);
@@ -304,9 +352,22 @@ class M3UParser {
     group = attributes['group-title'] ?? attributes['tvg-group'];
     epgId = attributes['tvg-id'] ?? attributes['tvg-name'];
 
+    // Parse catch-up TV attributes
+    final catchup = attributes['catchup'];
+    if (catchup != null && catchup.isNotEmpty && catchup != 'none') {
+      supportsCatchUp = true;
+    }
+    catchUpSource = attributes['catchup-source'];
+    catchUpType = attributes['catchup-type'];
+
     // Debug logging for logo parsing
     if (logo != null && logo.isNotEmpty) {
       debugPrint('DEBUG: 解析到台标URL: $logo, 频道: $name');
+    }
+
+    // Debug logging for catch-up parsing
+    if (supportsCatchUp && catchUpSource != null) {
+      debugPrint('DEBUG: 解析到回放配置: $name, catchup-source: $catchUpSource');
     }
 
     return {
@@ -314,6 +375,9 @@ class M3UParser {
       'logo': logo,
       'group': group,
       'epgId': epgId,
+      'supportsCatchUp': supportsCatchUp.toString(),
+      'catchUpSource': catchUpSource,
+      'catchUpType': catchUpType,
     };
   }
 
@@ -344,7 +408,8 @@ class M3UParser {
       final isValid = uri.hasScheme && 
           (uri.scheme == 'http' || uri.scheme == 'https' || 
            uri.scheme == 'rtmp' || uri.scheme == 'rtsp' || 
-           uri.scheme == 'mms' || uri.scheme == 'mmsh' || uri.scheme == 'mmst');
+           uri.scheme == 'mms' || uri.scheme == 'mmsh' || uri.scheme == 'mmst' ||
+           uri.scheme == 'rtp' || uri.scheme == 'udp' || uri.scheme == 'igmp');
 
       if (!isValid) {
         debugPrint('DEBUG: URL验证失败 - Scheme: ${uri.scheme}, Host: ${uri.host}');

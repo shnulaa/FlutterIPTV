@@ -165,6 +165,8 @@ class AppStrings {
   String get importingPlaylist => _localizedValues['importingPlaylist']!;
   String get importSuccess => _localizedValues['importSuccess']!;
   String get importFailed => _localizedValues['importFailed']!;
+  String get importSuccessWithWarning => _localizedValues['importSuccessWithWarning']!;
+  String get unsupportedProtocol => _localizedValues['unsupportedProtocol']!;
   String get serverStartFailed => _localizedValues['serverStartFailed']!;
   String get processing => _localizedValues['processing']!;
   String get testChannel => _localizedValues['testChannel']!;
@@ -532,6 +534,8 @@ class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
     'importingPlaylist': '正在导入',
     'importSuccess': '导入成功',
     'importFailed': '导入失败',
+    'importSuccessWithWarning': '导入成功，但部分频道不支持',
+    'unsupportedProtocol': '不支持的协议',
     'serverStartFailed': '无法启动本地服务器，请检查网络连接',
     'processing': '正在处理，请稍候...',
     'testChannel': '测试频道',
@@ -702,14 +706,24 @@ class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
     'colorSchemeDescSky': '清新、明亮、舒适',
     'colorSchemeDescSpring': '生机、活力、护眼',
     'colorSchemeDescCoral': '温暖、友好、醒目',
-    'colorSchemeDescViolet': '优雅、柔和、高贵',
-    'colorSchemeDescClassic': '简洁、专业、通用',
-    'colorSchemeChanged': '配色方案已切换为: {scheme}',
+    'colorSchemeDescViolet': r'优雅、柔和、高贵',
+    'colorSchemeDescClassic': r'简洁、专业、通用',
+    'colorSchemeChanged': '配色方案已切换为：{scheme}',
     'customColorPicker': '自定义颜色选择器',
     'selectedColor': '选中的颜色',
     'apply': '应用',
     'customColorApplied': '自定义颜色已应用',
     'colorSchemeCustom': '自定义',
+    // Catch-up TV translations
+    'catchUp': r'回放',
+    'catchUpMode': r'回放模式',
+    'returnToLive': r'返回直播',
+    'selectCatchUpTime': r'选择回看时间',
+    'noCatchUpSupport': r'该频道不支持回放',
+    'rewindSeconds': r'快退 {seconds} 秒',
+    'forwardSeconds': r'快进 {seconds} 秒',
+    'catchUpProgress': r'{current}/{total}',
+    'selectDate': r'选择日期',
   };
 
   static const Map<String, String> _enValues = {
@@ -864,6 +878,8 @@ class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
     'importingPlaylist': 'Importing',
     'importSuccess': 'Import successful',
     'importFailed': 'Import failed',
+    'importSuccessWithWarning': 'Import successful, but some channels unsupported',
+    'unsupportedProtocol': 'Unsupported protocol',
     'serverStartFailed': 'Failed to start local server. Please check network connection.',
     'processing': 'Processing, please wait...',
     'testChannel': 'Test Channel',

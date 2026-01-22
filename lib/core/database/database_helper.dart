@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart';
 class DatabaseHelper {
   static Database? _database;
   static const String _databaseName = 'flutter_iptv.db';
-  static const int _databaseVersion = 4; // Upgraded for epg_url column
+  static const int _databaseVersion = 5; // Upgraded for catchup TV support
 
   Future<void> initialize() async {
     if (_database != null) return;
@@ -55,6 +55,10 @@ class DatabaseHelper {
         epg_id TEXT,
         is_active INTEGER DEFAULT 1,
         created_at INTEGER NOT NULL,
+        supports_catchup INTEGER DEFAULT 0,
+        catchup_source TEXT,
+        catchup_type TEXT,
+        catchup_days INTEGER DEFAULT 7,
         FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
       )
     ''');
@@ -129,6 +133,29 @@ class DatabaseHelper {
         await db.execute('ALTER TABLE playlists ADD COLUMN epg_url TEXT');
       } catch (e) {
         // Ignore if column already exists
+        debugPrint('Migration error (ignored): $e');
+      }
+    }
+    if (oldVersion < 5) {
+      // Add catch-up TV columns to channels table
+      try {
+        await db.execute('ALTER TABLE channels ADD COLUMN supports_catchup INTEGER DEFAULT 0');
+      } catch (e) {
+        debugPrint('Migration error (ignored): $e');
+      }
+      try {
+        await db.execute('ALTER TABLE channels ADD COLUMN catchup_source TEXT');
+      } catch (e) {
+        debugPrint('Migration error (ignored): $e');
+      }
+      try {
+        await db.execute('ALTER TABLE channels ADD COLUMN catchup_type TEXT');
+      } catch (e) {
+        debugPrint('Migration error (ignored): $e');
+      }
+      try {
+        await db.execute('ALTER TABLE channels ADD COLUMN catchup_days INTEGER DEFAULT 7');
+      } catch (e) {
         debugPrint('Migration error (ignored): $e');
       }
     }

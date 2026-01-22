@@ -215,7 +215,8 @@ class TXTParser {
       final isValid = uri.hasScheme && 
           (uri.scheme == 'http' || uri.scheme == 'https' || 
            uri.scheme == 'rtmp' || uri.scheme == 'rtsp' || 
-           uri.scheme == 'mms' || uri.scheme == 'mmsh' || uri.scheme == 'mmst');
+           uri.scheme == 'mms' || uri.scheme == 'mmsh' || uri.scheme == 'mmst' ||
+           uri.scheme == 'rtp' || uri.scheme == 'udp' || uri.scheme == 'igmp');
 
       return isValid;
     } catch (e) {

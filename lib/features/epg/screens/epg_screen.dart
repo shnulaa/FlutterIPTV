@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/tv_focusable.dart';
+import '../../../core/models/channel.dart';
+import '../../../features/catchup/screens/catchup_time_picker.dart';
 
 class EpgScreen extends StatelessWidget {
   final String? channelId;
@@ -66,16 +68,41 @@ class EpgScreen extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-            TVFocusable(
-              autofocus: true,
-              onSelect: () => Navigator.pop(context),
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Go Back'),
-              ),
+            
+            // Demo catch-up button (to be integrated with full EPG implementation)
+            ElevatedButton.icon(
+              onPressed: () => _showCatchUpDemo(context),
+              icon: const Icon(Icons.replay_rounded),
+              label: const Text('回放 (演示)'),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showCatchUpDemo(BuildContext context) {
+    // Demo catch-up picker (placeholder)
+    final demoChannel = Channel(
+      playlistId: 1,
+      name: 'CCTV-1 (演示)',
+      url: '',
+      supportsCatchUp: true,
+      catchUpSource: r'http://example.com/catchup?start=${utc:yyyyMMddHHmmss}&end=${utcend:yyyyMMddHHmmss}',
+      catchUpDays: 7,
+    );
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CatchUpTimePicker(
+        channel: demoChannel,
+        onCancel: () => Navigator.pop(context),
+        onConfirm: (url, startTime, endTime) {
+          debugPrint('EPG Demo: Catch-up URL: $url');
+          debugPrint('  Start: $startTime, End: $endTime');
+          Navigator.pop(context);
+        },
       ),
     );
   }
