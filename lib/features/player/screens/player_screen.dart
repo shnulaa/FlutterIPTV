@@ -15,6 +15,7 @@ import '../../../core/widgets/tv_focusable.dart';
 import '../../../core/platform/platform_detector.dart';
 import '../../../core/platform/native_player_channel.dart';
 import '../../../core/platform/windows_pip_channel.dart';
+import '../../../core/platform/windows_fullscreen_native.dart';
 import '../../../core/models/channel.dart';
 import '../providers/player_provider.dart';
 import '../../favorites/providers/favorites_provider.dart';
@@ -46,7 +47,7 @@ class PlayerScreen extends StatefulWidget {
 class _PlayerScreenState extends State<PlayerScreen>
     with WidgetsBindingObserver {
   Timer? _hideControlsTimer;
-  Timer? _dlnaSyncTimer; // DLNA 状态同步定时器（Android TV 原生播放器用�?
+  Timer? _dlnaSyncTimer; // DLNA 状态同步定时器（Android TV 原生播放器用）
   Timer? _wakelockTimer; // 定期刷新wakelock（手机端用）
   bool _showControls = true;
   final FocusNode _playerFocusNode = FocusNode();
@@ -85,7 +86,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   // Windows 全屏状态
   bool _isFullScreen = false;
-  bool _isTogglingFullScreen = false; // 防抖标志
+  DateTime? _lastFullScreenToggle; // 记录上次切换时间
 
   // 检查是否处于分屏模式（使用本地状态）
   bool _isMultiScreenMode() {
@@ -201,23 +202,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
-    if (!PlatformDetector.isWindows) return;
-    
-    // 只在非防抖状态下检查
-    if (_isTogglingFullScreen) return;
-    
-    // 延迟检查，避免频繁触发
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (!mounted) return;
-      
-      final playerProvider = context.read<PlayerProvider>();
-      
-      // 如果播放器意外停止了，尝试恢复播放
-      if (playerProvider.state != PlayerState.playing && playerProvider.currentChannel != null && !playerProvider.hasError) {
-        debugPrint('PlayerScreen: Window size changed, playback stopped unexpectedly, attempting to resume');
-        playerProvider.play();
-      }
-    });
+    // 全屏切换时不需要额外处理，让 _toggleFullScreen 自己处理
   }
 
   Future<void> _checkAndLaunchPlayer() async {
@@ -526,9 +511,9 @@ class _PlayerScreenState extends State<PlayerScreen>
         'PlayerScreen: dispose() called, _usingNativePlayer=$_usingNativePlayer, _wasMultiScreenMode=$_wasMultiScreenMode');
     WidgetsBinding.instance.removeObserver(this);
     _hideControlsTimer?.cancel();
-    _dlnaSyncTimer?.cancel(); // 清理 DLNA 同步定时�?
-    _wakelockTimer?.cancel(); // 清理 wakelock 刷新定时�?
-    _longPressTimer?.cancel(); // 清理长按定时�?
+    _dlnaSyncTimer?.cancel(); // 清理 DLNA 同步定时器
+    _wakelockTimer?.cancel(); // 清理 wakelock 刷新定时器
+    _longPressTimer?.cancel(); // 清理长按定时器
     _playerFocusNode.dispose();
     _categoryScrollController.dispose();
     _channelScrollController.dispose();
@@ -538,12 +523,17 @@ class _PlayerScreenState extends State<PlayerScreen>
       WindowsPipChannel.exitPipMode();
     }
 
-
-    // 如果是全屏模式，退出全屏
+    // 如果是全屏模式，退出全屏 - 使用原生 API
     if (_isFullScreen && PlatformDetector.isWindows) {
-      unawaited(windowManager.setFullScreen(false));
+      // 尝试使用原生 API 退出全屏
+      final success = WindowsFullscreenNative.exitFullScreen();
+      if (!success) {
+        // 如果原生 API 失败，回退到 window_manager
+        debugPrint('Native exitFullScreen failed in dispose, using window_manager');
+        unawaited(windowManager.setFullScreen(false));
+      }
     }
-    // 保存分屏状态（Windows 平台�?
+    // 保存分屏状态（Windows 平台)
     if (_wasMultiScreenMode && PlatformDetector.isDesktop) {
       _saveMultiScreenState();
     }
@@ -559,7 +549,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       _playerProvider!.removeListener(_onProviderUpdate);
     }
 
-    // 重置亮度到系统默�?
+    // 重置亮度到系统默认
     try {
       ScreenBrightness.instance.resetApplicationScreenBrightness();
     } catch (_) {}
@@ -577,7 +567,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     super.dispose();
   }
 
-  /// 保存分屏状态（Windows 平台�?
+  /// 保存分屏状态（Windows 平台）
   void _saveMultiScreenState() {
     // 避免重复保存
     if (_multiScreenStateSaved) {
@@ -1620,10 +1610,14 @@ class _PlayerScreenState extends State<PlayerScreen>
           // Semi-transparent channel logo/back button
           TVFocusable(
             onSelect: () {
-              // 如果是全屏状态，先异步退出全屏
+              // 如果是全屏状态，先退出全屏 - 使用原生 API
               if (_isFullScreen && PlatformDetector.isWindows) {
                 _isFullScreen = false;
-                unawaited(windowManager.setFullScreen(false));
+                final success = WindowsFullscreenNative.exitFullScreen();
+                if (!success) {
+                  // 如果原生 API 失败，回退到 window_manager
+                  unawaited(windowManager.setFullScreen(false));
+                }
               }
               context.read<PlayerProvider>().stop();
               Navigator.of(context).pop();
@@ -2029,8 +2023,10 @@ class _PlayerScreenState extends State<PlayerScreen>
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         colors: [
-                                          AppTheme.getPrimaryColor(context).withOpacity(0.7),
-                                          AppTheme.getSecondaryColor(context).withOpacity(0.7),
+                                          AppTheme.getPrimaryColor(context)
+                                              .withOpacity(0.7),
+                                          AppTheme.getSecondaryColor(context)
+                                              .withOpacity(0.7),
                                         ],
                                       ),
                                       borderRadius: BorderRadius.circular(6),
@@ -2039,7 +2035,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                         AppStrings.of(context)?.upNext ??
                                             'Up next',
                                         style: const TextStyle(
-                                            color: Colors.white, 
+                                            color: Colors.white,
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600)),
                                   ),
@@ -2246,10 +2242,11 @@ class _PlayerScreenState extends State<PlayerScreen>
                         );
                       },
                       child: Icon(
-                        _isFullScreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
-                        color: Colors.white, 
-                        size: 18
-                      ),
+                          _isFullScreen
+                              ? Icons.fullscreen_exit_rounded
+                              : Icons.fullscreen_rounded,
+                          color: Colors.white,
+                          size: 18),
                     ),
                   ],
                 ],
@@ -2395,39 +2392,47 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   // 切换全屏模式 (仅 Windows)
-  void _toggleFullScreen() async {
+  void _toggleFullScreen() {
     if (!PlatformDetector.isWindows) return;
-    
-    // 防抖：如果正在切换中，忽略新的请求
-    if (_isTogglingFullScreen) {
-      debugPrint('Fullscreen toggle already in progress, ignoring');
+
+    // 简单的防抖
+    final now = DateTime.now();
+    if (_lastFullScreenToggle != null && 
+        now.difference(_lastFullScreenToggle!).inMilliseconds < 200) {
       return;
     }
+    _lastFullScreenToggle = now;
+
+    // 使用原生 Windows API 切换全屏
+    final success = WindowsFullscreenNative.toggleFullScreen();
     
-    _isTogglingFullScreen = true;
-    final newFullScreenState = !_isFullScreen;
-    debugPrint('Toggling fullscreen: $newFullScreenState');
-    
-    // 立即更新UI状态，让按钮图标先变化
-    setState(() {
-      _isFullScreen = newFullScreenState;
-    });
-    
-    try {
-      await windowManager.setFullScreen(newFullScreenState);
-      debugPrint('Fullscreen set successfully: $newFullScreenState');
-    } catch (e) {
-      debugPrint('setFullScreen error: $e');
-      // 如果失败，恢复状态
-      if (mounted) {
-        setState(() {
-          _isFullScreen = !newFullScreenState;
-        });
-      }
-    } finally {
-      // 延迟重置防抖标志，避免过快切换
-      await Future.delayed(const Duration(milliseconds: 300));
-      _isTogglingFullScreen = false;
+    if (success) {
+      // 异步更新UI状态
+      Future.microtask(() {
+        if (mounted) {
+          setState(() {
+            _isFullScreen = WindowsFullscreenNative.isFullScreen();
+          });
+        }
+      });
+    } else {
+      // 如果原生 API 失败，回退到 window_manager
+      debugPrint('Native fullscreen failed, falling back to window_manager');
+      windowManager
+          .isFullScreen()
+          .then((value) => windowManager.setFullScreen(!value));
+      
+      Future.microtask(() {
+        if (mounted) {
+          windowManager.isFullScreen().then((isFullScreen) {
+            if (mounted) {
+              setState(() {
+                _isFullScreen = isFullScreen;
+              });
+            }
+          });
+        }
+      });
     }
   }
 
@@ -2499,7 +2504,6 @@ class _PlayerScreenState extends State<PlayerScreen>
   Widget _buildCategoryPanel() {
     final channelProvider = context.read<ChannelProvider>();
     final groups = channelProvider.groups;
-
     return Positioned(
       left: 0,
       top: 0,
