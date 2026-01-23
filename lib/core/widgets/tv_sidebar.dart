@@ -63,8 +63,8 @@ class _TVSidebarState extends State<TVSidebar> {
     for (final node in _menuFocusNodes) {
       node.dispose();
     }
-    TVSidebar.menuFocusNodes = null;
-    TVSidebar.selectedMenuIndex = null;
+    // TVSidebar.menuFocusNodes = null;
+    // TVSidebar.selectedMenuIndex = null;
     super.dispose();
   }
 
