@@ -317,7 +317,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   await settings.setEnableEpg(value);
                   final strings = AppStrings.of(context);
                   if (value) {
-                    // 启用 EPG 时，如果有配�?URL 则加�?
+                    // 启用 EPG 时，如果有配置 URL 则加载
                     if (settings.epgUrl != null && settings.epgUrl!.isNotEmpty) {
                       final success = await context.read<EpgProvider>().loadEpg(settings.epgUrl!);
                       if (success) {
@@ -329,7 +329,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _showSuccess(context, strings?.epgEnabledPleaseConfigure ?? 'EPG enabled, please configure EPG URL');
                     }
                   } else {
-                    // 关闭 EPG 时清除已加载的数�?
+                    // 关闭 EPG 时清除已加载的数据
                     context.read<EpgProvider>().clear();
                     _showSuccess(context, strings?.epgDisabled ?? 'EPG disabled');
                   }
@@ -490,7 +490,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (widget.embedded) {
       return Column(
         children: [
-          // 简化的标题�?
+          // 简化的标题栏
           SafeArea(
             bottom: false,
             child: Container(
@@ -551,12 +551,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final locale = settings.locale;
     final strings = AppStrings.of(context);
     if (locale == null) {
-      // 没有设置，显�?跟随系统"
+      // 没有设置，显示"跟随系统"
       final systemLocale = Localizations.localeOf(context);
       final systemLang = systemLocale.languageCode == 'zh' ? (strings?.chinese ?? '中文') : 'English';
       return '${strings?.followSystem ?? "Follow system"} ($systemLang)';
     }
-    // 根据保存的设置显�?
+    // 根据保存的设置显示
     if (locale.languageCode == 'zh') {
       return strings?.chinese ?? '中文';
     }
@@ -567,7 +567,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final strings = AppStrings.of(context);
     final manager = ColorSchemeManager.instance;
     
-    // 判断当前是黑暗还是明亮模�?
+    // 判断当前是黑暗还是明亮模式
     final isDarkMode = _isDarkMode(context, settings);
     final schemeId = isDarkMode ? settings.darkColorScheme : settings.lightColorScheme;
     final scheme = isDarkMode 
@@ -1225,11 +1225,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 final newUrl = controller.text.trim().isEmpty ? null : controller.text.trim();
                 final oldUrl = settings.epgUrl;
 
-                // 保存�?URL
+                // 保存新 URL
                 await settings.setEpgUrl(newUrl);
                 Navigator.pop(dialogContext);
 
-                // 如果 URL 变化了，清除旧数据并加载新数�?
+                // 如果 URL 变化了，清除旧数据并加载新数据
                 if (newUrl != oldUrl) {
                   final epgProvider = context.read<EpgProvider>();
                   epgProvider.clear();
@@ -1469,7 +1469,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // 检查更�?
+  // 检查更新
   void _checkForUpdates(BuildContext context) {
     ServiceLocator.updateManager.manualCheckForUpdate(context);
   }
@@ -1510,7 +1510,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
               ),
               const SizedBox(height: 16),
-              // 显示2x2网格示意�?
+              // 显示2x2网格示意图
               Container(
                 width: 120,
                 height: 90,

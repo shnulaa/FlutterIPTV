@@ -57,7 +57,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   final ScrollController _categoryScrollController = ScrollController();
   final ScrollController _channelScrollController = ScrollController();
 
-  // 保存 provider 引用，用�?dispose 时释放资�?
+  // 保存 provider 引用，用于 dispose 时释放资源
   PlayerProvider? _playerProvider;
   MultiScreenProvider? _multiScreenProvider;
   SettingsProvider? _settingsProvider;
@@ -65,10 +65,10 @@ class _PlayerScreenState extends State<PlayerScreen>
   // 本地分屏模式状态（不影响设置）
   bool _localMultiScreenMode = false;
 
-  // 保存分屏模式状态，用于 dispose 时判�?
+  // 保存分屏模式状态，用于 dispose 时判断
   bool _wasMultiScreenMode = false;
 
-  // 标记是否已经保存了分屏状态（避免重复保存�?
+  // 标记是否已经保存了分屏状态（避免重复保存）
   bool _multiScreenStateSaved = false;
 
   // 手势控制相关变量
@@ -99,12 +99,12 @@ class _PlayerScreenState extends State<PlayerScreen>
     WidgetsBinding.instance.addObserver(this);
     // 保持屏幕常亮
     _enableWakelock();
-    // 延迟�?didChangeDependencies 之后再检查播放器
-    // 因为需要先初始�?_localMultiScreenMode
+    // 延迟到 didChangeDependencies 之后再检查播放器
+    // 因为需要先初始化 _localMultiScreenMode
   }
 
   Future<void> _enableWakelock() async {
-    // 手机端使用原生方法确保屏幕常�?
+    // 手机端使用原生方法确保屏幕常亮
     if (PlatformDetector.isMobile) {
       await PlatformDetector.setKeepScreenOn(true);
     } else {
@@ -122,13 +122,13 @@ class _PlayerScreenState extends State<PlayerScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 保存 provider 引用并添加监�?
+    // 保存 provider 引用并添加监听
     if (_playerProvider == null) {
       _playerProvider = context.read<PlayerProvider>();
       _playerProvider!.addListener(_onProviderUpdate);
       _isLoading = _playerProvider!.isLoading;
 
-      // 保存 settings �?multi-screen provider 引用（用�?dispose 时保存状态）
+      // 保存 settings 和 multi-screen provider 引用（用于 dispose 时保存状态）
       _settingsProvider = context.read<SettingsProvider>();
       _multiScreenProvider = context.read<MultiScreenProvider>();
 
@@ -140,7 +140,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       } catch (_) {}
 
       // 初始化本地分屏模式状态（根据设置或传入参数）
-      // 如果传入�?isMultiScreen=true，强制进入分屏模�?
+      // 如果传入的 isMultiScreen=true，强制进入分屏模式
       // DLNA 投屏模式下不进入分屏
       _localMultiScreenMode = !isDlnaMode &&
           (widget.isMultiScreen || _settingsProvider!.enableMultiScreen) &&
@@ -156,7 +156,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       // 现在可以安全地检查和启动播放器了
       _checkAndLaunchPlayer();
     }
-    // 保存分屏模式状�?
+    // 保存分屏模式状态
     _wasMultiScreenMode = _isMultiScreenMode();
   }
 
@@ -172,12 +172,12 @@ class _PlayerScreenState extends State<PlayerScreen>
       });
     }
 
-    // 检查错误状�?
+    // 检查错误状态
     if (provider.hasError && !_errorShown) {
       _checkAndShowError();
     }
 
-    // 只有 DLNA 投屏会话时才同步播放状�?
+    // 只有 DLNA 投屏会话时才同步播放状态
     try {
       final dlnaProvider = context.read<DlnaProvider>();
       if (dlnaProvider.isActiveSession) {
@@ -234,7 +234,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         final channelProvider = context.read<ChannelProvider>();
         final channels = channelProvider.channels;
 
-        // 设置 providers 用于收藏功能和状态保�?
+        // 设置 providers 用于收藏功能和状态保存
         final favoritesProvider = context.read<FavoritesProvider>();
         final settingsProvider = context.read<SettingsProvider>();
         NativePlayerChannel.setProviders(
@@ -331,7 +331,7 @@ class _PlayerScreenState extends State<PlayerScreen>
           // Don't pop - wait for native player to close via callback
           // The native player is now a Fragment overlay, not a separate Activity
 
-          // 如果�?DLNA 投屏，启动状态同步定时器
+          // 如果是 DLNA 投屏，启动状态同步定时器
           _startDlnaSyncForNativePlayer();
           return;
         } else if (!launched && mounted) {
@@ -367,16 +367,16 @@ class _PlayerScreenState extends State<PlayerScreen>
       });
     }
 
-    // 不再使用持续监听，改为一次性错误检�?
+    // 不再使用持续监听，改为一次性错误检查
   }
 
-  /// �?Android TV 原生播放器启�?DLNA 状态同�?
+  /// 为 Android TV 原生播放器启动 DLNA 状态同步
   void _startDlnaSyncForNativePlayer() {
     try {
       final dlnaProvider = context.read<DlnaProvider>();
       if (!dlnaProvider.isActiveSession) return;
 
-      // 每秒同步一次播放状�?
+      // 每秒同步一次播放状态
       _dlnaSyncTimer?.cancel();
       _dlnaSyncTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
         if (!mounted) {
@@ -406,7 +406,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         }
       });
     } catch (e) {
-      // DLNA provider 不可�?
+      // DLNA provider 不可用
     }
   }
 
@@ -449,6 +449,11 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   void _startPlayback() {
     _errorShown = false; // 重置错误显示标记
+    // 隐藏错误提示
+    if (mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    }
+    
     final playerProvider = context.read<PlayerProvider>();
     final channelProvider = context.read<ChannelProvider>();
     final settingsProvider = context.read<SettingsProvider>();
@@ -487,11 +492,11 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   String _formatSpeed(double bytesPerSecond) {
     if (bytesPerSecond >= 1024 * 1024) {
-      return '�?{(bytesPerSecond / (1024 * 1024)).toStringAsFixed(1)} MB/s';
+      return '${(bytesPerSecond / (1024 * 1024)).toStringAsFixed(1)} MB/s';
     } else if (bytesPerSecond >= 1024) {
-      return '�?{(bytesPerSecond / 1024).toStringAsFixed(0)} KB/s';
+      return '${(bytesPerSecond / 1024).toStringAsFixed(0)} KB/s';
     } else {
-      return '�?{bytesPerSecond.toStringAsFixed(0)} B/s';
+      return '${bytesPerSecond.toStringAsFixed(0)} B/s';
     }
   }
 
@@ -518,7 +523,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     _categoryScrollController.dispose();
     _channelScrollController.dispose();
 
-    // 如果�?Windows mini 模式，退�?mini 模式
+    // 如果是 Windows mini 模式，退出 mini 模式
     if (WindowsPipChannel.isInPipMode) {
       WindowsPipChannel.exitPipMode();
     }
@@ -594,7 +599,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       debugPrint(
           'PlayerScreen: Saving multi-screen state - channelIds: $channelIds, activeIndex: $activeIndex');
 
-      // 保存分屏状�?
+      // 保存分屏状态
       _settingsProvider!.saveLastMultiScreen(channelIds, activeIndex);
       _multiScreenStateSaved = true;
     } catch (e) {
@@ -604,20 +609,20 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   /// 显示源切换指示器 (已移除，因为顶部已有显示)
   void _showSourceSwitchIndicator(PlayerProvider provider) {
-    // 不再显示 SnackBar，顶部已有源指示�?
+    // 不再显示 SnackBar，顶部已有源指示器
   }
 
   void _saveLastChannelId(Channel? channel) {
     if (channel == null || channel.id == null) return;
     if (_settingsProvider != null && _settingsProvider!.rememberLastChannel) {
-      // 保存单频道播放状�?
+      // 保存单频道播放状态
       _settingsProvider!.saveLastSingleChannel(channel.id);
     }
   }
 
-  // ============ 手机端手势控�?============
+  // ============ 手机端手势控制 ============
 
-  // 简化手势控�?
+  // 简化手势控制
   Offset? _panStartPosition;
   String?
       _currentGestureType; // 'volume', 'brightness', 'channel', 'horizontal'
@@ -650,7 +655,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     // 首次移动超过阈值时决定手势类型
     if (_currentGestureType == null) {
-      const threshold = 10.0; // 降低阈值，更灵�?
+      const threshold = 10.0; // 降低阈值，更灵敏
       if (dx.abs() > threshold || dy.abs() > threshold) {
         final screenWidth = MediaQuery.of(context).size.width;
         final x = _panStartPosition!.dx;
@@ -722,16 +727,19 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (_currentGestureType == 'channel') {
       final threshold = screenHeight * 0.08; // 滑动超过屏幕8%即可切换
       if (dy.abs() > threshold) {
-        _errorShown = false; // 切换频道时重置错误标�?
+        _errorShown = false; // 切换频道时重置错误标记
+        // 隐藏错误提示
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        
         final playerProvider =
             _playerProvider ?? context.read<PlayerProvider>();
         final channelProvider = context.read<ChannelProvider>();
         if (dy > 0) {
-          // 下滑 -> 上一个频�?
+          // 下滑 -> 上一个频道
           playerProvider.playPrevious(channelProvider.filteredChannels);
           _saveLastChannelId(playerProvider.currentChannel);
         } else {
-          // 上滑 -> 下一个频�?
+          // 上滑 -> 下一个频道
           playerProvider.playNext(channelProvider.filteredChannels);
           _saveLastChannelId(playerProvider.currentChannel);
         }
@@ -820,8 +828,8 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   DateTime? _lastSelectKeyDownTime;
-  DateTime? _lastLeftKeyDownTime; // 用于检测长按左�?
-  Timer? _longPressTimer; // 长按定时�?
+  DateTime? _lastLeftKeyDownTime; // 用于检测长按左键
+  Timer? _longPressTimer; // 长按定时器
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     _showControlsTemporarily();
@@ -887,7 +895,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       if (event is KeyDownEvent) {
         if (event is KeyRepeatEvent) return KeyEventResult.handled;
         _lastLeftKeyDownTime = DateTime.now();
-        // 启动长按定时�?
+        // 启动长按定时器
         _longPressTimer?.cancel();
         _longPressTimer = Timer(const Duration(milliseconds: 500), () {
           if (mounted && _lastLeftKeyDownTime != null) {
@@ -896,7 +904,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               _showCategoryPanel = true;
               _selectedCategory = null;
             });
-            _lastLeftKeyDownTime = null; // 标记已处理长�?
+            _lastLeftKeyDownTime = null; // 标记已处理长按
           }
         });
         return KeyEventResult.handled;
@@ -905,7 +913,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       if (event is KeyUpEvent) {
         _longPressTimer?.cancel();
         if (_lastLeftKeyDownTime != null) {
-          // 短按：切换上一个源或关闭分类面�?
+          // 短按：切换上一个源或关闭分类面板
           _lastLeftKeyDownTime = null;
 
           if (_showCategoryPanel) {
@@ -937,7 +945,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     // Right key - 切换下一个源
     if (key == LogicalKeyboardKey.arrowRight) {
       if (_showCategoryPanel) {
-        // 如果在分类面板，右键不做任何�?
+        // 如果在分类面板，右键不做任何事
         return KeyEventResult.handled;
       }
 
@@ -960,7 +968,10 @@ class _PlayerScreenState extends State<PlayerScreen>
     // Previous Channel (Up)
     if (key == LogicalKeyboardKey.arrowUp ||
         key == LogicalKeyboardKey.channelUp) {
-      _errorShown = false; // 切换频道时重置错误标�?
+      _errorShown = false; // 切换频道时重置错误标记
+      // 隐藏错误提示
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      
       final channelProvider = context.read<ChannelProvider>();
       playerProvider.playPrevious(channelProvider.filteredChannels);
       // 保存上次播放的频道ID
@@ -971,7 +982,10 @@ class _PlayerScreenState extends State<PlayerScreen>
     // Next Channel (Down)
     if (key == LogicalKeyboardKey.arrowDown ||
         key == LogicalKeyboardKey.channelDown) {
-      _errorShown = false; // 切换频道时重置错误标�?
+      _errorShown = false; // 切换频道时重置错误标记
+      // 隐藏错误提示
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      
       final channelProvider = context.read<ChannelProvider>();
       playerProvider.playNext(channelProvider.filteredChannels);
       // 保存上次播放的频道ID
@@ -981,7 +995,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     // Back/Exit
     if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.goBack) {
-      // 迷你模式下先退出迷你模�?
+      // 迷你模式下先退出迷你模式
       if (WindowsPipChannel.isInPipMode) {
         WindowsPipChannel.exitPipMode();
         setState(() {});
@@ -996,7 +1010,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       return KeyEventResult.handled;
     }
 
-    // Mute - 只在TV端处�?
+    // Mute - 只在TV端处理
     if (key == LogicalKeyboardKey.keyM ||
         (key == LogicalKeyboardKey.audioVolumeMute &&
             !PlatformDetector.isMobile)) {
@@ -1005,7 +1019,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
 
     // Explicit Volume Keys (for TV remotes with dedicated buttons)
-    // 手机端让系统处理音量�?
+    // 手机端让系统处理音量键
     if (!PlatformDetector.isMobile) {
       if (key == LogicalKeyboardKey.audioVolumeUp) {
         playerProvider.setVolume(playerProvider.volume + 0.1);
@@ -1071,7 +1085,7 @@ class _PlayerScreenState extends State<PlayerScreen>
             onDoubleTap: () {
               context.read<PlayerProvider>().togglePlayPause();
             },
-            // 手机端手势控�?- 使用 Pan 手势统一处理
+            // 手机端手势控制 - 使用 Pan 手势统一处理
             onPanStart: PlatformDetector.isMobile ? _onPanStart : null,
             onPanUpdate: PlatformDetector.isMobile ? _onPanUpdate : null,
             onPanEnd: PlatformDetector.isMobile ? _onPanEnd : null,
@@ -1085,7 +1099,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 // Video Player
                 _buildVideoPlayer(),
 
-                // Controls Overlay - 分屏模式下不显示全局控制�?
+                // Controls Overlay - 分屏模式下不显示全局控制栏
                 if (!_isMultiScreenMode())
                   AnimatedOpacity(
                     opacity: _showControls ? 1.0 : 0.0,
@@ -1098,16 +1112,16 @@ class _PlayerScreenState extends State<PlayerScreen>
                     ),
                   ),
 
-                // Category Panel (Left side) - 迷你模式和分屏模式下不显�?
+                // Category Panel (Left side) - 迷你模式和分屏模式下不显示
                 if (_showCategoryPanel &&
                     !WindowsPipChannel.isInPipMode &&
                     !_isMultiScreenMode())
                   _buildCategoryPanel(),
 
-                // 手势指示�?(手机�?
+                // 手势指示器(手机端)
                 if (_showGestureIndicator) _buildGestureIndicator(),
 
-                // Loading Indicator - 分屏模式下不显示全局加载指示�?
+                // Loading Indicator - 分屏模式下不显示全局加载指示器
                 if (_isLoading && !_isMultiScreenMode())
                   Center(
                     child: Transform.scale(
@@ -1118,7 +1132,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                     ),
                   ),
 
-                // FPS 显示 - 右上角红色（迷你模式单独显示�?
+                // FPS 显示 - 右上角红色（迷你模式单独显示）
                 Builder(
                   builder: (context) {
                     final settings = context.watch<SettingsProvider>();
@@ -1161,7 +1175,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   },
                 ),
 
-                // Windows 播放器信息显�?- 右上角（网速、时间、FPS、分辨率�?
+                // Windows 播放器信息显示 - 右上角（网速、时间、FPS、分辨率）
                 // 分屏模式下不显示全局信息（每个分屏有自己的信息显示）
                 Builder(
                   builder: (context) {
@@ -1175,7 +1189,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                       return const SizedBox.shrink();
                     }
 
-                    // 检查是否有任何信息需要显�?
+                    // 检查是否有任何信息需要显示
                     final showAny = settings.showNetworkSpeed ||
                         settings.showClock ||
                         settings.showFps ||
@@ -1191,7 +1205,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // 网速显�?- 绿色 (�?TV 端显示，Windows 端不显示)
+                            // 网速显示 - 绿色 (仅 TV 端显示，Windows 端不显示)
                             if (settings.showNetworkSpeed &&
                                 player.downloadSpeed > 0 &&
                                 PlatformDetector.isTV)
@@ -1257,7 +1271,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                   ),
                                 ),
                               ),
-                            // 分辨率显�?- 蓝色
+                            // 分辨率显示 - 蓝色
                             if (settings.showVideoInfo &&
                                 player.videoWidth > 0 &&
                                 player.videoHeight > 0)
@@ -1297,7 +1311,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   Widget _buildVideoPlayer() {
-    // 使用本地状态判断是否显示分屏模�?
+    // 使用本地状态判断是否显示分屏模式
     if (_isMultiScreenMode()) {
       return _buildMultiScreenPlayer();
     }
@@ -1347,7 +1361,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     );
   }
 
-  // 分屏播放�?
+  // 分屏播放器
   Widget _buildMultiScreenPlayer() {
     return MultiScreenPlayer(
       onExitMultiScreen: () {
@@ -1358,7 +1372,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         // 暂停所有分屏播放器（但不清空频道，以便恢复时继续播放）
         multiScreenProvider.pauseAllScreens();
 
-        // 切换到常规模�?
+        // 切换到常规模式
         setState(() {
           _localMultiScreenMode = false;
         });
@@ -1370,9 +1384,9 @@ class _PlayerScreenState extends State<PlayerScreen>
         }
       },
       onBack: () async {
-        // 先保存分屏状态，再清�?
+        // 先保存分屏状态，再清空
         _saveMultiScreenState();
-        // 返回时清空所有分屏（等待完成�?
+        // 返回时清空所有分屏（等待完成）
         final multiScreenProvider = context.read<MultiScreenProvider>();
         await multiScreenProvider.clearAllScreens();
         if (mounted) {
@@ -1382,7 +1396,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     );
   }
 
-  // 切换到分屏模�?
+  // 切换到分屏模式
   void _switchToMultiScreenMode() {
     final playerProvider = context.read<PlayerProvider>();
     final multiScreenProvider = context.read<MultiScreenProvider>();
@@ -1396,12 +1410,12 @@ class _PlayerScreenState extends State<PlayerScreen>
     multiScreenProvider.setVolumeSettings(
         playerProvider.volume, settingsProvider.volumeBoost);
 
-    // 切换到分屏模�?
+    // 切换到分屏模式
     setState(() {
       _localMultiScreenMode = true;
     });
 
-    // 如果分屏有记住的频道，恢复播�?
+    // 如果分屏有记住的频道，恢复播放
     if (multiScreenProvider.hasAnyChannel) {
       multiScreenProvider.resumeAllScreens();
       // 如果当前有频道，更新活动屏幕为当前频道（保留源索引）
@@ -1410,17 +1424,17 @@ class _PlayerScreenState extends State<PlayerScreen>
         multiScreenProvider.playChannelOnScreen(activeIndex, currentChannel);
       }
     } else if (currentChannel != null) {
-      // 否则如果有当前频道，在默认位置播�?
+      // 否则如果有当前频道，在默认位置播放
       final defaultPosition = settingsProvider.defaultScreenPosition;
       multiScreenProvider.playChannelAtDefaultPosition(
           currentChannel, defaultPosition);
     }
   }
 
-  // 迷你模式下的简化控�?
+  // 迷你模式下的简化控制
   Widget _buildMiniControlsOverlay() {
     return GestureDetector(
-      // 整个区域可拖�?
+      // 整个区域可拖动
       onPanStart: (_) => windowManager.startDragging(),
       child: Container(
         decoration: BoxDecoration(
@@ -1437,7 +1451,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         ),
         child: Column(
           children: [
-            // 顶部：只保留恢复和关闭按钮，不显示标�?
+            // 顶部：只保留恢复和关闭按钮，不显示标题
             Padding(
               padding: const EdgeInsets.all(6),
               child: Row(
@@ -1488,7 +1502,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               ),
             ),
             const Spacer(),
-            // 底部：静�?+ 播放/暂停按钮
+            // 底部：静音 + 播放/暂停按钮
             Padding(
               padding: const EdgeInsets.all(8),
               child: Consumer<PlayerProvider>(
@@ -1750,10 +1764,10 @@ class _PlayerScreenState extends State<PlayerScreen>
                 onSelect: () async {
                   if (currentChannel != null) {
                     debugPrint(
-                        'TV播放�? 尝试切换收藏状�?- 频道: ${currentChannel.name}, ID: ${currentChannel.id}');
+                        'TV播放器: 尝试切换收藏状态 - 频道: ${currentChannel.name}, ID: ${currentChannel.id}');
                     final success =
                         await favorites.toggleFavorite(currentChannel);
-                    debugPrint('TV播放�? 收藏切换${success ? "成功" : "失败"}');
+                    debugPrint('TV播放器: 收藏切换${success ? "成功" : "失败"}');
 
                     if (success) {
                       final newIsFav =
@@ -1803,13 +1817,13 @@ class _PlayerScreenState extends State<PlayerScreen>
             },
           ),
 
-          // PiP 迷你播放器按�?- �?Windows
+          // PiP 迷你播放器按钮 - 仅 Windows
           if (WindowsPipChannel.isSupported) ...[
             const SizedBox(width: 8),
             _buildPipButton(),
           ],
 
-          // 分屏模式按钮 - 仅桌面平�?
+          // 分屏模式按钮 - 仅桌面平台
           if (PlatformDetector.isDesktop) ...[
             const SizedBox(width: 8),
             _buildMultiScreenButton(),
@@ -1851,7 +1865,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     );
   }
 
-  // PiP 迷你播放器按�?
+  // PiP 迷你播放器按钮
   Widget _buildPipButton() {
     return StatefulBuilder(
       builder: (context, setState) {
@@ -1901,7 +1915,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 size: 18,
               ),
             ),
-            // 置顶按钮 - 仅在迷你模式下显�?
+            // 置顶按钮 - 仅在迷你模式下显示
             if (isInPip) ...[
               const SizedBox(width: 8),
               TVFocusable(
@@ -1953,7 +1967,7 @@ class _PlayerScreenState extends State<PlayerScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // EPG 当前节目和下一个节�?
+              // EPG 当前节目和下一个节目
               Consumer<EpgProvider>(
                 builder: (context, epgProvider, _) {
                   final channel = provider.currentChannel;
@@ -2255,8 +2269,8 @@ class _PlayerScreenState extends State<PlayerScreen>
               // Slim progress bar at bottom (only for DLNA mode with valid duration)
               Consumer<DlnaProvider>(
                 builder: (context, dlnaProvider, _) {
-                  // 只有 DLNA 投屏模式且有有效时长时才显示进度�?
-                  // IPTV 直播流不显示进度�?
+                  // 只有 DLNA 投屏模式且有有效时长时才显示进度条
+                  // IPTV 直播流不显示进度条
                   final showProgressBar = dlnaProvider.isActiveSession &&
                       provider.duration.inSeconds > 0;
                   if (!showProgressBar) return const SizedBox.shrink();
@@ -2313,7 +2327,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     AppStrings.of(context)?.playerHintTV ??
-                        '↑↓ Switch Channel · �?Categories · OK Play/Pause',
+                        '↑↓ Switch Channel · ← Categories · OK Play/Pause',
                     style:
                         const TextStyle(color: Color(0x66FFFFFF), fontSize: 11),
                   ),
@@ -2326,7 +2340,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   Widget _buildVolumeControl(PlayerProvider provider) {
-    // 确保音量值在 0-1 范围�?
+    // 确保音量值在 0-1 范围内
     final volume = provider.volume.clamp(0.0, 1.0);
 
     return Row(
