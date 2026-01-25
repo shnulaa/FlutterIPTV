@@ -1,23 +1,23 @@
 {
-  "version": "1.4.12",
-  "build": 132,
-  "releaseDate": "2026-01-24",
+  "version": "1.4.13",
+  "build": 133,
+  "releaseDate": "2026-01-25",
   "assets": {
-    "windows": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.12/flutteriptv-Windows-x64-Setup.exe",
+    "windows": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.13/flutteriptv-Windows-x64-Setup.exe",
     "android_mobile": {
-      "arm64-v8a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.12/flutteriptv-Android-Mobile-arm64-v8a.apk",
-      "armeabi-v8a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.12/flutteriptv-Android-Mobile-armeabi-v7a.apk",
-      "x86_64": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.12/flutteriptv-Android-Mobile-x86_64.apk"
+      "arm64-v8a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.13/flutteriptv-Android-Mobile-arm64-v8a.apk",
+      "armeabi-v8a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.13/flutteriptv-Android-Mobile-armeabi-v7a.apk",
+      "x86_64": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.13/flutteriptv-Android-Mobile-x86_64.apk"
     },
     "android_tv": {
-      "arm64-v8a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.12/flutteriptv-AndroidTV-arm64-v8a.apk",
-      "armeabi-v7a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.12/flutteriptv-AndroidTV-armeabi-v7a.apk",
-      "x86_64": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.12/flutteriptv-AndroidTV-x86_64.apk"
+      "arm64-v8a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.13/flutteriptv-AndroidTV-arm64-v8a.apk",
+      "armeabi-v7a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.13/flutteriptv-AndroidTV-armeabi-v7a.apk",
+      "x86_64": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.13/flutteriptv-AndroidTV-x86_64.apk"
     }
   },
   "changelog": {
-    "zh": "- 修复：播放失败后切换频道时错误提示不会自动隐藏的问题\n- 修复：源代码文件中的非法字符编码问题，提升代码质量\n- 优化：切换频道时立即清除之前的错误提示",
-    "en": "- Fixed: Error message not auto-hiding when switching channels after playback failure\n- Fixed: Illegal character encoding issues in source code files\n- Improved: Immediately clear previous error messages when switching channels"
+    "zh": "- 修复：播放错误后返回首页，错误提示仍然显示的问题\n- 修复：dispose时调用notifyListeners导致的widget树锁定错误\n- 优化：添加详细的调试日志，便于问题追踪\n- 优化：PlayerProvider.stop()方法支持静默模式，避免不必要的UI更新",
+    "en": "- Fixed: Error message persisting on home screen after playback error\n- Fixed: Widget tree locked error caused by notifyListeners in dispose\n- Improved: Added detailed debug logs for better issue tracking\n- Improved: PlayerProvider.stop() now supports silent mode to avoid unnecessary UI updates"
   },
   "minVersion": "1.0.0"
 }

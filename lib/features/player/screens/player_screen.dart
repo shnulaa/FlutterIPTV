@@ -83,6 +83,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   // 错误已显示标记，防止重复显示
   bool _errorShown = false;
+  Timer? _errorHideTimer; // 错误提示自动隐藏定时器
 
   // Windows 全屏状态
   bool _isFullScreen = false;
@@ -412,36 +413,55 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   void _checkAndShowError() {
     if (!mounted || _errorShown) return;
+    
     final provider = context.read<PlayerProvider>();
     if (provider.hasError && provider.error != null) {
       final errorMessage = provider.error!;
       _errorShown = true;
       provider.clearError();
 
-      ScaffoldMessenger.of(context).clearSnackBars();
+      // 先取消之前的定时器
+      _errorHideTimer?.cancel();
+      
+      // 清除之前的 SnackBar
+      try {
+        ScaffoldMessenger.of(context).clearSnackBars();
+      } catch (e) {
+        debugPrint('PlayerScreen: Error clearing SnackBars: $e');
+        return;
+      }
+      
       final scaffoldMessenger = ScaffoldMessenger.of(context);
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(
-              '${AppStrings.of(context)?.playbackError ?? "Error"}: $errorMessage'),
-          backgroundColor: AppTheme.errorColor,
-          duration: const Duration(seconds: 30), // 设置较长时间，用 Timer 控制
-          behavior: SnackBarBehavior.floating,
-          action: SnackBarAction(
-            label: AppStrings.of(context)?.retry ?? 'Retry',
-            textColor: Colors.white,
-            onPressed: () {
-              _errorShown = false;
-              _startPlayback();
-            },
-          ),
+      
+      final snackBar = SnackBar(
+        content: Text(
+            '${AppStrings.of(context)?.playbackError ?? "Error"}: $errorMessage'),
+        backgroundColor: AppTheme.errorColor,
+        duration: const Duration(days: 365), // 设置很长的时间，手动控制隐藏
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: AppStrings.of(context)?.retry ?? 'Retry',
+          textColor: Colors.white,
+          onPressed: () {
+            _errorHideTimer?.cancel();
+            _errorShown = false;
+            scaffoldMessenger.hideCurrentSnackBar();
+            _startPlayback();
+          },
         ),
       );
+      
+      scaffoldMessenger.showSnackBar(snackBar);
 
-      // 3秒后自动关闭
-      Future.delayed(const Duration(seconds: 3), () {
+      // 3秒后手动隐藏
+      _errorHideTimer = Timer(const Duration(seconds: 3), () {
         if (mounted) {
-          scaffoldMessenger.hideCurrentSnackBar();
+          try {
+            scaffoldMessenger.hideCurrentSnackBar();
+          } catch (e) {
+            debugPrint('PlayerScreen: Error hiding SnackBar: $e');
+          }
+          _errorShown = false;
         }
       });
     }
@@ -449,6 +469,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   void _startPlayback() {
     _errorShown = false; // 重置错误显示标记
+    _errorHideTimer?.cancel(); // 取消错误隐藏定时器
     // 隐藏错误提示
     if (mounted) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -514,11 +535,28 @@ class _PlayerScreenState extends State<PlayerScreen>
   void dispose() {
     debugPrint(
         'PlayerScreen: dispose() called, _usingNativePlayer=$_usingNativePlayer, _wasMultiScreenMode=$_wasMultiScreenMode');
+    
+    // 首先移除 provider 监听器，防止后续更新触发错误显示
+    if (_playerProvider != null) {
+      _playerProvider!.removeListener(_onProviderUpdate);
+    }
+    
+    // 然后清除所有错误提示和定时器
+    _errorHideTimer?.cancel();
+    _errorShown = false;
+    
+    // 立即清除所有 SnackBar（包括错误提示）
+    try {
+      ScaffoldMessenger.of(context).clearSnackBars();
+    } catch (e) {
+      debugPrint('PlayerScreen: Error clearing SnackBars in dispose: $e');
+    }
+    
     WidgetsBinding.instance.removeObserver(this);
     _hideControlsTimer?.cancel();
-    _dlnaSyncTimer?.cancel(); // 清理 DLNA 同步定时器
-    _wakelockTimer?.cancel(); // 清理 wakelock 刷新定时器
-    _longPressTimer?.cancel(); // 清理长按定时器
+    _dlnaSyncTimer?.cancel();
+    _wakelockTimer?.cancel();
+    _longPressTimer?.cancel();
     _playerFocusNode.dispose();
     _categoryScrollController.dispose();
     _channelScrollController.dispose();
@@ -530,14 +568,13 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     // 如果是全屏模式，退出全屏 - 使用原生 API
     if (_isFullScreen && PlatformDetector.isWindows) {
-      // 尝试使用原生 API 退出全屏
       final success = WindowsFullscreenNative.exitFullScreen();
       if (!success) {
-        // 如果原生 API 失败，回退到 window_manager
         debugPrint('Native exitFullScreen failed in dispose, using window_manager');
         unawaited(windowManager.setFullScreen(false));
       }
     }
+    
     // 保存分屏状态（Windows 平台)
     if (_wasMultiScreenMode && PlatformDetector.isDesktop) {
       _saveMultiScreenState();
@@ -547,11 +584,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (!_usingNativePlayer &&
         _playerProvider != null &&
         !_wasMultiScreenMode) {
-      debugPrint('PlayerScreen: calling _playerProvider.stop()');
-      _playerProvider!.removeListener(_onProviderUpdate);
-      _playerProvider!.stop();
-    } else if (_playerProvider != null) {
-      _playerProvider!.removeListener(_onProviderUpdate);
+      debugPrint('PlayerScreen: calling _playerProvider.stop() in silent mode');
+      _playerProvider!.stop(silent: true); // 静默模式，不触发 notifyListeners
     }
 
     // 重置亮度到系统默认
@@ -728,6 +762,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       final threshold = screenHeight * 0.08; // 滑动超过屏幕8%即可切换
       if (dy.abs() > threshold) {
         _errorShown = false; // 切换频道时重置错误标记
+        _errorHideTimer?.cancel(); // 取消错误隐藏定时器
         // 隐藏错误提示
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         
@@ -969,6 +1004,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (key == LogicalKeyboardKey.arrowUp ||
         key == LogicalKeyboardKey.channelUp) {
       _errorShown = false; // 切换频道时重置错误标记
+      _errorHideTimer?.cancel(); // 取消错误隐藏定时器
       // 隐藏错误提示
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       
@@ -983,6 +1019,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (key == LogicalKeyboardKey.arrowDown ||
         key == LogicalKeyboardKey.channelDown) {
       _errorShown = false; // 切换频道时重置错误标记
+      _errorHideTimer?.cancel(); // 取消错误隐藏定时器
       // 隐藏错误提示
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       
@@ -1003,7 +1040,15 @@ class _PlayerScreenState extends State<PlayerScreen>
         _playerFocusNode.requestFocus();
         return KeyEventResult.handled;
       }
-      playerProvider.stop();
+      
+      // 先清除所有错误提示和状态
+      _errorHideTimer?.cancel();
+      _errorShown = false;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      
+      // 不需要手动调用 stop()，dispose 会自动处理
+      // 直接返回即可，dispose 会在页面销毁时调用
+      
       if (Navigator.canPop(context)) {
         Navigator.of(context).pop();
       }
@@ -1041,10 +1086,24 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     // Back (explicit handling for some remotes)
     if (key == LogicalKeyboardKey.backspace) {
-      playerProvider.stop();
+      debugPrint('========================================');
+      debugPrint('PlayerScreen: Back key pressed (backspace)');
+      
+      // 先清除所有错误提示和状态
+      debugPrint('PlayerScreen: Clearing error state');
+      _errorHideTimer?.cancel();
+      _errorShown = false;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      debugPrint('PlayerScreen: SnackBars cleared');
+      
+      // 不需要手动调用 stop()，dispose 会自动处理
+      debugPrint('PlayerScreen: Navigating back (stop will be called in dispose)');
+      
       if (Navigator.canPop(context)) {
+        debugPrint('PlayerScreen: Popping navigation');
         Navigator.of(context).pop();
       }
+      debugPrint('========================================');
       return KeyEventResult.handled;
     }
 
@@ -1053,8 +1112,22 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          // 页面已经 pop，立即清除错误提示
+          _errorHideTimer?.cancel();
+          _errorShown = false;
+          try {
+            ScaffoldMessenger.of(context).clearSnackBars();
+          } catch (e) {
+            debugPrint('PlayerScreen: Error clearing SnackBars in onPopInvoked: $e');
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
       body: Focus(
         focusNode: _playerFocusNode,
         autofocus: true,
@@ -1307,7 +1380,8 @@ class _PlayerScreenState extends State<PlayerScreen>
           ),
         ),
       ),
-    );
+    ),
+    ); // PopScope
   }
 
   Widget _buildVideoPlayer() {
@@ -1623,7 +1697,12 @@ class _PlayerScreenState extends State<PlayerScreen>
         children: [
           // Semi-transparent channel logo/back button
           TVFocusable(
-            onSelect: () {
+            onSelect: () async {
+              // 先清除所有错误提示和状态
+              _errorHideTimer?.cancel();
+              _errorShown = false;
+              ScaffoldMessenger.of(context).clearSnackBars();
+              
               // 如果是全屏状态，先退出全屏 - 使用原生 API
               if (_isFullScreen && PlatformDetector.isWindows) {
                 _isFullScreen = false;
@@ -1633,8 +1712,13 @@ class _PlayerScreenState extends State<PlayerScreen>
                   unawaited(windowManager.setFullScreen(false));
                 }
               }
-              context.read<PlayerProvider>().stop();
-              Navigator.of(context).pop();
+              
+              // 不需要手动调用 stop()，dispose 会自动处理
+              
+              // 最后导航返回
+              if (mounted) {
+                Navigator.of(context).pop();
+              }
             },
             focusScale: 1.0,
             showFocusBorder: false,

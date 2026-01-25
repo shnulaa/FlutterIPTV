@@ -633,7 +633,18 @@ class PlayerProvider extends ChangeNotifier {
     _useExoPlayer ? _exoPlayer?.play() : _mediaKitPlayer?.play();
   }
 
-  Future<void> stop() async {
+  Future<void> stop({bool silent = false}) async {
+    // 清除错误状态和定时器
+    _retryTimer?.cancel();
+    _retryTimer = null;
+    _retryCount = 0;
+    _error = null;
+    _errorDisplayed = false;
+    _lastErrorMessage = null;
+    _lastErrorTime = null;
+    _isAutoSwitching = false;
+    _isAutoDetecting = false;
+    
     if (_useExoPlayer) {
       await _disposeExoPlayer();
     } else {
@@ -641,7 +652,10 @@ class PlayerProvider extends ChangeNotifier {
     }
     _state = PlayerState.idle;
     _currentChannel = null;
-    notifyListeners();
+    
+    if (!silent) {
+      notifyListeners();
+    }
   }
 
   void seek(Duration position) {
