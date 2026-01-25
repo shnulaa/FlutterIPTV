@@ -1,7 +1,125 @@
-<html>
-<head><title>404 Not Found</title></head>
-<body>
-<center><h1>404 Not Found</h1></center>
-<hr><center>openresty</center>
-</body>
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>IPTV EPG / IPTV电子节目单 | epg</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="IPTV EPG / IPTV电子节目单" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="IPTV EPG 电视节目单列表，支持 7 天回看与 5 天节目预告。每日不少于两次更新，长期维护，稳定可靠。" />
+<meta property="og:description" content="IPTV EPG 电视节目单列表，支持 7 天回看与 5 天节目预告。每日不少于两次更新，长期维护，稳定可靠。" />
+<link rel="canonical" href="https://epg.zsdc.eu.org/" />
+<meta property="og:url" content="https://epg.zsdc.eu.org/" />
+<meta property="og:site_name" content="epg" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="IPTV EPG / IPTV电子节目单" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","description":"IPTV EPG 电视节目单列表，支持 7 天回看与 5 天节目预告。每日不少于两次更新，长期维护，稳定可靠。","headline":"IPTV EPG / IPTV电子节目单","name":"epg","url":"https://epg.zsdc.eu.org/"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/assets/css/style.css?v=88cdf2cbbda1e72169f695bd07c01fd06c4d90cc">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://epg.zsdc.eu.org/">epg</a></h1>
+      
+
+      <h1 id="iptv-epg--iptv电子节目单">IPTV EPG / IPTV电子节目单</h1>
+
+<p><a href="https://github.com/suzukua/epg/actions/workflows/cloudflare-pages.yml"><img src="https://github.com/suzukua/epg/actions/workflows/cloudflare-pages.yml/badge.svg" alt="Build Status" /></a></p>
+
+<h2 id="-简介">📺 简介</h2>
+
+<p>提供高质量的IPTV电子节目单（EPG）数据，每天自动更新至少两次。</p>
+
+<h3 id="-特性">✨ 特性</h3>
+
+<ul>
+  <li>📅 <strong>7天回看</strong>（包含当天）</li>
+  <li>🔮 <strong>5天预告</strong></li>
+  <li>🔄 <strong>每日更新</strong> 至少两次</li>
+  <li>📊 <strong>119</strong> 个频道</li>
+  <li>📝 <strong>28,605</strong> 条节目信息</li>
+</ul>
+
+<blockquote>
+  <p>最后更新时间2026-01-25 16:07:31 共 123 条频道信息，现在的EPG文件中提供节目共 28709 条</p>
+</blockquote>
+
+<h2 id="-epg源地址">📥 EPG源地址</h2>
+
+<h3 id="方式一压缩格式推荐">方式一：压缩格式（推荐）</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>https://epg.zsdc.eu.org/t.xml.gz
+</code></pre></div></div>
+
+<p><strong>推荐使用</strong>：文件体积小，加载更快</p>
+
+<h3 id="方式二xml格式">方式二：XML格式</h3>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>https://epg.zsdc.eu.org/t.xml
+</code></pre></div></div>
+
+<h2 id="-相关项目">🔗 相关项目</h2>
+
+<h3 id="iptv直播源">IPTV直播源</h3>
+
+<p>支持 KODI、APTV，提供回看和时移功能。</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>https://iptv.zsdc.eu.org
+</code></pre></div></div>
+
+<p><strong>访问地址</strong>：<a href="https://iptv.zsdc.eu.org">https://iptv.zsdc.eu.org</a></p>
+
+<h3 id="华硕路由单线复用iptv融合">华硕路由单线复用、IPTV融合</h3>
+
+<p>华硕路由器 IPTV 单线复用解决方案。</p>
+
+<p><strong>项目地址</strong>：<a href="https://github.com/suzukua/asus-router-shell">https://github.com/suzukua/asus-router-shell</a></p>
+
+<h2 id="-致谢">🙏 致谢</h2>
+
+<p>本项目基于 <a href="https://github.com/taksssss/iptv-tool">iptv-tool</a> 生成。</p>
+
+<h2 id="-反馈与支持">💬 反馈与支持</h2>
+
+<p>如遇到以下问题，欢迎<a href="https://github.com/suzukua/epg/issues">提交 Issue</a>：</p>
+
+<ul>
+  <li>📌 数据错误</li>
+  <li>❓ 使用问题</li>
+  <li>⏰ 更新不及时</li>
+</ul>
+
+<h2 id="-许可证">📄 许可证</h2>
+
+<p>请查看 <a href="/LICENSE">LICENSE</a> 文件了解详情。</p>
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/suzukua/epg">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  <!-- Cloudflare Pages Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "dccc876eb99d41c2ae65ea6ebad147eb"}'></script><!-- Cloudflare Pages Analytics --></body>
 </html>
