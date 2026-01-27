@@ -270,7 +270,8 @@
                 android:layout_marginHorizontal="12dp"
                 android:max="100"
                 android:progress="0"
-                android:focusable="false"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
                 android:thumb="@android:drawable/presence_online"
                 android:progressTint="#E91E63"
                 android:progressBackgroundTint="#66FFFFFF" />

@@ -26,6 +26,7 @@ class SettingsProvider extends ChangeNotifier {
   static const String _keyShowClock = 'show_clock';
   static const String _keyShowNetworkSpeed = 'show_network_speed';
   static const String _keyShowVideoInfo = 'show_video_info';
+  static const String _keyProgressBarMode = 'progress_bar_mode'; // auto, always, never
   static const String _keyEnableMultiScreen = 'enable_multi_screen';
   static const String _keyDefaultScreenPosition = 'default_screen_position';
   static const String _keyActiveScreenIndex = 'active_screen_index';
@@ -60,6 +61,7 @@ class SettingsProvider extends ChangeNotifier {
   bool _showClock = true; // 默认显示时间
   bool _showNetworkSpeed = true; // 默认显示网速
   bool _showVideoInfo = true; // 默认显示分辨率码率
+  String _progressBarMode = 'auto'; // 进度条显示模式：auto, always, never
   bool _enableMultiScreen = true; // 默认开启分屏
   int _defaultScreenPosition = 1; // 默认播放位置（左上角）
   int _activeScreenIndex = 0; // 当前活动窗口索引
@@ -93,6 +95,7 @@ class SettingsProvider extends ChangeNotifier {
   bool get showClock => _showClock;
   bool get showNetworkSpeed => _showNetworkSpeed;
   bool get showVideoInfo => _showVideoInfo;
+  String get progressBarMode => _progressBarMode;
   bool get enableMultiScreen => _enableMultiScreen;
   int get defaultScreenPosition => _defaultScreenPosition;
   int get activeScreenIndex => _activeScreenIndex;
@@ -147,6 +150,7 @@ class SettingsProvider extends ChangeNotifier {
     _showClock = prefs.getBool(_keyShowClock) ?? true;
     _showNetworkSpeed = prefs.getBool(_keyShowNetworkSpeed) ?? true;
     _showVideoInfo = prefs.getBool(_keyShowVideoInfo) ?? true;
+    _progressBarMode = prefs.getString(_keyProgressBarMode) ?? 'auto';
     _enableMultiScreen = prefs.getBool(_keyEnableMultiScreen) ?? true;
     _defaultScreenPosition = prefs.getInt(_keyDefaultScreenPosition) ?? 1;
     _activeScreenIndex = prefs.getInt(_keyActiveScreenIndex) ?? 0;
@@ -219,6 +223,7 @@ class SettingsProvider extends ChangeNotifier {
     await prefs.setBool(_keyShowClock, _showClock);
     await prefs.setBool(_keyShowNetworkSpeed, _showNetworkSpeed);
     await prefs.setBool(_keyShowVideoInfo, _showVideoInfo);
+    await prefs.setString(_keyProgressBarMode, _progressBarMode);
     await prefs.setBool(_keyEnableMultiScreen, _enableMultiScreen);
     await prefs.setInt(_keyDefaultScreenPosition, _defaultScreenPosition);
     await prefs.setInt(_keyActiveScreenIndex, _activeScreenIndex);
@@ -375,6 +380,14 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setProgressBarMode(String mode) async {
+    if (mode == 'auto' || mode == 'always' || mode == 'never') {
+      _progressBarMode = mode;
+      await _saveSettings();
+      notifyListeners();
+    }
+  }
+
   Future<void> setEnableMultiScreen(bool enabled) async {
     _enableMultiScreen = enabled;
     await _saveSettings();
@@ -492,6 +505,7 @@ class SettingsProvider extends ChangeNotifier {
     _showClock = true;
     _showNetworkSpeed = true;
     _showVideoInfo = true;
+    _progressBarMode = 'auto';
     _enableMultiScreen = true;
     _defaultScreenPosition = 1;
     _activeScreenIndex = 0;

@@ -18,7 +18,7 @@
     <string name="operation_failed">Operation failed</string>
     <string name="now_playing">Now Playing</string>
     <string name="up_next">Up Next</string>
-    <string name="controls_hint">↑↓ Switch channel · ←→ Switch source · Long← Category · OK Play/Pause · Double OK Favorite · Long OK Multi-screen</string>
+    <string name="controls_hint">↑↓ Switch channel · ← Short:Source/Double:Category · Long←→ Seek · OK Play/Pause · Double OK Favorite · Long OK Multi-screen</string>
     <string name="category">Category</string>
     <string name="channels">Channels</string>
     

@@ -125,17 +125,19 @@ class MainActivity: FlutterFragmentActivity() {
                     val sources = call.argument<List<List<String>>>("sources") // 每个频道的所有源
                     val logos = call.argument<List<String>>("logos") // 每个频道的台标URL
                     val epgIds = call.argument<List<String>>("epgIds") // 每个频道的EPG ID
+                    val isSeekable = call.argument<List<Boolean>>("isSeekable") // 每个频道是否可拖动
                     val isDlnaMode = call.argument<Boolean>("isDlnaMode") ?: false
                     val bufferStrength = call.argument<String>("bufferStrength") ?: "fast"
                     val showFps = call.argument<Boolean>("showFps") ?: true
                     val showClock = call.argument<Boolean>("showClock") ?: true
                     val showNetworkSpeed = call.argument<Boolean>("showNetworkSpeed") ?: true
                     val showVideoInfo = call.argument<Boolean>("showVideoInfo") ?: true
+                    val progressBarMode = call.argument<String>("progressBarMode") ?: "auto" // 进度条显示模式
                     
                     if (url != null) {
-                        Log.d(TAG, "Launching native player fragment: $name (index $index of ${urls?.size ?: 0}, isDlna=$isDlnaMode, logos=${logos?.size ?: 0})")
+                        Log.d(TAG, "Launching native player fragment: $name (index $index of ${urls?.size ?: 0}, isDlna=$isDlnaMode, logos=${logos?.size ?: 0}, isSeekable=${isSeekable?.getOrNull(index)}, progressBarMode=$progressBarMode)")
                         try {
-                            showPlayerFragment(url, name, index, urls, names, groups, sources, logos, isDlnaMode, bufferStrength, showFps, showClock, showNetworkSpeed, showVideoInfo)
+                            showPlayerFragment(url, name, index, urls, names, groups, sources, logos, epgIds, isSeekable, isDlnaMode, bufferStrength, showFps, showClock, showNetworkSpeed, showVideoInfo, progressBarMode)
                             result.success(true)
                         } catch (e: Exception) {
                             Log.e(TAG, "Failed to launch player", e)
@@ -282,15 +284,18 @@ class MainActivity: FlutterFragmentActivity() {
         groups: List<String>?,
         sources: List<List<String>>?,
         logos: List<String>?,
+        epgIds: List<String>?,
+        isSeekable: List<Boolean>?,
         isDlnaMode: Boolean = false,
         bufferStrength: String = "fast",
         showFps: Boolean = true,
         showClock: Boolean = true,
         showNetworkSpeed: Boolean = true,
         showVideoInfo: Boolean = true,
+        progressBarMode: String = "auto",  // 进度条显示模式
         initialSourceIndex: Int = 0  // 初始源索引
     ) {
-        Log.d(TAG, "showPlayerFragment isDlnaMode=$isDlnaMode, bufferStrength=$bufferStrength, logos=${logos?.size ?: 0}, sourceIndex=$initialSourceIndex")
+        Log.d(TAG, "showPlayerFragment isDlnaMode=$isDlnaMode, bufferStrength=$bufferStrength, logos=${logos?.size ?: 0}, sourceIndex=$initialSourceIndex, isSeekable=${isSeekable?.getOrNull(index)}, progressBarMode=$progressBarMode")
         
         // 保存频道数据（用于切换到分屏时传递）
         lastChannelUrls = urls
@@ -321,6 +326,8 @@ class MainActivity: FlutterFragmentActivity() {
         // 将 sources 转换为 ArrayList<ArrayList<String>>
         val sourcesArrayList = sources?.map { ArrayList(it) }?.let { ArrayList(it) }
         val logosArrayList = logos?.let { ArrayList(it) }
+        val epgIdsArrayList = epgIds?.let { ArrayList(it) }
+        val isSeekableArrayList = isSeekable?.let { ArrayList(it) }
         
         playerFragment = NativePlayerFragment.newInstance(
             url,
@@ -331,13 +338,15 @@ class MainActivity: FlutterFragmentActivity() {
             groups?.let { ArrayList(it) },
             sourcesArrayList,
             logosArrayList,
-            null,  // channelEpgIds
+            epgIdsArrayList,  // channelEpgIds
+            isSeekableArrayList,  // channelIsSeekable
             isDlnaMode,
             bufferStrength,
             showFps,
             showClock,
             showNetworkSpeed,
             showVideoInfo,
+            progressBarMode,  // 传递进度条显示模式
             initialSourceIndex  // 传递初始源索引
         ).apply {
             onCloseListener = {
@@ -544,6 +553,8 @@ class MainActivity: FlutterFragmentActivity() {
                         showPlayerFragment(
                             url, name, channelIndex,
                             urls, names, groups, sources, logos,
+                            epgIds = null,  // 从分屏切换时没有 EPG IDs
+                            isSeekable = null,  // 从分屏切换时没有 isSeekable 信息
                             isDlnaMode = false,
                             bufferStrength = "fast",
                             showFps = true,

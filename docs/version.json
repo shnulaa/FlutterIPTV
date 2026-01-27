@@ -1,23 +1,23 @@
 {
-  "version": "1.4.13",
-  "build": 133,
-  "releaseDate": "2026-01-25",
+  "version": "1.4.14",
+  "build": 134,
+  "releaseDate": "2026-01-27",
   "assets": {
-    "windows": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.13/flutteriptv-Windows-x64-Setup.exe",
+    "windows": "https://hk.gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.14/flutteriptv-Windows-x64-Setup.exe",
     "android_mobile": {
-      "arm64-v8a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.13/flutteriptv-Android-Mobile-arm64-v8a.apk",
-      "armeabi-v8a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.13/flutteriptv-Android-Mobile-armeabi-v7a.apk",
-      "x86_64": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.13/flutteriptv-Android-Mobile-x86_64.apk"
+      "arm64-v8a": "https://hk.gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.14/flutteriptv-Android-Mobile-arm64-v8a.apk",
+      "armeabi-v8a": "https://hk.gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.14/flutteriptv-Android-Mobile-armeabi-v7a.apk",
+      "x86_64": "https://hk.gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.14/flutteriptv-Android-Mobile-x86_64.apk"
     },
     "android_tv": {
-      "arm64-v8a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.13/flutteriptv-AndroidTV-arm64-v8a.apk",
-      "armeabi-v7a": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.13/flutteriptv-AndroidTV-armeabi-v7a.apk",
-      "x86_64": "https://github.boki.moe/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.13/flutteriptv-AndroidTV-x86_64.apk"
+      "arm64-v8a": "https://hk.gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.14/flutteriptv-AndroidTV-arm64-v8a.apk",
+      "armeabi-v7a": "https://hk.gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.14/flutteriptv-AndroidTV-armeabi-v7a.apk",
+      "x86_64": "https://hk.gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.14/flutteriptv-AndroidTV-x86_64.apk"
     }
   },
   "changelog": {
-    "zh": "- 修复：播放错误后返回首页，错误提示仍然显示的问题\n- 修复：dispose时调用notifyListeners导致的widget树锁定错误\n- 优化：添加详细的调试日志，便于问题追踪\n- 优化：PlayerProvider.stop()方法支持静默模式，避免不必要的UI更新",
-    "en": "- Fixed: Error message persisting on home screen after playback error\n- Fixed: Widget tree locked error caused by notifyListeners in dispose\n- Improved: Added detailed debug logs for better issue tracking\n- Improved: PlayerProvider.stop() now supports silent mode to avoid unnecessary UI updates"
+    "zh": "- 新增：VOD/回放内容进度条显示功能（支持自动检测/始终显示/从不显示三种模式）\n- 新增：TV端长按左右键快进快退功能，速度递增（5秒→10秒→15秒...最高50秒/次）\n- 优化：TV端快捷键布局，双击左键显示分类面板，短按左右键切换源\n- 优化：进度条可通过遥控器拖动，支持实时预览\n- 修复：Android TV原生播放器进度条显示逻辑\n- 优化：更新底部快捷键说明文字",
+    "en": "- Added: Progress bar for VOD/replay content (supports auto-detect/always show/never show modes)\n- Added: TV long-press left/right keys for seek with accelerating speed (5s→10s→15s...up to 50s/time)\n- Improved: TV shortcut key layout, double-click left for category panel, short-press left/right for source switching\n- Improved: Progress bar draggable with remote control, supports real-time preview\n- Fixed: Android TV native player progress bar display logic\n- Improved: Updated bottom shortcut key hints"
   },
   "minVersion": "1.0.0"
 }

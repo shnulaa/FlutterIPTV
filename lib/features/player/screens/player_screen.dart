@@ -248,6 +248,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         List<List<String>> sources;
         List<String> logos;
         List<String> epgIds;
+        List<bool> isSeekableList;
         int currentIndex = 0;
 
         if (isDlnaMode) {
@@ -260,6 +261,7 @@ class _PlayerScreenState extends State<PlayerScreen>
           ];
           logos = [''];
           epgIds = [''];
+          isSeekableList = [true]; // DLNA 投屏默认可拖动
           currentIndex = 0;
         } else {
           // 正常模式：使用频道列表
@@ -276,6 +278,7 @@ class _PlayerScreenState extends State<PlayerScreen>
           sources = channels.map((c) => c.sources).toList();
           logos = channels.map((c) => c.logoUrl ?? '').toList();
           epgIds = channels.map((c) => c.epgId ?? '').toList();
+          isSeekableList = channels.map((c) => c.isSeekable).toList();
         }
 
         debugPrint(
@@ -299,12 +302,14 @@ class _PlayerScreenState extends State<PlayerScreen>
           sources: sources,
           logos: logos,
           epgIds: epgIds,
+          isSeekable: isSeekableList,
           isDlnaMode: isDlnaMode,
           bufferStrength: bufferStrength,
           showFps: showFps,
           showClock: showClock,
           showNetworkSpeed: showNetworkSpeed,
           showVideoInfo: showVideoInfo,
+          progressBarMode: settingsProvider.progressBarMode, // 传递进度条显示模式
           onClosed: () {
             debugPrint('PlayerScreen: Native player closed callback');
             // 停止 DLNA 同步定时器
@@ -2161,6 +2166,64 @@ class _PlayerScreenState extends State<PlayerScreen>
                 },
               ),
 
+              // Progress bar for seekable content (VOD, Replay) - EPG 信息下方
+              Consumer<SettingsProvider>(
+                builder: (context, settings, _) {
+                  if (!provider.shouldShowProgressBar(settings.progressBarMode)) {
+                    return const SizedBox.shrink();
+                  }
+                  
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      children: [
+                        // 进度条（更小的高度）
+                        SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 2, // 减小轨道高度
+                            thumbShape: const RoundSliderThumbShape(
+                                enabledThumbRadius: 5), // 减小滑块大小
+                            overlayShape:
+                                const RoundSliderOverlayShape(overlayRadius: 10), // 减小触摸区域
+                            activeTrackColor: AppTheme.getPrimaryColor(context),
+                            inactiveTrackColor: const Color(0x33FFFFFF),
+                            thumbColor: Colors.white,
+                            overlayColor: AppTheme.getPrimaryColor(context).withOpacity(0.3),
+                          ),
+                          child: Slider(
+                            value: provider.position.inSeconds.toDouble().clamp(
+                                0, provider.duration.inSeconds.toDouble()),
+                            max: provider.duration.inSeconds.toDouble().clamp(1, double.infinity),
+                            onChanged: (value) {
+                              provider.seek(Duration(seconds: value.toInt()));
+                            },
+                          ),
+                        ),
+                        // 时间显示（更小的字体和间距）
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _formatDuration(provider.position),
+                                style: const TextStyle(
+                                    color: Color(0x99FFFFFF), fontSize: 10),
+                              ),
+                              Text(
+                                _formatDuration(provider.duration),
+                                style: const TextStyle(
+                                    color: Color(0x99FFFFFF), fontSize: 10),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+
               // Control buttons row (moved above progress bar)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -2350,68 +2413,13 @@ class _PlayerScreenState extends State<PlayerScreen>
                 ],
               ),
 
-              // Slim progress bar at bottom (only for DLNA mode with valid duration)
-              Consumer<DlnaProvider>(
-                builder: (context, dlnaProvider, _) {
-                  // 只有 DLNA 投屏模式且有有效时长时才显示进度条
-                  // IPTV 直播流不显示进度条
-                  final showProgressBar = dlnaProvider.isActiveSession &&
-                      provider.duration.inSeconds > 0;
-                  if (!showProgressBar) return const SizedBox.shrink();
-
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Column(
-                      children: [
-                        // 时间显示
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              _formatDuration(provider.position),
-                              style: const TextStyle(
-                                  color: Color(0x99FFFFFF), fontSize: 11),
-                            ),
-                            Text(
-                              _formatDuration(provider.duration),
-                              style: const TextStyle(
-                                  color: Color(0x99FFFFFF), fontSize: 11),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            trackHeight: 2,
-                            thumbShape: const RoundSliderThumbShape(
-                                enabledThumbRadius: 4),
-                            overlayShape:
-                                const RoundSliderOverlayShape(overlayRadius: 8),
-                            activeTrackColor: AppTheme.getPrimaryColor(context),
-                            inactiveTrackColor: const Color(0x33FFFFFF),
-                            thumbColor: AppTheme.getPrimaryColor(context),
-                          ),
-                          child: Slider(
-                            value: provider.position.inSeconds.toDouble().clamp(
-                                0, provider.duration.inSeconds.toDouble()),
-                            max: provider.duration.inSeconds.toDouble(),
-                            onChanged: (value) =>
-                                provider.seek(Duration(seconds: value.toInt())),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-
               // Keyboard hints
               if (PlatformDetector.useDPadNavigation)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     AppStrings.of(context)?.playerHintTV ??
-                        '↑↓ Switch Channel · ← Categories · OK Play/Pause',
+                        '↑↓ 切换频道 · ←→ 切换源 · 长按← 分类 · OK 播放/暂停 · 长按OK 收藏',
                     style:
                         const TextStyle(color: Color(0x66FFFFFF), fontSize: 11),
                   ),

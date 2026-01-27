@@ -391,6 +391,17 @@ class AppStrings {
   String get simpleMenuEnabled => _localizedValues['simpleMenuEnabled']!;
   String get simpleMenuDisabled => _localizedValues['simpleMenuDisabled']!;
 
+  // Progress bar mode
+  String get progressBarMode => _localizedValues['progressBarMode']!;
+  String get progressBarModeSubtitle => _localizedValues['progressBarModeSubtitle']!;
+  String get progressBarModeAuto => _localizedValues['progressBarModeAuto']!;
+  String get progressBarModeAlways => _localizedValues['progressBarModeAlways']!;
+  String get progressBarModeNever => _localizedValues['progressBarModeNever']!;
+  String get progressBarModeAutoDesc => _localizedValues['progressBarModeAutoDesc']!;
+  String get progressBarModeAlwaysDesc => _localizedValues['progressBarModeAlwaysDesc']!;
+  String get progressBarModeNeverDesc => _localizedValues['progressBarModeNeverDesc']!;
+  String get progressBarModeSet => _localizedValues['progressBarModeSet']!;
+
   // Map access for dynamic keys if needed
   String operator [](String key) => _localizedValues[key] ?? key;
 }
@@ -588,7 +599,7 @@ class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
     'addM3uToStart': '添加 M3U 播放列表开始观看',
     'search': '搜索',
     // Player hints
-    'playerHintTV': '↑↓ 切换频道 · ← 分类列表 · OK 播放/暂停',
+    'playerHintTV': '↑↓ 切换频道 · ←→ 切换源 · 长按← 分类 · OK 播放/暂停 · 长按OK 收藏',
     'playerHintDesktop': '左/右: 快进退 · 上/下: 换台 · 回车: 播放/暂停 · M: 静音',
     // More UI strings
     'more': '更多',
@@ -782,6 +793,16 @@ class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
     'simpleMenuSubtitle': '菜单栏保持收起状态（不自动展开）',
     'simpleMenuEnabled': '已启用简易菜单',
     'simpleMenuDisabled': '已关闭简易菜单',
+    // Progress bar mode
+    'progressBarMode': '进度条显示',
+    'progressBarModeSubtitle': '控制播放进度条的显示方式',
+    'progressBarModeAuto': '自动检测',
+    'progressBarModeAlways': '始终显示',
+    'progressBarModeNever': '不显示',
+    'progressBarModeAutoDesc': '根据内容类型自动显示（点播/回放显示，直播隐藏）',
+    'progressBarModeAlwaysDesc': '所有内容都显示进度条',
+    'progressBarModeNeverDesc': '所有内容都不显示进度条',
+    'progressBarModeSet': '进度条显示已设置为：{mode}',
   };
 
   static const Map<String, String> _enValues = {
@@ -955,7 +976,7 @@ class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
     'addM3uToStart': 'Add M3U playlist to start watching',
     'search': 'Search',
     // Player hints
-    'playerHintTV': '↑↓ Switch Channel · ← Categories · OK Play/Pause',
+    'playerHintTV': '↑↓ Switch Channel · ←→ Switch Source · Hold← Categories · OK Play/Pause · Hold OK Favorite',
     'playerHintDesktop': 'Left/Right: Seek · Up/Down: Switch · Enter: Play/Pause · M: Mute',
     // More UI strings
     'more': 'More',
@@ -1149,5 +1170,15 @@ class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
     'simpleMenuSubtitle': 'Keep menu collapsed (no auto-expand)',
     'simpleMenuEnabled': 'Simple menu enabled',
     'simpleMenuDisabled': 'Simple menu disabled',
+    // Progress bar mode
+    'progressBarMode': 'Progress Bar Display',
+    'progressBarModeSubtitle': 'Control how the playback progress bar is displayed',
+    'progressBarModeAuto': 'Auto Detect',
+    'progressBarModeAlways': 'Always Show',
+    'progressBarModeNever': 'Never Show',
+    'progressBarModeAutoDesc': 'Auto show based on content type (VOD/replay show, live hide)',
+    'progressBarModeAlwaysDesc': 'Show progress bar for all content',
+    'progressBarModeNeverDesc': 'Never show progress bar',
+    'progressBarModeSet': 'Progress bar display set to: {mode}',
   };
 }

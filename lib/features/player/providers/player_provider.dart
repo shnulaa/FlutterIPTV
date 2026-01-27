@@ -81,6 +81,43 @@ class PlayerProvider extends ChangeNotifier {
   bool get isLoading => _state == PlayerState.loading || _state == PlayerState.buffering;
   bool get hasError => _state == PlayerState.error && _error != null;
 
+  /// Check if current content is seekable (VOD or replay)
+  bool get isSeekable {
+    // 1. 检查频道类型（如果明确是直播，不可拖动）
+    if (_currentChannel?.isLive == true) return false;
+    
+    // 2. 检查频道类型（如果是点播或回放，可拖动）
+    if (_currentChannel?.isSeekable == true) {
+      // 但还需要检查 duration 是否有效
+      if (_duration.inSeconds > 0 && _duration.inSeconds <= 86400) {
+        return true;
+      }
+    }
+    
+    // 3. 检查 duration（点播内容有明确时长）
+    // 直播流通常 duration 为 0 或超大值
+    if (_duration.inSeconds > 0 && _duration.inSeconds <= 86400) {
+      // 有效时长（0秒到24小时），但要排除直播流
+      if (_currentChannel?.isLive != true) {
+        return true;
+      }
+    }
+    
+    // 4. 默认不可拖动（安全起见）
+    return false;
+  }
+  
+  /// Check if should show progress bar based on settings and content
+  bool shouldShowProgressBar(String progressBarMode) {
+    if (progressBarMode == 'never') return false;
+    if (progressBarMode == 'always') return _duration.inSeconds > 0;
+    // auto mode: only show for seekable content
+    return isSeekable && _duration.inSeconds > 0;
+  }
+  
+  /// Check if current content is live stream
+  bool get isLiveStream => !isSeekable;
+
   // 清除错误状态（用于显示错误后防止重复显示）
   void clearError() {
     _error = null;
@@ -99,6 +136,22 @@ class PlayerProvider extends ChangeNotifier {
 
   void _setError(String error) {
     debugPrint('PlayerProvider: _setError 被调用 - 当前重试次数: $_retryCount/$_maxRetries, 错误: $error');
+    
+    // 忽略 seek 相关的错误（直播流不支持 seek）
+    if (error.contains('seekable') || 
+        error.contains('Cannot seek') || 
+        error.contains('seek in this stream')) {
+      debugPrint('PlayerProvider: 忽略 seek 错误（直播流不支持拖动）');
+      return;
+    }
+    
+    // 忽略音频解码警告（如果能播放声音，这只是警告）
+    if (error.contains('Error decoding audio') || 
+        error.contains('audio decoder') ||
+        error.contains('Audio decoding')) {
+      debugPrint('PlayerProvider: 忽略音频解码警告（可能只是部分帧解码失败）');
+      return;
+    }
     
     // 尝试自动重试（重试阶段不受防抖限制）
     if (_retryCount < _maxRetries && _currentChannel != null) {

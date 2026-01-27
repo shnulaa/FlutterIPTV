@@ -14,7 +14,7 @@ class UpdateService {
   // static const String _versionJsonUrl = 'https://shnulaa.github.io/FlutterIPTV/version.json';
   // static const String _githubReleasesUrl = 'https://github.com/shnulaa/FlutterIPTV/releases';
 
-  static const String _versionJsonUrl = 'https://iptv.liuyanq.dpdns.org/version.json';
+  static const String _versionJsonUrl = 'https://hk.gh-proxy.org/https://raw.githubusercontent.com/shnulaa/FlutterIPTV/main/docs/version.json';
   static const String _githubReleasesUrl = 'https://github.com/shnulaa/FlutterIPTV/releases';
 
   // 检查更新的间隔时间（小时）

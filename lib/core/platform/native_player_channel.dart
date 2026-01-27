@@ -276,12 +276,14 @@ class NativePlayerChannel {
     List<List<String>>? sources, // 每个频道的所有源
     List<String>? logos, // 每个频道的台标URL
     List<String>? epgIds, // 每个频道的EPG ID
+    List<bool>? isSeekable, // 每个频道是否可拖动（点播/回放）
     bool isDlnaMode = false,
     String bufferStrength = 'fast',
     bool showFps = true,
     bool showClock = true,
     bool showNetworkSpeed = true,
     bool showVideoInfo = true,
+    String progressBarMode = 'auto', // 进度条显示模式：auto, always, never
     Function? onClosed,
   }) async {
     try {
@@ -289,7 +291,7 @@ class NativePlayerChannel {
       _onPlayerClosedCallback = onClosed;
 
       debugPrint(
-          'NativePlayerChannel: launching player with url=$url, name=$name, index=$index, channels=${urls?.length ?? 0}, isDlna=$isDlnaMode, buffer=$bufferStrength');
+          'NativePlayerChannel: launching player with url=$url, name=$name, index=$index, channels=${urls?.length ?? 0}, isDlna=$isDlnaMode, buffer=$bufferStrength, progressBarMode=$progressBarMode');
       final result = await _channel.invokeMethod<bool>('launchPlayer', {
         'url': url,
         'name': name,
@@ -300,12 +302,14 @@ class NativePlayerChannel {
         'sources': sources, // 传递每个频道的所有源
         'logos': logos, // 传递每个频道的台标URL
         'epgIds': epgIds, // 传递每个频道的EPG ID
+        'isSeekable': isSeekable, // 传递每个频道是否可拖动
         'isDlnaMode': isDlnaMode,
         'bufferStrength': bufferStrength,
         'showFps': showFps,
         'showClock': showClock,
         'showNetworkSpeed': showNetworkSpeed,
         'showVideoInfo': showVideoInfo,
+        'progressBarMode': progressBarMode, // 传递进度条显示模式
       });
       debugPrint('NativePlayerChannel: launch result=$result');
       return result ?? false;

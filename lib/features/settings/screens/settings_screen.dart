@@ -209,6 +209,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _showSuccess(context, value ? (strings?.videoInfoEnabled ?? 'Resolution display enabled') : (strings?.videoInfoDisabled ?? 'Resolution display disabled'));
                 },
               ),
+              _buildDivider(),
+              _buildSelectTile(
+                context,
+                title: AppStrings.of(context)?.progressBarMode ?? '进度条显示',
+                subtitle: _getProgressBarModeLabel(context, settings.progressBarMode),
+                icon: Icons.linear_scale_rounded,
+                onTap: () => _showProgressBarModeDialog(context, settings),
+              ),
               if (PlatformDetector.isDesktop || PlatformDetector.isTV) ...[
                 _buildDivider(),
                 _buildSwitchTile(
@@ -1059,6 +1067,75 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       },
     );
+  }
+
+  void _showProgressBarModeDialog(BuildContext context, SettingsProvider settings) {
+    final options = ['auto', 'always', 'never'];
+    final strings = AppStrings.of(context);
+    final labels = {
+      'auto': strings?.progressBarModeAuto ?? '自动检测',
+      'always': strings?.progressBarModeAlways ?? '始终显示',
+      'never': strings?.progressBarModeNever ?? '不显示',
+    };
+    final descriptions = {
+      'auto': strings?.progressBarModeAutoDesc ?? '根据内容类型自动显示（点播/回放显示，直播隐藏）',
+      'always': strings?.progressBarModeAlwaysDesc ?? '所有内容都显示进度条',
+      'never': strings?.progressBarModeNeverDesc ?? '所有内容都不显示进度条',
+    };
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: AppTheme.surfaceColor,
+          title: Text(
+            strings?.progressBarMode ?? '进度条显示',
+            style: const TextStyle(color: AppTheme.textPrimary),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: options.map((mode) {
+              return RadioListTile<String>(
+                title: Text(
+                  labels[mode] ?? mode,
+                  style: const TextStyle(color: AppTheme.textPrimary),
+                ),
+                subtitle: Text(
+                  descriptions[mode] ?? '',
+                  style: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
+                ),
+                value: mode,
+                groupValue: settings.progressBarMode,
+                onChanged: (value) {
+                  if (value != null) {
+                    settings.setProgressBarMode(value);
+                    Navigator.pop(dialogContext);
+                    final message = (strings?.progressBarModeSet ?? '进度条显示已设置为：{mode}')
+                        .replaceFirst('{mode}', labels[value] ?? value);
+                    _showSuccess(context, message);
+                  }
+                },
+                activeColor: AppTheme.getPrimaryColor(dialogContext),
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  String _getProgressBarModeLabel(BuildContext context, String mode) {
+    final strings = AppStrings.of(context);
+    switch (mode) {
+      case 'auto':
+        return strings?.progressBarModeAuto ?? '自动检测';
+      case 'always':
+        return strings?.progressBarModeAlways ?? '始终显示';
+      case 'never':
+        return strings?.progressBarModeNever ?? '不显示';
+      default:
+        return strings?.progressBarModeAuto ?? '自动检测';
+    }
   }
 
   void _showBufferSizeDialog(BuildContext context, SettingsProvider settings) {
