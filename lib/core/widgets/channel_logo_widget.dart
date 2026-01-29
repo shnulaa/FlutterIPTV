@@ -10,7 +10,7 @@ class _TimeoutHttpClient extends http.BaseClient {
   final http.Client _inner = http.Client();
   final Duration timeout;
 
-  _TimeoutHttpClient({this.timeout = const Duration(seconds: 1)});
+  _TimeoutHttpClient({this.timeout = const Duration(seconds: 2)});  // 2秒超时
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) {
@@ -41,7 +41,7 @@ class LogoCacheManager extends CacheManager {
             maxNrOfCacheObjects: 500,
             repo: JsonCacheInfoRepository(databaseName: key),
             fileService: HttpFileService(
-              httpClient: _TimeoutHttpClient(timeout: const Duration(seconds: 3)),
+              httpClient: _TimeoutHttpClient(timeout: const Duration(seconds: 2)),  // 2秒超时
             ),
           ),
         );
@@ -166,11 +166,13 @@ class _ChannelLogoWidgetState extends State<ChannelLogoWidget> {
   @override
   void initState() {
     super.initState();
-    // ServiceLocator.log.d('ChannelLogoWidget.initState - ${widget.channel.name}, logoUrl: ${widget.channel.logoUrl}, lazyLoad: ${widget.lazyLoad}');
+    print('🔍 ChannelLogoWidget.initState - ${widget.channel.name}, logoUrl: ${widget.channel.logoUrl}, lazyLoad: ${widget.lazyLoad}');
+    ServiceLocator.log.d('ChannelLogoWidget.initState - ${widget.channel.name}, logoUrl: ${widget.channel.logoUrl}, lazyLoad: ${widget.lazyLoad}');
     
     // 如果不是延迟加载模式，或者频道没有 M3U 台标，立即加载数据库台标
     if (!widget.lazyLoad || widget.channel.logoUrl == null || widget.channel.logoUrl!.isEmpty) {
-      // ServiceLocator.log.d('ChannelLogoWidget: 立即加载数据库台标 - ${widget.channel.name}');
+      print('🔍 ChannelLogoWidget: 立即加载数据库台标 - ${widget.channel.name}');
+      ServiceLocator.log.d('ChannelLogoWidget: 立即加载数据库台标 - ${widget.channel.name}');
       _loadFallbackLogo();
     }
   }
@@ -187,20 +189,24 @@ class _ChannelLogoWidgetState extends State<ChannelLogoWidget> {
     // 使用并发控制加载
     await _logoState.requestLoadFallback(() async {
       _logoState.markLoadingFallback(channelName, true);
-      // ServiceLocator.log.d('ChannelLogoWidget: 开始加载数据库台标 - $channelName');
+      print('🔍 ChannelLogoWidget: 开始加载数据库台标 - $channelName');
+      ServiceLocator.log.d('ChannelLogoWidget: 开始加载数据库台标 - $channelName');
       
       try {
         final logoUrl = await ServiceLocator.channelLogo.findLogoUrl(channelName);
-        // ServiceLocator.log.d('ChannelLogoWidget: 数据库台标查询结果 - $channelName: $logoUrl');
+        print('🔍 ChannelLogoWidget: 数据库台标查询结果 - $channelName: $logoUrl');
+        ServiceLocator.log.d('ChannelLogoWidget: 数据库台标查询结果 - $channelName: $logoUrl');
         
         _logoState.setFallbackLogoUrl(channelName, logoUrl);
         _logoState.markLoadingFallback(channelName, false);
         
         if (mounted) {
           setState(() {});
-          // ServiceLocator.log.d('ChannelLogoWidget: 已设置数据库台标 - $channelName');
+          print('🔍 ChannelLogoWidget: 已设置数据库台标 - $channelName');
+          ServiceLocator.log.d('ChannelLogoWidget: 已设置数据库台标 - $channelName');
         }
       } catch (e) {
+        print('❌ ChannelLogoWidget: 加载数据库台标失败 - $channelName: $e');
         ServiceLocator.log.w('Failed to load fallback logo for $channelName: $e');
         _logoState.setFallbackLogoUrl(channelName, null);
         _logoState.markLoadingFallback(channelName, false);
@@ -243,7 +249,8 @@ class _ChannelLogoWidgetState extends State<ChannelLogoWidget> {
       return _buildPlaceholder();
     }
 
-    // ServiceLocator.log.d('ChannelLogoWidget: 尝试加载台标 - ${widget.channel.name}: $logoUrl');
+    print('🔍 ChannelLogoWidget: 尝试加载台标 - ${widget.channel.name}: $logoUrl');
+    ServiceLocator.log.d('ChannelLogoWidget: 尝试加载台标 - ${widget.channel.name}: $logoUrl');
 
     return CachedNetworkImage(
       imageUrl: logoUrl,
@@ -253,7 +260,8 @@ class _ChannelLogoWidgetState extends State<ChannelLogoWidget> {
       cacheManager: LogoCacheManager(), // 使用自定义缓存管理器
       placeholder: (context, url) => _buildPlaceholder(),
       errorWidget: (context, url, error) {
-        // ServiceLocator.log.w('ChannelLogoWidget: 台标加载失败 - ${widget.channel.name}: $error');
+        print('❌ ChannelLogoWidget: 台标加载失败 - ${widget.channel.name}: $error');
+        ServiceLocator.log.w('ChannelLogoWidget: 台标加载失败 - ${widget.channel.name}: $error');
         
         // 只有 M3U logo 失败时才触发 fallback
         if (isM3uLogo) {
@@ -266,8 +274,7 @@ class _ChannelLogoWidgetState extends State<ChannelLogoWidget> {
       },
       fadeInDuration: const Duration(milliseconds: 200),
       fadeOutDuration: const Duration(milliseconds: 200),
-      maxWidthDiskCache: (widget.width ?? 200).toInt() * 2,
-      maxHeightDiskCache: (widget.height ?? 200).toInt() * 2,
+      // 注意：使用自定义 CacheManager 时不能使用 maxWidthDiskCache 和 maxHeightDiskCache
     );
   }
 

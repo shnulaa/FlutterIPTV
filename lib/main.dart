@@ -84,7 +84,8 @@ void main() async {
     // Initialize PlatformDetector for settings page
     await PlatformDetector.init();
 
-    // Set preferred orientations for mobile
+    // 初始屏幕方向将在 MaterialApp 构建后根据设置应用
+    // 这里先允许所有方向，避免启动时的限制
     await SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.landscapeLeft,
@@ -210,7 +211,43 @@ class _DlnaAwareAppState extends State<_DlnaAwareApp> with WindowListener {
       // 初始化自动刷新服务
       ServiceLocator.log.d('addPostFrameCallback 执行', tag: 'AutoRefresh');
       _initAutoRefresh();
+      // 应用屏幕方向设置
+      _applyOrientationSettings();
     });
+  }
+  
+  /// 应用屏幕方向设置
+  Future<void> _applyOrientationSettings() async {
+    if (!PlatformDetector.isMobile) return;
+    
+    final settings = context.read<SettingsProvider>();
+    final orientation = settings.mobileOrientation;
+    
+    List<DeviceOrientation> orientations;
+    switch (orientation) {
+      case 'landscape':
+        orientations = [
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ];
+        break;
+      case 'portrait':
+        orientations = [
+          DeviceOrientation.portraitUp,
+        ];
+        break;
+      case 'auto':
+      default:
+        orientations = [
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ];
+        break;
+    }
+    
+    await SystemChrome.setPreferredOrientations(orientations);
+    ServiceLocator.log.d('应用屏幕方向设置: $orientation', tag: 'Orientation');
   }
   
   @override

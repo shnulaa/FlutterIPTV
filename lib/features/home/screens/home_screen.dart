@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -362,10 +363,81 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ],
           ),
         ),
+        // 确保内容从顶部开始
+        alignment: Alignment.topCenter,
         child: _buildMobileBody(),
       ),
       bottomNavigationBar: _buildBottomNav(context),
+      // 添加屏幕方向切换悬浮按钮（仅手机端）
+      floatingActionButton: PlatformDetector.isMobile ? _buildOrientationFab() : null,
     );
+  }
+
+  /// 构建屏幕方向切换悬浮按钮
+  Widget _buildOrientationFab() {
+    return Consumer<SettingsProvider>(
+      builder: (context, settings, _) {
+        final orientation = settings.mobileOrientation;
+        IconData icon;
+        String tooltip;
+        
+        // 只显示当前状态，不显示下一个状态
+        switch (orientation) {
+          case 'landscape':
+            icon = Icons.screen_rotation_rounded;
+            tooltip = '横屏模式';
+            break;
+          case 'portrait':
+          default:
+            icon = Icons.stay_current_portrait_rounded;
+            tooltip = '竖屏模式';
+            break;
+        }
+        
+        return FloatingActionButton(
+          mini: true,
+          backgroundColor: AppTheme.getSurfaceColor(context).withOpacity(0.9),
+          onPressed: () => _toggleOrientation(settings),
+          tooltip: tooltip,
+          child: Icon(icon, color: AppTheme.getPrimaryColor(context), size: 20),
+        );
+      },
+    );
+  }
+
+  /// 切换屏幕方向（只在横屏和竖屏之间切换）
+  Future<void> _toggleOrientation(SettingsProvider settings) async {
+    String newOrientation;
+    List<DeviceOrientation> orientations;
+    String message;
+    
+    // 只在横屏和竖屏之间切换
+    if (settings.mobileOrientation == 'portrait') {
+      newOrientation = 'landscape';
+      orientations = [
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ];
+      message = '已切换到横屏模式';
+    } else {
+      newOrientation = 'portrait';
+      orientations = [
+        DeviceOrientation.portraitUp,
+      ];
+      message = '已切换到竖屏模式';
+    }
+    
+    await settings.setMobileOrientation(newOrientation);
+    await SystemChrome.setPreferredOrientations(orientations);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
   }
 
   Widget _buildMobileBody() {
@@ -442,12 +514,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         final favChannels = _getFavoriteChannels(channelProvider);
 
         return Column(
+          mainAxisSize: MainAxisSize.max,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // 固定头部
             _buildCompactHeader(channelProvider),
-            // 固定分类标签
-            _buildCategoryChips(channelProvider),
-            SizedBox(height: PlatformDetector.isMobile ? 10 : 16),
+            // 固定分类标签（横屏时隐藏）
+            if (MediaQuery.of(context).size.width <= 700 || !PlatformDetector.isMobile)
+              _buildCategoryChips(channelProvider),
+            SizedBox(height: PlatformDetector.isMobile && MediaQuery.of(context).size.width > 700 ? 0 : (PlatformDetector.isMobile ? 2 : 16)),  // 横屏时间距为0
             // 可滚动的频道列表
             Expanded(
               child: CustomScrollView(
@@ -528,12 +603,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // 继续播放按钮 - 名字固定为 "Continue"，不根据模式变化
     final continueLabel = AppStrings.of(context)?.continueWatching ?? 'Continue';
     final isMobile = PlatformDetector.isMobile;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLandscape = isMobile && screenWidth > 700;  // 手机端横屏
+    
+    // 手机端获取状态栏高度，并减少一些间距让内容更靠近状态栏
+    final statusBarHeight = isMobile ? MediaQuery.of(context).padding.top : 0.0;
+    final topPadding = isMobile ? (statusBarHeight > 0 ? statusBarHeight - 10.0 : 0.0) : 16.0;  // 状态栏高度 + 4px
 
-    return SafeArea(
-      bottom: false,
-      child: Container(
-        padding: EdgeInsets.fromLTRB(isMobile ? 12 : 24, isMobile ? 8 : 16, isMobile ? 12 : 24, isMobile ? 8 : 12),
-        child: Row(
+    return Container(
+      // 手机端添加状态栏高度的padding，其他平台使用SafeArea
+      padding: EdgeInsets.fromLTRB(
+        isMobile ? 12 : 24, 
+        topPadding,  // 使用计算后的顶部间距
+        isMobile ? 12 : 24, 
+        isMobile ? 2 : 12
+      ),
+      child: Row(
           children: [
             Expanded(
               child: Column(
@@ -546,9 +631,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
                     children: [
-                      Text('Lotus IPTV', style: TextStyle(fontSize: isMobile ? 20 : 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                      Text('Lotus IPTV', style: TextStyle(fontSize: isLandscape ? 16 : (isMobile ? 18 : 28), fontWeight: FontWeight.bold, color: Colors.white)),  // 横屏16，竖屏18
                       const SizedBox(width: 8),
-                      Text('v$_appVersion', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal, color: Colors.white70)),
+                      Text('v$_appVersion', style: TextStyle(fontSize: isLandscape ? 10 : 11, fontWeight: FontWeight.normal, color: Colors.white70)),  // 横屏10，竖屏11
                       if (_availableUpdate != null) ...[
                         const SizedBox(width: 8),
                         TVFocusable(
@@ -581,13 +666,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${provider.totalChannelCount} ${AppStrings.of(context)?.channels ?? "频道"} · ${provider.groups.length} ${AppStrings.of(context)?.categories ?? "分类"} · ${context.watch<FavoritesProvider>().count} ${AppStrings.of(context)?.favorites ?? "收藏"}$playlistInfo',
-                  style: TextStyle(color: AppTheme.getTextMuted(context), fontSize: 13),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                // 手机端横屏时隐藏副标题，节省空间
+                if (!isMobile || MediaQuery.of(context).size.width <= 700) ...[
+                  SizedBox(height: isMobile ? 2 : 4),
+                  Text(
+                    '${provider.totalChannelCount} ${AppStrings.of(context)?.channels ?? "频道"} · ${provider.groups.length} ${AppStrings.of(context)?.categories ?? "分类"} · ${context.watch<FavoritesProvider>().count} ${AppStrings.of(context)?.favorites ?? "收藏"}$playlistInfo',
+                    style: TextStyle(color: AppTheme.getTextMuted(context), fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ],
             ),
           ),
@@ -610,7 +698,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ],
           ),
         ],
-      ),
       ),
     );
   }
@@ -1287,7 +1374,7 @@ class _ResponsiveCategoryChipsState extends State<_ResponsiveCategoryChips> {
       showFocusBorder: false,
       builder: (context, isFocused, child) {
         return Container(
-          padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12, vertical: isMobile ? 5 : 8),
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12, vertical: isMobile ? 3 : 8),  // 手机端从5减少到3
           decoration: BoxDecoration(
             gradient: isFocused ? AppTheme.getGradient(context) : AppTheme.getSoftGradient(context),
             borderRadius: BorderRadius.circular(AppTheme.radiusPill),
@@ -1314,7 +1401,7 @@ class _ResponsiveCategoryChipsState extends State<_ResponsiveCategoryChips> {
       showFocusBorder: false,
       builder: (context, isFocused, child) {
         return Container(
-          padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12, vertical: isMobile ? 5 : 8),
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12, vertical: isMobile ? 3 : 8),  // 手机端从5减少到3
           decoration: BoxDecoration(
             gradient: isFocused ? AppTheme.getGradient(context) : AppTheme.getSoftGradient(context),
             borderRadius: BorderRadius.circular(AppTheme.radiusPill),
@@ -1341,7 +1428,7 @@ class _ResponsiveCategoryChipsState extends State<_ResponsiveCategoryChips> {
       showFocusBorder: false,
       builder: (context, isFocused, child) {
         return Container(
-          padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12, vertical: isMobile ? 5 : 8),
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12, vertical: isMobile ? 3 : 8),  // 手机端从5减少到3
           decoration: BoxDecoration(
             gradient: isFocused ? AppTheme.getGradient(context) : AppTheme.getSoftGradient(context),
             borderRadius: BorderRadius.circular(AppTheme.radiusPill),

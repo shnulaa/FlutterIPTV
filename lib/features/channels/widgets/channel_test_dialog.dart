@@ -155,13 +155,18 @@ class _ChannelTestDialogState extends State<ChannelTestDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    // 手机横屏：宽度600-900，高度小于宽度
+    final isLandscape = screenWidth > 600 && screenWidth < 900 && screenHeight < screenWidth;
+    
     return Dialog(
       backgroundColor: AppTheme.surfaceColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isLandscape ? 12 : 16)),
       child: Container(
-        width: 500,
-        constraints: const BoxConstraints(maxHeight: 600),
-        padding: const EdgeInsets.all(24),
+        width: isLandscape ? 250 : 500,  // 横屏时宽度更小
+        constraints: BoxConstraints(maxHeight: isLandscape ? 350 : 600),  // 横屏时高度更小
+        padding: EdgeInsets.all(isLandscape ? 12 : 24),  // 横屏时padding更小
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,101 +175,102 @@ class _ChannelTestDialogState extends State<ChannelTestDialog> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: EdgeInsets.all(isLandscape ? 6 : 10),  // 横屏时padding更小
                   decoration: BoxDecoration(
                     color: AppTheme.primaryColor.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(isLandscape ? 8 : 12),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.speed_rounded,
                     color: AppTheme.primaryColor,
-                    size: 24,
+                    size: isLandscape ? 18 : 24,  // 横屏时图标更小
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: isLandscape ? 10 : 16),  // 横屏时间距更小
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         '频道测试',
                         style: TextStyle(
                           color: AppTheme.textPrimary,
-                          fontSize: 20,
+                          fontSize: isLandscape ? 14 : 20,  // 横屏时字体更小
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
                         '共 ${widget.channels.length} 个频道',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppTheme.textSecondary,
-                          fontSize: 14,
+                          fontSize: isLandscape ? 11 : 14,  // 横屏时字体更小
                         ),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close, size: isLandscape ? 18 : 24),  // 横屏时图标更小
                   color: AppTheme.textSecondary,
+                  padding: isLandscape ? const EdgeInsets.all(4) : null,  // 横屏时padding更小
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
             ),
 
-            const SizedBox(height: 24),
+            SizedBox(height: isLandscape ? 12 : 24),  // 横屏时间距更小
 
             // 进度区域
             if (_isTesting || _isComplete) ...[
               // 进度条
               ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(isLandscape ? 6 : 8),
                 child: LinearProgressIndicator(
                   value: _total > 0 ? _completed / _total : 0,
                   backgroundColor: AppTheme.cardColor,
                   color: AppTheme.primaryColor,
-                  minHeight: 8,
+                  minHeight: isLandscape ? 6 : 8,  // 横屏时进度条更细
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: isLandscape ? 8 : 12),  // 横屏时间距更小
 
               // 统计信息
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildStatItem('已测试', '$_completed/$_total', AppTheme.textPrimary),
-                  _buildStatItem('可用', '$_available', Colors.green),
-                  _buildStatItem('不可用', '$_unavailable', AppTheme.errorColor),
+                  _buildStatItem('已测试', '$_completed/$_total', AppTheme.textPrimary, isLandscape),
+                  _buildStatItem('可用', '$_available', Colors.green, isLandscape),
+                  _buildStatItem('不可用', '$_unavailable', AppTheme.errorColor, isLandscape),
                 ],
               ),
 
-              const SizedBox(height: 12),
+              SizedBox(height: isLandscape ? 8 : 12),  // 横屏时间距更小
 
               // 当前测试频道
               if (_isTesting)
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(isLandscape ? 8 : 12),  // 横屏时padding更小
                   decoration: BoxDecoration(
                     color: AppTheme.cardColor,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(isLandscape ? 6 : 8),
                   ),
                   child: Row(
                     children: [
-                      const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
+                      SizedBox(
+                        width: isLandscape ? 12 : 16,  // 横屏时进度条更小
+                        height: isLandscape ? 12 : 16,
+                        child: const CircularProgressIndicator(
                           strokeWidth: 2,
                           color: AppTheme.primaryColor,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: isLandscape ? 8 : 12),  // 横屏时间距更小
                       Expanded(
                         child: Text(
                           '正在测试: $_currentChannelName',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppTheme.textSecondary,
-                            fontSize: 13,
+                            fontSize: isLandscape ? 11 : 13,  // 横屏时字体更小
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -274,17 +280,17 @@ class _ChannelTestDialogState extends State<ChannelTestDialog> {
                   ),
                 ),
 
-              const SizedBox(height: 16),
+              SizedBox(height: isLandscape ? 10 : 16),  // 横屏时间距更小
 
               // 筛选选项
               if (_results.isNotEmpty)
                 Row(
                   children: [
-                    const Text(
+                    Text(
                       '测试结果',
                       style: TextStyle(
                         color: AppTheme.textPrimary,
-                        fontSize: 16,
+                        fontSize: isLandscape ? 13 : 16,  // 横屏时字体更小
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -297,34 +303,38 @@ class _ChannelTestDialogState extends State<ChannelTestDialog> {
                       checkmarkColor: AppTheme.errorColor,
                       labelStyle: TextStyle(
                         color: _showOnlyFailed ? AppTheme.errorColor : AppTheme.textSecondary,
-                        fontSize: 12,
+                        fontSize: isLandscape ? 10 : 12,  // 横屏时字体更小
                       ),
+                      padding: isLandscape ? const EdgeInsets.symmetric(horizontal: 6, vertical: 2) : null,  // 横屏时padding更小
                     ),
                   ],
                 ),
 
-              const SizedBox(height: 8),
+              SizedBox(height: isLandscape ? 6 : 8),  // 横屏时间距更小
 
               // 结果列表
               Flexible(
                 child: Container(
                   decoration: BoxDecoration(
                     color: AppTheme.cardColor,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(isLandscape ? 8 : 12),
                   ),
                   child: _filteredResults.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Padding(
-                            padding: EdgeInsets.all(24),
+                            padding: EdgeInsets.all(isLandscape ? 16 : 24),  // 横屏时padding更小
                             child: Text(
                               '暂无结果',
-                              style: TextStyle(color: AppTheme.textMuted),
+                              style: TextStyle(
+                                color: AppTheme.textMuted,
+                                fontSize: isLandscape ? 12 : 14,  // 横屏时字体更小
+                              ),
                             ),
                           ),
                         )
                       : ListView.separated(
                           shrinkWrap: true,
-                          padding: const EdgeInsets.all(8),
+                          padding: EdgeInsets.all(isLandscape ? 6 : 8),  // 横屏时padding更小
                           itemCount: _filteredResults.length,
                           separatorBuilder: (_, __) => const Divider(
                             color: AppTheme.surfaceColor,
@@ -332,7 +342,7 @@ class _ChannelTestDialogState extends State<ChannelTestDialog> {
                           ),
                           itemBuilder: (context, index) {
                             final result = _filteredResults[index];
-                            return _buildResultItem(result);
+                            return _buildResultItem(result, isLandscape);
                           },
                         ),
                 ),
@@ -340,33 +350,33 @@ class _ChannelTestDialogState extends State<ChannelTestDialog> {
             ] else ...[
               // 未开始测试时的提示
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: EdgeInsets.all(isLandscape ? 16 : 24),  // 横屏时padding更小
                 decoration: BoxDecoration(
                   color: AppTheme.cardColor,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(isLandscape ? 8 : 12),
                 ),
                 child: Column(
                   children: [
                     Icon(
                       Icons.info_outline_rounded,
-                      size: 48,
+                      size: isLandscape ? 32 : 48,  // 横屏时图标更小
                       color: AppTheme.textMuted.withOpacity(0.5),
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
+                    SizedBox(height: isLandscape ? 10 : 16),  // 横屏时间距更小
+                    Text(
                       '点击开始测试按钮检测频道可用性',
                       style: TextStyle(
                         color: AppTheme.textSecondary,
-                        fontSize: 14,
+                        fontSize: isLandscape ? 12 : 14,  // 横屏时字体更小
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
+                    SizedBox(height: isLandscape ? 6 : 8),  // 横屏时间距更小
+                    Text(
                       '测试将检查每个频道的连接状态',
                       style: TextStyle(
                         color: AppTheme.textMuted,
-                        fontSize: 12,
+                        fontSize: isLandscape ? 10 : 12,  // 横屏时字体更小
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -375,7 +385,7 @@ class _ChannelTestDialogState extends State<ChannelTestDialog> {
               ),
             ],
 
-            const SizedBox(height: 24),
+            SizedBox(height: isLandscape ? 12 : 24),  // 横屏时间距更小
 
             // 操作按钮
             Column(
@@ -388,20 +398,23 @@ class _ChannelTestDialogState extends State<ChannelTestDialog> {
                           onSelect: () => _moveToUnavailableGroup(context),
                           child: OutlinedButton.icon(
                             onPressed: () => _moveToUnavailableGroup(context),
-                            icon: const Icon(Icons.folder_special_rounded, size: 18),
-                            label: const Text('移至失效分类'),
+                            icon: Icon(Icons.folder_special_rounded, size: isLandscape ? 14 : 18),  // 横屏时图标更小
+                            label: Text(
+                              '移至失效分类',
+                              style: TextStyle(fontSize: isLandscape ? 11 : 14),  // 横屏时字体更小
+                            ),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.orange,
                               side: const BorderSide(color: Colors.orange),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: EdgeInsets.symmetric(vertical: isLandscape ? 8 : 14),  // 横屏时padding更小
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(isLandscape ? 6 : 10),
                               ),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: isLandscape ? 8 : 12),  // 横屏时间距更小
                     ],
                     Expanded(
                       child: TVFocusable(
@@ -411,15 +424,18 @@ class _ChannelTestDialogState extends State<ChannelTestDialog> {
                           onPressed: _isTesting ? _stopTest : (_isComplete ? () => Navigator.of(context).pop() : _startTest),
                           icon: Icon(
                             _isTesting ? Icons.stop_rounded : (_isComplete ? Icons.check_rounded : Icons.play_arrow_rounded),
-                            size: 20,
+                            size: isLandscape ? 16 : 20,  // 横屏时图标更小
                           ),
-                          label: Text(_isTesting ? '停止测试' : (_isComplete ? '完成' : '开始测试')),
+                          label: Text(
+                            _isTesting ? '停止测试' : (_isComplete ? '完成' : '开始测试'),
+                            style: TextStyle(fontSize: isLandscape ? 11 : 14),  // 横屏时字体更小
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _isTesting ? AppTheme.errorColor : AppTheme.primaryColor,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            padding: EdgeInsets.symmetric(vertical: isLandscape ? 8 : 14),  // 横屏时padding更小
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(isLandscape ? 6 : 10),
                             ),
                           ),
                         ),
@@ -429,21 +445,24 @@ class _ChannelTestDialogState extends State<ChannelTestDialog> {
                 ),
                 // 后台执行按钮
                 if (_isTesting) ...[
-                  const SizedBox(height: 12),
+                  SizedBox(height: isLandscape ? 8 : 12),  // 横屏时间距更小
                   SizedBox(
                     width: double.infinity,
                     child: TVFocusable(
                       onSelect: () => _runInBackground(context),
                       child: OutlinedButton.icon(
                         onPressed: () => _runInBackground(context),
-                        icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                        label: const Text('后台执行'),
+                        icon: Icon(Icons.open_in_new_rounded, size: isLandscape ? 14 : 18),  // 横屏时图标更小
+                        label: Text(
+                          '后台执行',
+                          style: TextStyle(fontSize: isLandscape ? 11 : 14),  // 横屏时字体更小
+                        ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppTheme.textSecondary,
                           side: const BorderSide(color: AppTheme.cardColor),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: EdgeInsets.symmetric(vertical: isLandscape ? 8 : 12),  // 横屏时padding更小
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(isLandscape ? 6 : 10),
                           ),
                         ),
                       ),
@@ -458,49 +477,52 @@ class _ChannelTestDialogState extends State<ChannelTestDialog> {
     );
   }
 
-  Widget _buildStatItem(String label, String value, Color color) {
+  Widget _buildStatItem(String label, String value, Color color, bool isLandscape) {
     return Column(
       children: [
         Text(
           value,
           style: TextStyle(
             color: color,
-            fontSize: 20,
+            fontSize: isLandscape ? 14 : 20,  // 横屏时字体更小
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: isLandscape ? 2 : 4),  // 横屏时间距更小
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             color: AppTheme.textMuted,
-            fontSize: 12,
+            fontSize: isLandscape ? 10 : 12,  // 横屏时字体更小
           ),
         ),
       ],
     );
   }
 
-  Widget _buildResultItem(ChannelTestResult result) {
+  Widget _buildResultItem(ChannelTestResult result, bool isLandscape) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      padding: EdgeInsets.symmetric(
+        horizontal: isLandscape ? 6 : 8,  // 横屏时padding更小
+        vertical: isLandscape ? 4 : 6,
+      ),
       child: Row(
         children: [
           // 状态图标
           Container(
-            width: 28,
-            height: 28,
+            width: isLandscape ? 20 : 28,  // 横屏时图标更小
+            height: isLandscape ? 20 : 28,
             decoration: BoxDecoration(
               color: result.isAvailable ? Colors.green.withOpacity(0.2) : AppTheme.errorColor.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(isLandscape ? 6 : 8),
             ),
             child: Icon(
               result.isAvailable ? Icons.check_rounded : Icons.close_rounded,
               color: result.isAvailable ? Colors.green : AppTheme.errorColor,
-              size: 16,
+              size: isLandscape ? 12 : 16,  // 横屏时图标更小
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: isLandscape ? 8 : 12),  // 横屏时间距更小
           // 频道名称
           Expanded(
             child: Column(
@@ -508,9 +530,9 @@ class _ChannelTestDialogState extends State<ChannelTestDialog> {
               children: [
                 Text(
                   result.channel.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppTheme.textPrimary,
-                    fontSize: 13,
+                    fontSize: isLandscape ? 11 : 13,  // 横屏时字体更小
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -518,9 +540,9 @@ class _ChannelTestDialogState extends State<ChannelTestDialog> {
                 if (result.error != null)
                   Text(
                     result.error!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppTheme.errorColor,
-                      fontSize: 11,
+                      fontSize: isLandscape ? 9 : 11,  // 横屏时字体更小
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -534,7 +556,7 @@ class _ChannelTestDialogState extends State<ChannelTestDialog> {
               '${result.responseTime}ms',
               style: TextStyle(
                 color: result.isAvailable ? AppTheme.textMuted : AppTheme.errorColor,
-                fontSize: 11,
+                fontSize: isLandscape ? 9 : 11,  // 横屏时字体更小
               ),
             ),
         ],

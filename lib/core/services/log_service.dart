@@ -27,9 +27,9 @@ class LogService {
   
   // 批量写入缓冲区
   final List<String> _logBuffer = [];
-  static const int _bufferSize = 100; // 缓冲区大小
+  static const int _bufferSize = 10; // 缓冲区大小（减小到10条，更快写入）
   DateTime? _lastFlushTime; // 上次刷新时间
-  static const Duration _autoFlushInterval = Duration(seconds: 30); // 自动刷新间隔
+  static const Duration _autoFlushInterval = Duration(seconds: 2); // 自动刷新间隔（减小到2秒）
 
   /// 初始化日志服务
   Future<void> init({SharedPreferences? prefs}) async {

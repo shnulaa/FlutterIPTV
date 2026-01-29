@@ -155,35 +155,46 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
 
     // 嵌入模式不使用Scaffold，直接返回内容
     if (widget.embedded) {
+      final isMobile = PlatformDetector.isMobile;
+      final isLandscape = isMobile && MediaQuery.of(context).size.width > 700;
+      final statusBarHeight = isMobile ? MediaQuery.of(context).padding.top : 0.0;
+      final topPadding = isMobile ? (statusBarHeight > 0 ? statusBarHeight - 15 : 0.0) : 0.0;
+      
       return Stack(
         children: [
           content,
           // 手机端嵌入模式使用浮动按钮打开分类
           Positioned(
-            left: 8,
-            top: 8,
-            child: SafeArea(
-              child: Material(
-                color: AppTheme.getSurfaceColor(context),
-                borderRadius: BorderRadius.circular(8),
-                child: InkWell(
-                  onTap: () => _showMobileGroupsBottomSheet(context),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.menu_rounded, color: AppTheme.getTextPrimary(context), size: 18),
-                        const SizedBox(width: 6),
-                        Text(
-                          _selectedGroup ?? (AppStrings.of(context)?.allChannels ?? 'All'),
-                          style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 13),
+            left: isLandscape ? 8 : 8,  // 横屏时位置
+            top: topPadding + (isLandscape ? 4 : 8),   // 使用和AppBar相同的topPadding，再加上一点间距
+            child: Material(
+              color: AppTheme.getSurfaceColor(context),
+              borderRadius: BorderRadius.circular(isLandscape ? 8 : 8),  // 横屏时圆角
+              elevation: 2,  // 添加阴影使其更突出
+              child: InkWell(
+                onTap: () => _showMobileGroupsBottomSheet(context),
+                borderRadius: BorderRadius.circular(isLandscape ? 8 : 8),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isLandscape ? 10 : 12,  // 横屏时增加padding
+                    vertical: isLandscape ? 6 : 8,     // 横屏时增加padding
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.menu_rounded, color: AppTheme.getTextPrimary(context), size: isLandscape ? 18 : 18),  // 横屏时图标更大
+                      const SizedBox(width: 6),
+                      Text(
+                        _selectedGroup ?? (AppStrings.of(context)?.allChannels ?? 'All'),
+                        style: TextStyle(
+                          color: AppTheme.getTextPrimary(context), 
+                          fontSize: isLandscape ? 14 : 13,  // 横屏时字体更大
+                          fontWeight: FontWeight.w500,  // 加粗
                         ),
-                        const SizedBox(width: 4),
-                        Icon(Icons.arrow_drop_down, color: AppTheme.getTextMuted(context), size: 18),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(Icons.arrow_drop_down, color: AppTheme.getTextMuted(context), size: isLandscape ? 18 : 18),  // 横屏时图标更大
+                    ],
                   ),
                 ),
               ),
@@ -658,88 +669,115 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
     return Consumer<ChannelProvider>(
       builder: (context, provider, _) {
         final channels = provider.filteredChannels;
+        final isMobile = PlatformDetector.isMobile;
+        final isLandscape = isMobile && MediaQuery.of(context).size.width > 700;
+        
+        // 参考首页的设置，手机端获取状态栏高度并减少间距
+        final statusBarHeight = isMobile ? MediaQuery.of(context).padding.top : 0.0;
+        final topPadding = isMobile ? (statusBarHeight > 0 ? statusBarHeight - 15.0 : 0.0) : 0.0;
 
         return CustomScrollView(
           controller: _scrollController,
           slivers: [
+            // 手机端添加顶部间距
+            if (isMobile)
+              SliverToBoxAdapter(
+                child: SizedBox(height: topPadding),
+              ),
             // App Bar
             SliverAppBar(
               floating: true,
+              primary: false,  // 禁用自动SafeArea
               backgroundColor: Colors.transparent,
-              flexibleSpace: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: Theme.of(context).brightness == Brightness.dark
-                        ? [
-                            const Color(0xFF0A0A0A),
-                            AppTheme.getPrimaryColor(context).withOpacity(0.15),
-                          ]
-                        : [
-                            const Color(0xFFE0E0E0),
-                            AppTheme.getPrimaryColor(context).withOpacity(0.15),
-                          ],
-                  ),
-                ),
-              ),
-              // 嵌入模式下不显示leading（使用浮动按钮代替）
-              leading: (PlatformDetector.isMobile && !widget.embedded)
-                  ? IconButton(
-                      icon: Icon(Icons.menu_rounded, color: AppTheme.getTextPrimary(context)),
-                      onPressed: () => Scaffold.of(context).openDrawer(),
-                    )
-                  : (widget.embedded ? const SizedBox.shrink() : null),
-              // 嵌入模式下不显示标题（使用浮动按钮显示）
-              title: widget.embedded ? null : Text(
-                _selectedGroup ?? (AppStrings.of(context)?.allChannels ?? 'All Channels'),
-                style: TextStyle(
-                  color: AppTheme.getTextPrimary(context),
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              actions: [
-                // Background test progress indicator
-                _BackgroundTestIndicator(
-                  onTap: () => _showBackgroundTestProgress(context),
-                ),
-                // Test channels button
-                IconButton(
-                  icon: const Icon(Icons.speed_rounded),
-                  color: AppTheme.getTextSecondary(context),
-                  tooltip: '测试频道',
-                  onPressed: channels.isEmpty ? null : () => _showChannelTestDialog(context, channels),
-                ),
-                // Delete all unavailable channels button (only show when in unavailable group)
-                if (_selectedGroup == ChannelProvider.unavailableGroupName && channels.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(Icons.delete_sweep_rounded),
-                    color: AppTheme.errorColor,
-                    tooltip: '删除所有失效频道',
-                    onPressed: () => _confirmDeleteAllUnavailable(context, provider),
-                  ),
-                // Channel count
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    margin: const EdgeInsets.only(right: 16),
-                    decoration: BoxDecoration(
-                      color: AppTheme.getSurfaceColor(context),
-                      borderRadius: BorderRadius.circular(20),
+              toolbarHeight: isLandscape ? 32.0 : 56.0,  // 手机端横屏时高度从28增加到32
+              expandedHeight: 0,  // 不需要展开高度
+              collapsedHeight: isLandscape ? 32.0 : 56.0,  // 手机端横屏时高度从28增加到32
+              titleSpacing: 0,  // 减少标题间距
+              leadingWidth: isLandscape ? 40 : 56,  // 横屏时减少leading宽度
+                flexibleSpace: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: Theme.of(context).brightness == Brightness.dark
+                          ? [
+                              const Color(0xFF0A0A0A),
+                              AppTheme.getPrimaryColor(context).withOpacity(0.15),
+                            ]
+                          : [
+                              const Color(0xFFE0E0E0),
+                              AppTheme.getPrimaryColor(context).withOpacity(0.15),
+                            ],
                     ),
-                    child: Text(
-                      '${channels.length} ${AppStrings.of(context)?.channels ?? 'channels'}',
-                      style: TextStyle(
-                        color: AppTheme.getTextSecondary(context),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                  ),
+                ),
+                leading: isMobile
+                    ? (widget.embedded 
+                        ? null  // 嵌入模式不显示菜单按钮
+                        : IconButton(
+                            icon: Icon(Icons.menu_rounded, color: AppTheme.getTextPrimary(context), size: isLandscape ? 18 : 24),
+                            padding: isLandscape ? const EdgeInsets.all(4) : null,  // 横屏时减少padding
+                            onPressed: () => Scaffold.of(context).openDrawer(),
+                          ))
+                    : null,
+                title: widget.embedded 
+                    ? null  // 嵌入模式不显示标题（使用浮动按钮）
+                    : Text(
+                        _selectedGroup ?? (AppStrings.of(context)?.allChannels ?? 'All Channels'),
+                        style: TextStyle(
+                          color: AppTheme.getTextPrimary(context),
+                          fontSize: isLandscape ? 13 : 20,  // 横屏时字体更小
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                actions: [
+                  // Background test progress indicator
+                  _BackgroundTestIndicator(
+                    onTap: () => _showBackgroundTestProgress(context),
+                  ),
+                  // Test channels button
+                  IconButton(
+                    icon: const Icon(Icons.speed_rounded),
+                    iconSize: isLandscape ? 16 : 24,  // 横屏时图标更小
+                    padding: isLandscape ? const EdgeInsets.all(2) : null,  // 横屏时减少padding
+                    color: AppTheme.getTextSecondary(context),
+                    tooltip: '测试频道',
+                    onPressed: channels.isEmpty ? null : () => _showChannelTestDialog(context, channels),
+                  ),
+                  // Delete all unavailable channels button (only show when in unavailable group)
+                  if (_selectedGroup == ChannelProvider.unavailableGroupName && channels.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.delete_sweep_rounded),
+                      iconSize: isLandscape ? 16 : 24,  // 横屏时图标更小
+                      padding: isLandscape ? const EdgeInsets.all(2) : null,  // 横屏时减少padding
+                      color: AppTheme.errorColor,
+                      tooltip: '删除所有失效频道',
+                      onPressed: () => _confirmDeleteAllUnavailable(context, provider),
+                    ),
+                  // Channel count
+                  Center(
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isLandscape ? 6 : 12,
+                        vertical: isLandscape ? 2 : 6,
+                      ),
+                      margin: EdgeInsets.only(right: isLandscape ? 6 : 16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.getSurfaceColor(context),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${channels.length} ${AppStrings.of(context)?.channels ?? 'channels'}',
+                        style: TextStyle(
+                          color: AppTheme.getTextSecondary(context),
+                          fontSize: isLandscape ? 9 : 12,  // 横屏时字体更小
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
 
             // Channels Grid
             if (channels.isEmpty)
@@ -767,7 +805,12 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
               )
             else
               SliverPadding(
-                padding: EdgeInsets.all(PlatformDetector.isMobile ? 8 : 20),
+                padding: EdgeInsets.only(
+                  left: isMobile ? (isLandscape ? 4 : 8) : 20,
+                  right: isMobile ? (isLandscape ? 4 : 8) : 20,
+                  top: isMobile ? (isLandscape ? 4 : 8) : 20,  // 横屏时顶部间距4px
+                  bottom: isMobile ? (isLandscape ? 4 : 8) : 20,
+                ),
                 sliver: SliverLayoutBuilder(
                   builder: (context, constraints) {
                     final availableWidth = constraints.crossAxisExtent;

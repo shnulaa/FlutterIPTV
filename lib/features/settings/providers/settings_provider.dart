@@ -38,6 +38,7 @@ class SettingsProvider extends ChangeNotifier {
   static const String _keyFontFamily = 'font_family';
   static const String _keySimpleMenu = 'simple_menu';
   static const String _keyLogLevel = 'log_level'; // debug, release, off
+  static const String _keyMobileOrientation = 'mobile_orientation'; // portrait, landscape, auto
 
   // Settings values
   String _themeMode = 'dark';
@@ -74,6 +75,7 @@ class SettingsProvider extends ChangeNotifier {
   String _fontFamily = 'Arial'; // 字体设置（默认Arial，英文环境）
   bool _simpleMenu = true; // 是否使用简单菜单栏（不展开）- 默认启用
   String _logLevel = 'off'; // 日志级别：debug, release, off - 默认关闭
+  String _mobileOrientation = 'portrait'; // 手机端屏幕方向：portrait, landscape, auto - 默认竖屏
 
   // Getters
   String get themeMode => _themeMode;
@@ -109,6 +111,7 @@ class SettingsProvider extends ChangeNotifier {
   String get fontFamily => _fontFamily;
   bool get simpleMenu => _simpleMenu;
   String get logLevel => _logLevel;
+  String get mobileOrientation => _mobileOrientation;
   
   /// 获取当前应该使用的配色方案
   String get currentColorScheme {
@@ -189,6 +192,9 @@ class SettingsProvider extends ChangeNotifier {
     // 加载日志级别设置
     _logLevel = prefs.getString(_keyLogLevel) ?? 'off';
     
+    // 加载手机端屏幕方向设置
+    _mobileOrientation = prefs.getString(_keyMobileOrientation) ?? 'portrait';
+    
     // 不在构造函数中调用 notifyListeners()，避免 build 期间触发重建
   }
 
@@ -241,6 +247,7 @@ class SettingsProvider extends ChangeNotifier {
     await prefs.setString(_keyFontFamily, _fontFamily);
     await prefs.setBool(_keySimpleMenu, _simpleMenu);
     await prefs.setString(_keyLogLevel, _logLevel);
+    await prefs.setString(_keyMobileOrientation, _mobileOrientation);
   }
 
   // Setters with persistence
@@ -519,6 +526,14 @@ class SettingsProvider extends ChangeNotifier {
     await ServiceLocator.log.flush();
     debugPrint('SettingsProvider: 日志缓冲区已刷新');
     
+    notifyListeners();
+  }
+
+  /// 设置手机端屏幕方向
+  Future<void> setMobileOrientation(String orientation) async {
+    ServiceLocator.log.d('SettingsProvider: 设置手机端屏幕方向 - $orientation');
+    _mobileOrientation = orientation;
+    await _saveSettings();
     notifyListeners();
   }
 

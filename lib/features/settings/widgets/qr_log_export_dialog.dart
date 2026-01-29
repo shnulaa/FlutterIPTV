@@ -91,16 +91,20 @@ class _QrLogExportDialogState extends State<QrLogExportDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    // 手机横屏：宽度600-900，高度小于宽度
+    final isLandscape = screenWidth > 600 && screenWidth < 900 && screenHeight < screenWidth;
+    final isMobile = screenWidth < 600;
     
     return Dialog(
       backgroundColor: AppTheme.getSurfaceColor(context),
       insetPadding: EdgeInsets.zero,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(isLandscape ? 12 : 20),  // 横屏时圆角更小
         child: Container(
           width: isMobile ? null : 520,
-          constraints: isMobile ? const BoxConstraints(maxWidth: 400) : null,
+          constraints: isMobile ? const BoxConstraints(maxWidth: 250) : null,
           decoration: BoxDecoration(
             color: AppTheme.getSurfaceColor(context),
           ),
