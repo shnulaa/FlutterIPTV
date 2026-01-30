@@ -22,6 +22,8 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.ui.PlayerView
 import org.json.JSONArray
 
@@ -46,6 +48,10 @@ class NativePlayerActivity : AppCompatActivity() {
     // Channel list for switching
     private var channelUrls: ArrayList<String> = arrayListOf()
     private var channelNames: ArrayList<String> = arrayListOf()
+    
+    // 重定向URL缓存（避免重复解析）
+    private val redirectCache = mutableMapOf<String, Pair<String, Long>>()
+    private val CACHE_EXPIRY_MS = 5 * 60 * 1000L // 5分钟
     
     private val handler = Handler(Looper.getMainLooper())
     private var hideControlsRunnable: Runnable? = null
@@ -159,7 +165,19 @@ class NativePlayerActivity : AppCompatActivity() {
         val renderersFactory = DefaultRenderersFactory(this)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
         
-        player = ExoPlayer.Builder(this, renderersFactory).build().also { exoPlayer ->
+        // 配置 HTTP 数据源和 MediaSourceFactory 支持 HLS/DASH
+        val dataSourceFactory = DefaultHttpDataSource.Factory()
+            .setConnectTimeoutMs(3000)
+            .setReadTimeoutMs(5000)
+            .setAllowCrossProtocolRedirects(true)  // 允许跨协议重定向 (HTTP→HTTPS)
+            .setUserAgent("Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36")
+        
+        val mediaSourceFactory = DefaultMediaSourceFactory(this)
+            .setDataSourceFactory(dataSourceFactory)
+        
+        player = ExoPlayer.Builder(this, renderersFactory)
+            .setMediaSourceFactory(mediaSourceFactory)
+            .build().also { exoPlayer ->
             playerView.player = exoPlayer
             exoPlayer.playWhenReady = true
             exoPlayer.repeatMode = Player.REPEAT_MODE_OFF
@@ -235,6 +253,56 @@ class NativePlayerActivity : AppCompatActivity() {
         }
     }
     
+    
+    // 解析真实播放地址（处理302重定向，带缓存）
+    private fun resolveRealPlayUrl(url: String): String {
+        // 检查缓存
+        val cached = redirectCache[url]
+        if (cached != null) {
+            val (cachedUrl, timestamp) = cached
+            if (System.currentTimeMillis() - timestamp < CACHE_EXPIRY_MS) {
+                Log.d(TAG, "使用缓存的重定向: $url -> $cachedUrl")
+                return cachedUrl
+            } else {
+                // 缓存过期，移除
+                redirectCache.remove(url)
+            }
+        }
+        
+        return try {
+            val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            connection.instanceFollowRedirects = false
+            connection.setRequestProperty("User-Agent", "miguvideo_android")
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
+            
+            connection.connect()
+            
+            if (connection.responseCode in 300..399) {
+                val location = connection.getHeaderField("Location")
+                connection.disconnect()
+                
+                if (location != null) {
+                    Log.d(TAG, "解析重定向: $url -> $location")
+                    // 缓存结果
+                    redirectCache[url] = Pair(location, System.currentTimeMillis())
+                    location
+                } else {
+                    Log.d(TAG, "无 Location 头，使用原始 URL: $url")
+                    url
+                }
+            } else {
+                connection.disconnect()
+                Log.d(TAG, "无重定向，使用原始 URL: $url")
+                url
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "解析播放地址失败: ${e.message}", e)
+            // 失败时返回原始 URL，让播放器尝试
+            url
+        }
+    }
+    
     private fun playUrl(url: String) {
         Log.d(TAG, "Playing URL: $url")
         // Reset video info
@@ -246,9 +314,17 @@ class NativePlayerActivity : AppCompatActivity() {
         showLoading()
         updateStatus("Loading")
         
-        val mediaItem = MediaItem.fromUri(url)
-        player?.setMediaItem(mediaItem)
-        player?.prepare()
+        // 在后台线程解析真实地址
+        Thread {
+            val realUrl = resolveRealPlayUrl(url)
+            
+            runOnUiThread {
+                Log.d(TAG, "使用播放地址: $realUrl")
+                val mediaItem = MediaItem.fromUri(realUrl)
+                player?.setMediaItem(mediaItem)
+                player?.prepare()
+            }
+        }.start()
     }
     
     private fun switchChannel(newIndex: Int) {
@@ -453,6 +529,7 @@ class NativePlayerActivity : AppCompatActivity() {
         super.onDestroy()
         Log.d(TAG, "onDestroy called")
         hideControlsRunnable?.let { handler.removeCallbacks(it) }
+        redirectCache.clear() // 清除重定向缓存
         player?.release()
         player = null
     }

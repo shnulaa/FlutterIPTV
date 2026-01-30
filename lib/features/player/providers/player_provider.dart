@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:video_player/video_player.dart';
-import 'dart:io' show Platform;
+import 'dart:io';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -54,7 +54,7 @@ class PlayerProvider extends ChangeNotifier {
   bool _isAutoDetecting = false; // 标记是否正在自动检测源
 
   // On Android TV, we use native player via Activity, so don't init any Flutter player
-  // On Android phone/tablet, use ExoPlayer
+  // On Android phone/tablet, use video_player (ExoPlayer)
   // On other platforms, use media_kit
   bool get _useNativePlayer => Platform.isAndroid && PlatformDetector.isTV;
   bool get _useExoPlayer => Platform.isAndroid && !PlatformDetector.isTV;
@@ -504,8 +504,17 @@ class PlayerProvider extends ChangeNotifier {
 
   // ============ ExoPlayer Methods ============
 
+  /// 解析真实播放地址（使用全局缓存服务）
+  Future<String> resolveRealPlayUrl(String url) async {
+    return await ServiceLocator.redirectCache.resolveRealPlayUrl(url);
+  }
+
   Future<void> _initExoPlayer(String url) async {
+    // 确保旧播放器完全释放
     await _disposeExoPlayer();
+    
+    // 等待一小段时间确保资源完全释放
+    await Future.delayed(const Duration(milliseconds: 100));
 
     // 增加 key 强制 VideoPlayer widget 重建
     _exoPlayerKey++;
@@ -513,10 +522,27 @@ class PlayerProvider extends ChangeNotifier {
     // 先通知 UI exoPlayer 已被释放
     notifyListeners();
 
+    // 解析真实播放地址（处理302重定向）
+    late final String realUrl;
+    try {
+      realUrl = await resolveRealPlayUrl(url);
+      ServiceLocator.log.d('使用播放地址: $realUrl');
+    } catch (e) {
+      _setError('解析播放地址失败: $e');
+      return;
+    }
+
     _exoPlayer = VideoPlayerController.networkUrl(
-      Uri.parse(url),
-      httpHeaders: const {'Connection': 'keep-alive'},
-      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false, allowBackgroundPlayback: false),
+      Uri.parse(realUrl),
+      httpHeaders: const {
+        'Connection': 'keep-alive',
+        'User-Agent': 'miguvideo_android',
+        'Accept': '*/*',
+      },
+      videoPlayerOptions: VideoPlayerOptions(
+        mixWithOthers: false, 
+        allowBackgroundPlayback: false,
+      ),
     );
 
     _exoPlayer!.addListener(_onExoPlayerUpdate);

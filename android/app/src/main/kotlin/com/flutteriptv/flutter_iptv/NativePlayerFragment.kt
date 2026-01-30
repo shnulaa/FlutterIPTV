@@ -28,6 +28,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.exoplayer.dash.DashMediaSource
 import androidx.media3.ui.PlayerView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -129,6 +131,10 @@ class NativePlayerFragment : Fragment() {
     private var selectedCategoryIndex: Int = -1
     private var categoryPanelVisible = false
     private var showingChannelList = false
+    
+    // 重定向URL缓存（避免重复解析）
+    private val redirectCache = mutableMapOf<String, Pair<String, Long>>()
+    private val CACHE_EXPIRY_MS = 5 * 60 * 1000L // 5分钟
     
     private val handler = Handler(Looper.getMainLooper())
     private var hideControlsRunnable: Runnable? = null
@@ -1284,15 +1290,20 @@ class NativePlayerFragment : Fragment() {
             .setBufferDurationsMs(minBuffer, maxBuffer, playbackBuffer, rebufferBuffer)
             .build()
         
-        // 配置 HTTP 数据源，设置更短的超时时间（3秒连接超时，5秒读取超时）
+        // 配置 HTTP 数据源，设置合理的超时时间
         val dataSourceFactory = DefaultHttpDataSource.Factory()
-            .setConnectTimeoutMs(1000)  // 3秒连接超时
-            .setReadTimeoutMs(1000)     // 5秒读取超时
-            .setAllowCrossProtocolRedirects(true)
+            .setConnectTimeoutMs(5000)  // 5秒连接超时（重定向可能需要更长时间）
+            .setReadTimeoutMs(10000)    // 10秒读取超时
+            .setAllowCrossProtocolRedirects(true)  // 允许跨协议重定向 (HTTP→HTTPS)
+            .setUserAgent("Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36")
+        
+        // 配置 MediaSourceFactory 支持 HLS/DASH 等流媒体格式
+        val mediaSourceFactory = DefaultMediaSourceFactory(requireContext())
+            .setDataSourceFactory(dataSourceFactory)
         
         player = ExoPlayer.Builder(requireContext(), renderersFactory)
             .setLoadControl(loadControl)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(requireContext()).setDataSourceFactory(dataSourceFactory))
+            .setMediaSourceFactory(mediaSourceFactory)
             .setVideoChangeFrameRateStrategy(C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF)
             .build().also { exoPlayer ->
             playerView.player = exoPlayer
@@ -1351,6 +1362,11 @@ class NativePlayerFragment : Fragment() {
 
                 override fun onPlayerError(error: PlaybackException) {
                     Log.e(TAG, "Player error: ${error.message}", error)
+                    Log.e(TAG, "Error type: ${error.errorCode}")
+                    Log.e(TAG, "Current URL: $currentUrl")
+                    error.cause?.let { cause ->
+                        Log.e(TAG, "Error cause: ${cause.message}", cause)
+                    }
                     
                     // 自动重试逻辑
                     if (retryCount < MAX_RETRIES) {
@@ -1481,6 +1497,55 @@ class NativePlayerFragment : Fragment() {
         }
     }
     
+    // 解析真实播放地址（处理302重定向，带缓存）
+    private fun resolveRealPlayUrl(url: String): String {
+        // 检查缓存
+        val cached = redirectCache[url]
+        if (cached != null) {
+            val (cachedUrl, timestamp) = cached
+            if (System.currentTimeMillis() - timestamp < CACHE_EXPIRY_MS) {
+                Log.d(TAG, "使用缓存的重定向: $url -> $cachedUrl")
+                return cachedUrl
+            } else {
+                // 缓存过期，移除
+                redirectCache.remove(url)
+            }
+        }
+        
+        return try {
+            val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            connection.instanceFollowRedirects = false
+            connection.setRequestProperty("User-Agent", "miguvideo_android")
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
+            
+            connection.connect()
+            
+            if (connection.responseCode in 300..399) {
+                val location = connection.getHeaderField("Location")
+                connection.disconnect()
+                
+                if (location != null) {
+                    Log.d(TAG, "解析重定向: $url -> $location")
+                    // 缓存结果
+                    redirectCache[url] = Pair(location, System.currentTimeMillis())
+                    location
+                } else {
+                    Log.d(TAG, "无 Location 头，使用原始 URL: $url")
+                    url
+                }
+            } else {
+                connection.disconnect()
+                Log.d(TAG, "无重定向，使用原始 URL: $url")
+                url
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "解析播放地址失败: ${e.message}", e)
+            // 失败时返回原始 URL，让播放器尝试
+            url
+        }
+    }
+    
     private fun playUrl(url: String) {
         Log.d(TAG, "Playing URL: $url")
         videoWidth = 0
@@ -1492,9 +1557,17 @@ class NativePlayerFragment : Fragment() {
         showLoading()
         updateStatus("Loading")
         
-        val mediaItem = MediaItem.fromUri(url)
-        player?.setMediaItem(mediaItem)
-        player?.prepare()
+        // 在后台线程解析真实地址
+        Thread {
+            val realUrl = resolveRealPlayUrl(url)
+            
+            activity?.runOnUiThread {
+                Log.d(TAG, "使用播放地址: $realUrl")
+                val mediaItem = MediaItem.fromUri(realUrl)
+                player?.setMediaItem(mediaItem)
+                player?.prepare()
+            }
+        }.start()
     }
     
     // 通过渲染帧数计算实际 FPS
@@ -2450,6 +2523,7 @@ class NativePlayerFragment : Fragment() {
         stopFpsCalculation() // 停止 FPS 计算
         stopClockUpdate() // 停止时钟更新
         stopNetworkSpeedUpdate() // 停止网速更新
+        redirectCache.clear() // 清除重定向缓存
         player?.release()
         player = null
         activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

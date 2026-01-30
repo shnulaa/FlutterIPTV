@@ -27,6 +27,8 @@ import androidx.media3.common.VideoSize
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.ui.PlayerView
 import java.net.URL
 import java.util.concurrent.Executors
@@ -344,8 +346,19 @@ class MultiScreenPlayerFragment : Fragment() {
             .setBufferDurationsMs(15000, 30000, 500, 1500)
             .build()
 
+        // 配置 HTTP 数据源和 MediaSourceFactory 支持 HLS/DASH
+        val dataSourceFactory = DefaultHttpDataSource.Factory()
+            .setConnectTimeoutMs(3000)
+            .setReadTimeoutMs(5000)
+            .setAllowCrossProtocolRedirects(true)  // 允许跨协议重定向 (HTTP→HTTPS)
+            .setUserAgent("Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36")
+        
+        val mediaSourceFactory = DefaultMediaSourceFactory(requireContext())
+            .setDataSourceFactory(dataSourceFactory)
+
         players[index] = ExoPlayer.Builder(requireContext(), renderersFactory)
             .setLoadControl(loadControl)
+            .setMediaSourceFactory(mediaSourceFactory)
             .build().also { player ->
                 playerViews[index]?.player = player
                 player.playWhenReady = true
@@ -399,10 +412,7 @@ class MultiScreenPlayerFragment : Fragment() {
                             updateScreenOverlay(index)
                             
                             handler.postDelayed({
-                                players[index]?.let { player ->
-                                    player.setMediaItem(MediaItem.fromUri(state.channelUrl))
-                                    player.prepare()
-                                }
+                                playUrlOnScreen(index, state.channelUrl)
                             }, RETRY_DELAY)
                         } else if (state.currentSourceIndex + 1 < sources.size) {
                             // 重试次数用完，检测并切换到下一个源
@@ -443,10 +453,7 @@ class MultiScreenPlayerFragment : Fragment() {
                                         state.isLoading = true
                                         updateScreenOverlay(index)
                                         
-                                        players[index]?.let { player ->
-                                            player.setMediaItem(MediaItem.fromUri(nextUrl))
-                                            player.prepare()
-                                        }
+                                        playUrlOnScreen(index, nextUrl)
                                     } else {
                                         // 所有源都不可用
                                         Log.e(TAG, "All sources failed for screen $index")
@@ -538,10 +545,7 @@ class MultiScreenPlayerFragment : Fragment() {
                     }
                     updateScreenOverlay(screenIndex)
                     
-                    players[screenIndex]?.let { player ->
-                        player.setMediaItem(MediaItem.fromUri(finalUrl))
-                        player.prepare()
-                    }
+                    playUrlOnScreen(screenIndex, finalUrl)
                 }
             }.start()
         } else {
@@ -569,11 +573,57 @@ class MultiScreenPlayerFragment : Fragment() {
 
             updateScreenOverlay(screenIndex)
 
-            players[screenIndex]?.let { player ->
-                player.setMediaItem(MediaItem.fromUri(url))
-                player.prepare()
-            }
+            playUrlOnScreen(screenIndex, url)
         }
+    }
+
+    // 解析真实播放地址（处理302重定向）
+    private fun resolveRealPlayUrl(url: String): String {
+        return try {
+            val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            connection.instanceFollowRedirects = false
+            connection.setRequestProperty("User-Agent", "miguvideo_android")
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
+            
+            connection.connect()
+            
+            if (connection.responseCode in 300..399) {
+                val location = connection.getHeaderField("Location")
+                connection.disconnect()
+                
+                if (location != null) {
+                    Log.d(TAG, "解析重定向: $url -> $location")
+                    location
+                } else {
+                    Log.d(TAG, "无 Location 头，使用原始 URL: $url")
+                    url
+                }
+            } else {
+                connection.disconnect()
+                Log.d(TAG, "无重定向，使用原始 URL: $url")
+                url
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "解析播放地址失败: ${e.message}", e)
+            // 失败时返回原始 URL，让播放器尝试
+            url
+        }
+    }
+    
+    // 播放指定屏幕的URL（在后台线程解析重定向）
+    private fun playUrlOnScreen(screenIndex: Int, url: String) {
+        Thread {
+            val realUrl = resolveRealPlayUrl(url)
+            
+            activity?.runOnUiThread {
+                Log.d(TAG, "屏幕 $screenIndex 使用播放地址: $realUrl")
+                players[screenIndex]?.let { player ->
+                    player.setMediaItem(MediaItem.fromUri(realUrl))
+                    player.prepare()
+                }
+            }
+        }.start()
     }
 
     // 检测源是否可用（在后台线程执行）

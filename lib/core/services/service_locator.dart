@@ -7,6 +7,7 @@ import '../platform/platform_detector.dart';
 import 'update_service.dart';
 import 'log_service.dart';
 import 'channel_logo_service.dart';
+import 'redirect_cache_service.dart';
 import '../managers/update_manager.dart';
 
 /// Service Locator for dependency injection
@@ -18,6 +19,7 @@ class ServiceLocator {
   static late UpdateManager _updateManager;
   static late LogService _logService;
   static late ChannelLogoService _channelLogoService;
+  static late RedirectCacheService _redirectCache;
 
   static SharedPreferences get prefs => _prefs;
   static DatabaseHelper get database => _database;
@@ -26,6 +28,7 @@ class ServiceLocator {
   static UpdateManager get updateManager => _updateManager;
   static LogService get log => _logService;
   static ChannelLogoService get channelLogo => _channelLogoService;
+  static RedirectCacheService get redirectCache => _redirectCache;
   
   /// Check if log service is initialized
   static bool get isLogInitialized {
@@ -71,6 +74,9 @@ class ServiceLocator {
     // Initialize update service
     _updateService = UpdateService();
     _updateManager = UpdateManager();
+    
+    // Initialize redirect cache service
+    _redirectCache = RedirectCacheService();
   }
 
   static Future<void> dispose() async {

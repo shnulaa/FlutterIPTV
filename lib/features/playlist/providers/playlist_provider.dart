@@ -582,6 +582,10 @@ class PlaylistProvider extends ChangeNotifier {
       ServiceLocator.log.d('DEBUG: 刷新完成，进度: 100%');
       notifyListeners();
 
+      // 清除重定向缓存（因为播放列表已更新，URL可能已变化）
+      ServiceLocator.redirectCache.clearAllCache();
+      ServiceLocator.log.d('已清除重定向缓存（刷新播放列表）');
+
       // Reload playlists
       ServiceLocator.log.d('DEBUG: 重新加载播放列表数据...');
       await loadPlaylists();
@@ -631,6 +635,10 @@ class PlaylistProvider extends ChangeNotifier {
           ServiceLocator.log.d('DEBUG: 删除临时文件时出错: $e');
         }
       }
+
+      // 清除重定向缓存（因为播放列表的URL可能已失效）
+      ServiceLocator.redirectCache.clearAllCache();
+      ServiceLocator.log.d('已清除重定向缓存（删除播放列表）');
 
       // Update local state
       _playlists.removeWhere((p) => p.id == playlistId);

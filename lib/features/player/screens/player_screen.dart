@@ -1400,17 +1400,28 @@ class _PlayerScreenState extends State<PlayerScreen>
         // Use ExoPlayer on Android phone
         if (provider.useExoPlayer) {
           final exoPlayer = provider.exoPlayer;
+          final playerKey = provider.exoPlayerKey;
+          
           // 确保 exoPlayer 存在
           if (exoPlayer == null) {
-            return const SizedBox.expand();
+            return const SizedBox.expand(
+              child: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
           }
 
-          // 使用 ValueListenableBuilder 监听 controller 变化
+          // 使用 key 强制重建 VideoPlayer widget
           return ValueListenableBuilder<VideoPlayerValue>(
+            key: ValueKey(playerKey), // 使用 key 强制重建
             valueListenable: exoPlayer,
             builder: (context, value, child) {
               if (!value.isInitialized) {
-                return const SizedBox.expand();
+                return const SizedBox.expand(
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
               }
 
               return Center(
