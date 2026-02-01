@@ -1,23 +1,23 @@
 {
-  "version": "1.4.20",
-  "build": 140,
-  "releaseDate": "2026-01-30",
+  "version": "1.4.21",
+  "build": 141,
+  "releaseDate": "2026-02-01",
   "assets": {
-    "windows": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.20/flutteriptv-Windows-x64-Setup.exe",
+    "windows": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.21/flutteriptv-Windows-x64-Setup.exe",
     "android_mobile": {
-      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.20/flutteriptv-Android-Mobile-arm64-v8a.apk",
-      "armeabi-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.20/flutteriptv-Android-Mobile-armeabi-v7a.apk",
-      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.20/flutteriptv-Android-Mobile-x86_64.apk"
+      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.21/flutteriptv-Android-Mobile-arm64-v8a.apk",
+      "armeabi-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.21/flutteriptv-Android-Mobile-armeabi-v7a.apk",
+      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.21/flutteriptv-Android-Mobile-x86_64.apk"
     },
     "android_tv": {
-      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.20/flutteriptv-AndroidTV-arm64-v8a.apk",
-      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.20/flutteriptv-AndroidTV-armeabi-v7a.apk",
-      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.20/flutteriptv-AndroidTV-x86_64.apk"
+      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.21/flutteriptv-AndroidTV-arm64-v8a.apk",
+      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.21/flutteriptv-AndroidTV-armeabi-v7a.apk",
+      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.21/flutteriptv-AndroidTV-x86_64.apk"
     }
   },
   "changelog": {
-    "zh": "- 修复：ExoPlayer 无法识别流格式的问题，正确配置 HLS/DASH 支持\n- 修复：HTTP 302 重定向无法播放的问题，手动解析重定向地址\n- 新增：全局重定向缓存服务，减少重复网络请求，提升播放速度\n- 优化：重定向缓存 24 小时有效期，刷新/删除播放列表时自动清除\n- 修复：手机端切换频道时偶现黑屏的问题\n- 优化：播放器资源释放机制，确保切换频道流畅",
-    "en": "- Fixed: ExoPlayer stream format recognition issue, properly configured HLS/DASH support\n- Fixed: HTTP 302 redirect playback issue, manually resolve redirect URLs\n- Added: Global redirect cache service to reduce network requests and improve playback speed\n- Optimized: Redirect cache with 24-hour expiry, auto-clear on playlist refresh/delete\n- Fixed: Occasional black screen when switching channels on mobile\n- Optimized: Player resource release mechanism for smooth channel switching"
+    "zh": "- 优化：Windows 端播放器预加载，首次进入播放器不再卡顿\n- 修复：频道台标无限循环加载的问题，优化状态管理逻辑",
+    "en": "- Optimized: Windows player preloading, no more lag on first playback\n- Fixed: Infinite loop issue with channel logo loading, improved state management\n- Optimized: Removed redundant log output to reduce console spam\n- Optimized: Logo loading performance with concurrency control and caching"
   },
   "minVersion": "1.0.0"
 }

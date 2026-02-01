@@ -17,14 +17,11 @@ class ChannelLogoService {
     if (_isInitialized) return;
     
     try {
-      print('🔍 ChannelLogoService: 开始初始化');
       ServiceLocator.log.d('ChannelLogoService: 开始初始化');
       await _loadCacheFromDatabase();
       _isInitialized = true;
-      print('✅ ChannelLogoService: 初始化完成，缓存了 ${_logoCache.length} 条记录');
-      ServiceLocator.log.d('ChannelLogoService: 初始化完成');
+      ServiceLocator.log.d('ChannelLogoService: 初始化完成，缓存了 ${_logoCache.length} 条记录');
     } catch (e) {
-      print('❌ ChannelLogoService: 初始化失败: $e');
       ServiceLocator.log.e('ChannelLogoService: 初始化失败: $e');
     }
   }
@@ -39,10 +36,8 @@ class ChannelLogoService {
         final logoUrl = logo['logo_url'] as String;
         _logoCache[_normalizeChannelName(channelName)] = logoUrl;
       }
-      print('✅ ChannelLogoService: 缓存加载完成，共 ${_logoCache.length} 条记录');
       ServiceLocator.log.d('ChannelLogoService: 缓存加载完成，共 ${_logoCache.length} 条记录');
     } catch (e) {
-      print('❌ ChannelLogoService: 缓存加载失败: $e');
       ServiceLocator.log.e('ChannelLogoService: 缓存加载失败: $e');
     }
   }
@@ -84,7 +79,7 @@ class ChannelLogoService {
       // 如果原名包含卫视但被去掉了，加回来
       final wsMatch = RegExp(r'(.+?)卫视').firstMatch(name.toUpperCase());
       if (wsMatch != null) {
-        normalized = wsMatch.group(1)! + '卫视';
+        normalized = '${wsMatch.group(1)!}卫视';
       }
     }
     
@@ -102,12 +97,10 @@ class ChannelLogoService {
 
     // Try exact match from cache first
     final normalized = _normalizeChannelName(channelName);
-    print('🔍 ChannelLogoService: 查询台标 "$channelName" → 规范化为 "$normalized"');
     // 降低日志级别，避免大量输出
     // ServiceLocator.log.d('ChannelLogoService: 查询台标 "$channelName" → 规范化为 "$normalized"');
     
     if (_logoCache.containsKey(normalized)) {
-      print('✅ ChannelLogoService: 缓存命中 "$normalized" → ${_logoCache[normalized]}');
       // ServiceLocator.log.d('ChannelLogoService: 缓存命中 "$normalized"');
       return _logoCache[normalized];
     }
@@ -140,17 +133,12 @@ class ChannelLogoService {
       
       if (results.isNotEmpty) {
         final logoUrl = results.first['logo_url'] as String;
-        print('✅ ChannelLogoService: 数据库匹配成功 "$channelName" → "$logoUrl"');
         // ServiceLocator.log.d('ChannelLogoService: 数据库匹配成功 "$channelName" → "$logoUrl"');
         // Cache the result
         _logoCache[normalized] = logoUrl;
         return logoUrl;
-      } else {
-        print('⚠️ ChannelLogoService: 未找到台标 "$channelName" (规范化: "$normalized")');
-        // ServiceLocator.log.w('ChannelLogoService: 未找到台标 "$channelName" (规范化: "$normalized")');
       }
     } catch (e) {
-      print('❌ ChannelLogoService: 查询失败: $e');
       ServiceLocator.log.w('ChannelLogoService: 查询失败: $e');
     }
 

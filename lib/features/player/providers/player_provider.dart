@@ -352,6 +352,32 @@ class PlayerProvider extends ChangeNotifier {
       _initMediaKitPlayer(useSoftwareDecoding: useSoftwareDecoding);
     }
   }
+  
+  /// 预热播放器 - 在应用启动时调用,提前初始化播放器资源
+  /// 这样首次进入播放页面时就不会卡顿
+  Future<void> warmup() async {
+    if (_useNativePlayer || _useExoPlayer) {
+      return; // 原生播放器和 ExoPlayer 不需要预热
+    }
+    
+    if (_mediaKitPlayer == null) {
+      ServiceLocator.log.d('PlayerProvider: 预热播放器 - 初始化 media_kit', tag: 'PlayerProvider');
+      _initMediaKitPlayer();
+    }
+    
+    // 可选: 预加载一个空的媒体源来初始化解码器
+    // 这会让首次播放更流畅
+    try {
+      ServiceLocator.log.d('PlayerProvider: 预热播放器 - 预加载空媒体', tag: 'PlayerProvider');
+      // 使用一个很短的空白视频来预热解码器
+      // 注意: 这里不实际播放,只是让播放器准备好
+      await _mediaKitPlayer?.open(Media(''), play: false);
+      ServiceLocator.log.d('PlayerProvider: 播放器预热完成', tag: 'PlayerProvider');
+    } catch (e) {
+      // 预热失败不影响正常使用
+      ServiceLocator.log.d('PlayerProvider: 播放器预热失败 (不影响使用): $e', tag: 'PlayerProvider');
+    }
+  }
 
   void _initMediaKitPlayer({bool useSoftwareDecoding = false, String bufferStrength = 'fast'}) {
     _mediaKitPlayer?.dispose();
