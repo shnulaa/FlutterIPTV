@@ -179,6 +179,7 @@ class MainActivity: FlutterFragmentActivity() {
                     result.success(true)
                 }
                 "getPlaybackState" -> {
+                    // 从 NativePlayerFragment 获取状态
                     val state = playerFragment?.getPlaybackState()
                     result.success(state)
                 }

@@ -2277,6 +2277,15 @@ class NativePlayerFragment : Fragment() {
         Log.d(TAG, "currentIndex: $currentIndex")
         Log.d(TAG, "channelIsSeekable.size: ${channelIsSeekable.size}")
         
+        // DLNA 模式下强制显示进度条
+        if (isDlnaMode) {
+            Log.d(TAG, "DLNA 模式 - 强制显示进度条")
+            progressContainer.visibility = View.VISIBLE
+            helpText.visibility = View.GONE
+            startProgressUpdate() // 启动进度更新
+            return
+        }
+        
         // 根据用户设置决定是否显示进度条
         val shouldShow = when (progressBarMode) {
             "never" -> {

@@ -1,8 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:video_player/video_player.dart';
 import 'dart:io';
 import 'dart:async';
 import 'dart:math' as math;
@@ -23,16 +21,11 @@ enum PlayerState {
 
 /// Unified player provider that uses:
 /// - Native Android Activity (via MethodChannel) on Android TV for best 4K performance
-/// - media_kit on Windows and other platforms
-/// - ExoPlayer (video_player) as fallback on Android
+/// - media_kit on all other platforms (Windows, Android phone/tablet, etc.)
 class PlayerProvider extends ChangeNotifier {
-  // media_kit player (for Windows/Desktop and fallback)
+  // media_kit player (for all platforms except Android TV)
   Player? _mediaKitPlayer;
   VideoController? _videoController;
-
-  // video_player (ExoPlayer) for Android fallback
-  VideoPlayerController? _exoPlayer;
-  int _exoPlayerKey = 0; // 用于强制 VideoPlayer widget 重建
 
   // Common state
   Channel? _currentChannel;
@@ -54,17 +47,12 @@ class PlayerProvider extends ChangeNotifier {
   bool _isAutoDetecting = false; // 标记是否正在自动检测源
 
   // On Android TV, we use native player via Activity, so don't init any Flutter player
-  // On Android phone/tablet, use video_player (ExoPlayer)
-  // On other platforms, use media_kit
+  // On Android phone/tablet and other platforms, use media_kit
   bool get _useNativePlayer => Platform.isAndroid && PlatformDetector.isTV;
-  bool get _useExoPlayer => Platform.isAndroid && !PlatformDetector.isTV;
 
   // Getters
   Player? get player => _mediaKitPlayer;
   VideoController? get videoController => _videoController;
-  VideoPlayerController? get exoPlayer => _exoPlayer;
-  int get exoPlayerKey => _exoPlayerKey; // 用于 VideoPlayer widget 的 key
-  bool get useExoPlayer => _useExoPlayer;
 
   Channel? get currentChannel => _currentChannel;
   PlayerState get state => _state;
@@ -281,9 +269,7 @@ class PlayerProvider extends ChangeNotifier {
     ServiceLocator.log.d('PlayerProvider: 重试URL: $url');
     
     try {
-      if (_useExoPlayer) {
-        await _initExoPlayer(url);
-      } else {
+      if (!_useNativePlayer) {
         await _mediaKitPlayer?.open(Media(url));
         _state = PlayerState.playing;
       }
@@ -316,21 +302,15 @@ class PlayerProvider extends ChangeNotifier {
   double get downloadSpeed => _downloadSpeed;
 
   String get videoInfo {
-    if (_useExoPlayer) {
-      if (_exoPlayer == null || !_exoPlayer!.value.isInitialized) return '';
-      final size = _exoPlayer!.value.size;
-      return '${size.width.toInt()}x${size.height.toInt()} | ExoPlayer';
-    } else {
-      if (_mediaKitPlayer == null) return '';
-      final w = _mediaKitPlayer!.state.width;
-      final h = _mediaKitPlayer!.state.height;
-      if (w == 0 || h == 0) return '';
-      final parts = <String>['${w}x$h'];
-      if (_videoCodec.isNotEmpty) parts.add(_videoCodec);
-      if (_fps > 0) parts.add('${_fps.toStringAsFixed(1)} fps');
-      parts.add('hwdec: $_hwdecMode');
-      return parts.join(' | ');
-    }
+    if (_mediaKitPlayer == null) return '';
+    final w = _mediaKitPlayer!.state.width;
+    final h = _mediaKitPlayer!.state.height;
+    if (w == 0 || h == 0) return '';
+    final parts = <String>['${w}x$h'];
+    if (_videoCodec.isNotEmpty) parts.add(_videoCodec);
+    if (_fps > 0) parts.add('${_fps.toStringAsFixed(1)} fps');
+    parts.add('hwdec: $_hwdecMode');
+    return parts.join(' | ');
   }
 
   double get progress {
@@ -348,16 +328,15 @@ class PlayerProvider extends ChangeNotifier {
       return;
     }
 
-    if (!_useExoPlayer) {
-      _initMediaKitPlayer(useSoftwareDecoding: useSoftwareDecoding);
-    }
+    // 其他平台（包括 Android 手机）都使用 media_kit
+    _initMediaKitPlayer(useSoftwareDecoding: useSoftwareDecoding);
   }
   
   /// 预热播放器 - 在应用启动时调用,提前初始化播放器资源
   /// 这样首次进入播放页面时就不会卡顿
   Future<void> warmup() async {
-    if (_useNativePlayer || _useExoPlayer) {
-      return; // 原生播放器和 ExoPlayer 不需要预热
+    if (_useNativePlayer) {
+      return; // 原生播放器不需要预热
     }
     
     if (_mediaKitPlayer == null) {
@@ -528,95 +507,6 @@ class PlayerProvider extends ChangeNotifier {
     if (channelToPlay != null) playChannel(channelToPlay);
   }
 
-  // ============ ExoPlayer Methods ============
-
-  /// 解析真实播放地址（使用全局缓存服务）
-  Future<String> resolveRealPlayUrl(String url) async {
-    return await ServiceLocator.redirectCache.resolveRealPlayUrl(url);
-  }
-
-  Future<void> _initExoPlayer(String url) async {
-    // 确保旧播放器完全释放
-    await _disposeExoPlayer();
-    
-    // 等待一小段时间确保资源完全释放
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    // 增加 key 强制 VideoPlayer widget 重建
-    _exoPlayerKey++;
-
-    // 先通知 UI exoPlayer 已被释放
-    notifyListeners();
-
-    // 解析真实播放地址（处理302重定向）
-    late final String realUrl;
-    try {
-      realUrl = await resolveRealPlayUrl(url);
-      ServiceLocator.log.d('使用播放地址: $realUrl');
-    } catch (e) {
-      _setError('解析播放地址失败: $e');
-      return;
-    }
-
-    _exoPlayer = VideoPlayerController.networkUrl(
-      Uri.parse(realUrl),
-      httpHeaders: const {
-        'Connection': 'keep-alive',
-        'User-Agent': 'miguvideo_android',
-        'Accept': '*/*',
-      },
-      videoPlayerOptions: VideoPlayerOptions(
-        mixWithOthers: false, 
-        allowBackgroundPlayback: false,
-      ),
-    );
-
-    _exoPlayer!.addListener(_onExoPlayerUpdate);
-
-    try {
-      await _exoPlayer!.initialize();
-      // 初始化完成后立即通知 UI
-      notifyListeners();
-
-      await _exoPlayer!.setVolume(_isMuted ? 0 : _volume);
-      await _exoPlayer!.play();
-      _state = PlayerState.playing;
-    } catch (e) {
-      _setError('Failed to initialize player: $e');
-      return;
-    }
-    notifyListeners();
-  }
-
-  void _onExoPlayerUpdate() {
-    if (_exoPlayer == null) return;
-    final value = _exoPlayer!.value;
-    _position = value.position;
-    _duration = value.duration;
-
-    if (value.hasError) {
-      _setError(value.errorDescription ?? 'Unknown error');
-      return;
-    } else if (value.isPlaying) {
-      _state = PlayerState.playing;
-    } else if (value.isBuffering) {
-      _state = PlayerState.buffering;
-    } else if (value.isInitialized && !value.isPlaying) {
-      _state = PlayerState.paused;
-    }
-
-    notifyListeners();
-  }
-
-  Future<void> _disposeExoPlayer() async {
-    if (_exoPlayer != null) {
-      _exoPlayer!.removeListener(_onExoPlayerUpdate);
-      await _exoPlayer!.dispose();
-      _exoPlayer = null;
-      notifyListeners(); // 通知 UI player 已被释放
-    }
-  }
-
   // ============ Public API ============
 
   Future<void> playChannel(Channel channel) async {
@@ -663,13 +553,12 @@ class PlayerProvider extends ChangeNotifier {
     try {
       final playerInitStartTime = DateTime.now();
       
-      if (_useExoPlayer) {
-        ServiceLocator.log.d('使用 ExoPlayer', tag: 'PlayerProvider');
-        await _initExoPlayer(playUrl);
-      } else {
-        ServiceLocator.log.d('使用 MediaKit', tag: 'PlayerProvider');
+      // Android TV 使用原生播放器，通过 MethodChannel 处理
+      // 其他平台使用 media_kit
+      if (!_useNativePlayer) {
         await _mediaKitPlayer?.open(Media(playUrl));
         _state = PlayerState.playing;
+        notifyListeners();
       }
       
       final playerInitTime = DateTime.now().difference(playerInitStartTime).inMilliseconds;
@@ -681,7 +570,6 @@ class PlayerProvider extends ChangeNotifier {
       _setError('Failed to play channel: $e');
       return;
     }
-    notifyListeners();
   }
 
   /// 查找第一个可用的源
@@ -724,6 +612,12 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> playUrl(String url, {String? name}) async {
+    // Android TV 使用原生播放器，不支持此方法
+    if (_useNativePlayer) {
+      ServiceLocator.log.w('playUrl: Android TV 使用原生播放器，不支持此方法', tag: 'PlayerProvider');
+      return;
+    }
+    
     _state = PlayerState.loading;
     _error = null;
     _lastErrorMessage = null; // 重置错误防抖
@@ -732,12 +626,8 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      if (_useExoPlayer) {
-        await _initExoPlayer(url);
-      } else {
-        await _mediaKitPlayer?.open(Media(url));
-        _state = PlayerState.playing;
-      }
+      await _mediaKitPlayer?.open(Media(url));
+      _state = PlayerState.playing;
     } catch (e) {
       _setError('Failed to play: $e');
       return;
@@ -746,20 +636,18 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   void togglePlayPause() {
-    if (_useExoPlayer) {
-      if (_exoPlayer == null) return;
-      _exoPlayer!.value.isPlaying ? _exoPlayer!.pause() : _exoPlayer!.play();
-    } else {
-      _mediaKitPlayer?.playOrPause();
-    }
+    if (_useNativePlayer) return; // TV 端由原生播放器处理
+    _mediaKitPlayer?.playOrPause();
   }
 
   void pause() {
-    _useExoPlayer ? _exoPlayer?.pause() : _mediaKitPlayer?.pause();
+    if (_useNativePlayer) return; // TV 端由原生播放器处理
+    _mediaKitPlayer?.pause();
   }
 
   void play() {
-    _useExoPlayer ? _exoPlayer?.play() : _mediaKitPlayer?.play();
+    if (_useNativePlayer) return; // TV 端由原生播放器处理
+    _mediaKitPlayer?.play();
   }
 
   Future<void> stop({bool silent = false}) async {
@@ -774,9 +662,7 @@ class PlayerProvider extends ChangeNotifier {
     _isAutoSwitching = false;
     _isAutoDetecting = false;
     
-    if (_useExoPlayer) {
-      await _disposeExoPlayer();
-    } else {
+    if (!_useNativePlayer) {
       _mediaKitPlayer?.stop();
     }
     _state = PlayerState.idle;
@@ -788,7 +674,8 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   void seek(Duration position) {
-    _useExoPlayer ? _exoPlayer?.seekTo(position) : _mediaKitPlayer?.seek(position);
+    if (_useNativePlayer) return; // TV 端由原生播放器处理
+    _mediaKitPlayer?.seek(position);
   }
 
   void seekForward(int seconds) {
@@ -840,8 +727,10 @@ class PlayerProvider extends ChangeNotifier {
 
   /// Calculate and apply the effective volume with boost
   void _applyVolume() {
+    if (_useNativePlayer) return; // TV 端由原生播放器处理
+    
     if (_isMuted) {
-      _useExoPlayer ? _exoPlayer?.setVolume(0) : _mediaKitPlayer?.setVolume(0);
+      _mediaKitPlayer?.setVolume(0);
       return;
     }
 
@@ -849,17 +738,14 @@ class PlayerProvider extends ChangeNotifier {
     final multiplier = math.pow(10, _volumeBoostDb / 20.0);
     final effectiveVolume = (_volume * multiplier).clamp(0.0, 2.0); // Allow up to 2x volume
 
-    if (_useExoPlayer) {
-      _exoPlayer?.setVolume(effectiveVolume);
-    } else {
-      // media_kit uses 0-100 scale, but can go higher for boost
-      _mediaKitPlayer?.setVolume(effectiveVolume * 100);
-    }
+    // media_kit uses 0-100 scale, but can go higher for boost
+    _mediaKitPlayer?.setVolume(effectiveVolume * 100);
   }
 
   void setPlaybackSpeed(double speed) {
+    if (_useNativePlayer) return; // TV 端由原生播放器处理
     _playbackSpeed = speed;
-    _useExoPlayer ? _exoPlayer?.setPlaybackSpeed(speed) : _mediaKitPlayer?.setRate(speed);
+    _mediaKitPlayer?.setRate(speed);
     notifyListeners();
   }
 
@@ -983,9 +869,7 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      if (_useExoPlayer) {
-        await _initExoPlayer(url);
-      } else {
+      if (!_useNativePlayer) {
         await _mediaKitPlayer?.open(Media(url));
         _state = PlayerState.playing;
       }
@@ -1015,7 +899,6 @@ class PlayerProvider extends ChangeNotifier {
     _debugInfoTimer?.cancel();
     _retryTimer?.cancel();
     _mediaKitPlayer?.dispose();
-    _disposeExoPlayer();
     super.dispose();
   }
 }

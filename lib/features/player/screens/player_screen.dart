@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:video_player/video_player.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:window_manager/window_manager.dart';
@@ -381,8 +380,16 @@ class _PlayerScreenState extends State<PlayerScreen>
   void _startDlnaSyncForNativePlayer() {
     try {
       final dlnaProvider = context.read<DlnaProvider>();
-      if (!dlnaProvider.isActiveSession) return;
+      // 注意：不检查 isActiveSession，因为在 TV 端接收 DLNA 投屏时，
+      // 这个方法可能在 isActiveSession 设置之前就被调用了
+      // 只要 DLNA 服务在运行，就启动同步定时器
+      if (!dlnaProvider.isRunning) {
+        ServiceLocator.log.d('PlayerScreen: DLNA service not running, skip sync timer');
+        return;
+      }
 
+      ServiceLocator.log.d('PlayerScreen: Starting DLNA sync timer for native player');
+      
       // 每秒同步一次播放状态
       _dlnaSyncTimer?.cancel();
       _dlnaSyncTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
@@ -393,6 +400,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
         try {
           final state = await NativePlayerChannel.getPlaybackState();
+          ServiceLocator.log.d('PlayerScreen: DLNA sync - state=$state');
           if (state != null) {
             final isPlaying = state['isPlaying'] as bool? ?? false;
             final position =
@@ -409,11 +417,11 @@ class _PlayerScreenState extends State<PlayerScreen>
             );
           }
         } catch (e) {
-          // 忽略错误
+          ServiceLocator.log.d('PlayerScreen: DLNA sync error - $e');
         }
       });
     } catch (e) {
-      // DLNA provider 不可用
+      ServiceLocator.log.d('PlayerScreen: Failed to start DLNA sync - $e');
     }
   }
 
@@ -1398,55 +1406,18 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     return Consumer<PlayerProvider>(
       builder: (context, provider, _) {
-        // Use ExoPlayer on Android phone
-        if (provider.useExoPlayer) {
-          final exoPlayer = provider.exoPlayer;
-          final playerKey = provider.exoPlayerKey;
-          
-          // 确保 exoPlayer 存在
-          if (exoPlayer == null) {
-            return const SizedBox.expand(
-              child: Center(
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
-
-          // 使用 key 强制重建 VideoPlayer widget
-          return ValueListenableBuilder<VideoPlayerValue>(
-            key: ValueKey(playerKey), // 使用 key 强制重建
-            valueListenable: exoPlayer,
-            builder: (context, value, child) {
-              if (!value.isInitialized) {
-                return const SizedBox.expand(
-                  child: Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                );
-              }
-
-              return Center(
-                child: AspectRatio(
-                  aspectRatio:
-                      value.aspectRatio > 0 ? value.aspectRatio : 16 / 9,
-                  child: VideoPlayer(exoPlayer),
-                ),
-              );
-            },
+        // 统一使用 media_kit
+        if (provider.videoController == null) {
+          return const SizedBox.expand(
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
           );
         }
 
-        // Use media_kit on other platforms
-        if (provider.videoController == null) {
-          return const SizedBox.expand();
-        }
-
-        return Center(
-          child: Video(
-            controller: provider.videoController!,
-            fill: Colors.black,
-            controls: NoVideoControls,
-          ),
+        return Video(
+          controller: provider.videoController!,
+          controls: NoVideoControls,
         );
       },
     );
