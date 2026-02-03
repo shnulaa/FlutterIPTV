@@ -6,6 +6,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/channel_logo_widget.dart';
+import '../../../core/widgets/auto_scroll_text.dart';
 import '../../../core/platform/windows_pip_channel.dart';
 import '../../../core/i18n/app_strings.dart';
 import '../providers/multi_screen_provider.dart';
@@ -16,7 +17,7 @@ import '../../channels/providers/channel_provider.dart';
 class MultiScreenPlayer extends StatefulWidget {
   final VoidCallback? onExitMultiScreen;
   final VoidCallback? onBack;
-  
+
   const MultiScreenPlayer({
     super.key,
     this.onExitMultiScreen,
@@ -45,14 +46,26 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
     return Consumer<MultiScreenProvider>(
       builder: (context, multiScreenProvider, _) {
         final isMiniMode = WindowsPipChannel.isInPipMode;
-        
+
         return MouseRegion(
+          cursor: (!isMiniMode && !_showControls)
+              ? SystemMouseCursors.none
+              : SystemMouseCursors.basic,
           onHover: (_) {
             if (!isMiniMode) _showControlsTemporarily();
           },
+          onExit: (_) {
+            if (mounted && !isMiniMode) {
+              _hideControlsTimer?.cancel();
+              _hideControlsTimer = Timer(const Duration(milliseconds: 300), () {
+                if (mounted) setState(() => _showControls = false);
+              });
+            }
+          },
           child: GestureDetector(
             // Mini模式下整个区域可拖动
-            onPanStart: isMiniMode ? (_) => windowManager.startDragging() : null,
+            onPanStart:
+                isMiniMode ? (_) => windowManager.startDragging() : null,
             onTap: () {
               if (_showChannelSelector) {
                 setState(() => _showChannelSelector = false);
@@ -86,7 +99,7 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                     ],
                   ),
                 ),
-                
+
                 // 顶部控制栏（非Mini模式）
                 if (_showControls && !isMiniMode)
                   Positioned(
@@ -95,7 +108,7 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                     right: 0,
                     child: _buildTopControls(context),
                   ),
-                
+
                 // Mini模式控制按钮（右上角，始终显示）
                 if (isMiniMode)
                   Positioned(
@@ -115,7 +128,8 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                               color: Colors.black.withOpacity(0.6),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Icon(Icons.fullscreen, color: Colors.white, size: 14),
+                            child: const Icon(Icons.fullscreen,
+                                color: Colors.white, size: 14),
                           ),
                         ),
                         const SizedBox(width: 4),
@@ -130,13 +144,14 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                               color: Colors.black.withOpacity(0.6),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Icon(Icons.close, color: Colors.white, size: 14),
+                            child: const Icon(Icons.close,
+                                color: Colors.white, size: 14),
                           ),
                         ),
                       ],
                     ),
                   ),
-                
+
                 // 频道选择器
                 if (_showChannelSelector)
                   _buildChannelSelector(context, multiScreenProvider),
@@ -160,7 +175,8 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
 
   Widget _buildTopControls(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      // 调整顶部间距未 30，使按钮下移，与右上角信息窗口错开并齐平
+      padding: const EdgeInsets.fromLTRB(16, 30, 16, 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -182,7 +198,8 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
             ),
             const Spacer(),
             IconButton(
-              icon: const Icon(Icons.picture_in_picture_alt, color: Colors.white),
+              icon:
+                  const Icon(Icons.picture_in_picture_alt, color: Colors.white),
               onPressed: () async {
                 await WindowsPipChannel.enterPipMode();
                 setState(() {});
@@ -192,7 +209,8 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
             IconButton(
               icon: const Icon(Icons.fullscreen_exit, color: Colors.white),
               onPressed: widget.onExitMultiScreen,
-              tooltip: AppStrings.of(context)?.exitMultiScreen ?? 'Exit Multi-Screen',
+              tooltip: AppStrings.of(context)?.exitMultiScreen ??
+                  'Exit Multi-Screen',
             ),
           ],
         ),
@@ -200,12 +218,13 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
     );
   }
 
-  Widget _buildScreenCell(BuildContext context, int index, MultiScreenProvider multiScreenProvider) {
+  Widget _buildScreenCell(BuildContext context, int index,
+      MultiScreenProvider multiScreenProvider) {
     final screen = multiScreenProvider.getScreen(index);
     final isActive = multiScreenProvider.activeScreenIndex == index;
     final settingsProvider = context.watch<SettingsProvider>();
     final isMiniMode = WindowsPipChannel.isInPipMode;
-    
+
     return Expanded(
       child: GestureDetector(
         onTap: () {
@@ -228,7 +247,9 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
           margin: EdgeInsets.all(isMiniMode ? 1 : 2),
           decoration: BoxDecoration(
             border: Border.all(
-              color: isActive ? AppTheme.getPrimaryColor(context) : Colors.grey.withOpacity(0.3),
+              color: isActive
+                  ? AppTheme.getPrimaryColor(context)
+                  : Colors.grey.withOpacity(0.3),
               width: isActive ? (isMiniMode ? 2 : 3) : 1,
             ),
           ),
@@ -245,7 +266,7 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                 _buildLoadingPlaceholder(screen)
               else
                 _buildEmptyScreenPlaceholder(context, index, isMiniMode),
-              
+
               // Mini模式下不显示额外信息
               if (!isMiniMode) ...[
                 // 屏幕标识（左上角）
@@ -253,9 +274,12 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                   top: 8,
                   left: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: isActive ? AppTheme.getPrimaryColor(context) : Colors.black54,
+                      color: isActive
+                          ? AppTheme.getPrimaryColor(context)
+                          : Colors.black54,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
@@ -268,7 +292,7 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                     ),
                   ),
                 ),
-                
+
                 // 右上角信息显示
                 if (screen.channel != null)
                   Positioned(
@@ -276,7 +300,7 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                     right: 8,
                     child: _buildInfoOverlay(context, screen, settingsProvider),
                   ),
-                
+
                 // 频道名称和EPG（底部）
                 if (screen.channel != null)
                   Positioned(
@@ -286,17 +310,19 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                     child: _buildBottomInfo(context, screen),
                   ),
               ],
-              
+
               // 加载指示器
               if (screen.isLoading)
                 Center(
                   child: SizedBox(
                     width: isMiniMode ? 16 : 32,
                     height: isMiniMode ? 16 : 32,
-                    child: CircularProgressIndicator(color: AppTheme.getPrimaryColor(context), strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                        color: AppTheme.getPrimaryColor(context),
+                        strokeWidth: 2),
                   ),
                 ),
-              
+
               // 错误显示
               if (screen.error != null)
                 Center(
@@ -313,9 +339,10 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
     );
   }
 
-  Widget _buildChannelSelector(BuildContext context, MultiScreenProvider multiScreenProvider) {
+  Widget _buildChannelSelector(
+      BuildContext context, MultiScreenProvider multiScreenProvider) {
     final channelProvider = context.watch<ChannelProvider>();
-    
+
     return Container(
       color: Colors.black.withOpacity(0.95),
       child: Row(
@@ -364,7 +391,8 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                   child: Row(
                     children: [
                       GestureDetector(
-                        onTap: () => setState(() => _showChannelSelector = false),
+                        onTap: () =>
+                            setState(() => _showChannelSelector = false),
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -381,7 +409,10 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          (AppStrings.of(context)?.screenNumber ?? 'Screen {number}').replaceAll('{number}', '${_targetScreenIndex + 1}'),
+                          (AppStrings.of(context)?.screenNumber ??
+                                  'Screen {number}')
+                              .replaceAll(
+                                  '{number}', '${_targetScreenIndex + 1}'),
                           style: TextStyle(
                             color: AppTheme.getTextPrimary(context),
                             fontSize: 16,
@@ -413,7 +444,8 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                         name: group.name,
                         count: group.channelCount,
                         isSelected: _selectedCategory == group.name,
-                        onTap: () => setState(() => _selectedCategory = group.name),
+                        onTap: () =>
+                            setState(() => _selectedCategory = group.name),
                       );
                     },
                   ),
@@ -441,7 +473,8 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                         ],
                 ),
               ),
-              child: _buildChannelGrid(context, channelProvider, multiScreenProvider),
+              child: _buildChannelGrid(
+                  context, channelProvider, multiScreenProvider),
             ),
           ),
         ],
@@ -466,10 +499,14 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: isSelected ? AppTheme.getPrimaryColor(context).withOpacity(0.2) : Colors.transparent,
+              color: isSelected
+                  ? AppTheme.getPrimaryColor(context).withOpacity(0.2)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isSelected ? AppTheme.getPrimaryColor(context).withOpacity(0.5) : Colors.transparent,
+                color: isSelected
+                    ? AppTheme.getPrimaryColor(context).withOpacity(0.5)
+                    : Colors.transparent,
                 width: 1,
               ),
             ),
@@ -479,7 +516,9 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                   width: 3,
                   height: 20,
                   decoration: BoxDecoration(
-                    color: isSelected ? AppTheme.getPrimaryColor(context) : Colors.transparent,
+                    color: isSelected
+                        ? AppTheme.getPrimaryColor(context)
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -488,24 +527,32 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                   child: Text(
                     name,
                     style: TextStyle(
-                      color: isSelected ? AppTheme.getPrimaryColor(context) : AppTheme.getTextPrimary(context),
+                      color: isSelected
+                          ? AppTheme.getPrimaryColor(context)
+                          : AppTheme.getTextPrimary(context),
                       fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.normal,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppTheme.getPrimaryColor(context).withOpacity(0.2) : AppTheme.getCardColor(context),
+                    color: isSelected
+                        ? AppTheme.getPrimaryColor(context).withOpacity(0.2)
+                        : AppTheme.getCardColor(context),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     count.toString(),
                     style: TextStyle(
-                      color: isSelected ? AppTheme.getPrimaryColor(context) : AppTheme.getTextMuted(context),
+                      color: isSelected
+                          ? AppTheme.getPrimaryColor(context)
+                          : AppTheme.getTextMuted(context),
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -519,13 +566,18 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
     );
   }
 
-  Widget _buildChannelGrid(BuildContext context, ChannelProvider channelProvider, MultiScreenProvider multiScreenProvider) {
+  Widget _buildChannelGrid(
+      BuildContext context,
+      ChannelProvider channelProvider,
+      MultiScreenProvider multiScreenProvider) {
     // 根据选中的分类过滤频道
     List channels;
     if (_selectedCategory == null) {
       channels = channelProvider.channels;
     } else {
-      channels = channelProvider.channels.where((c) => c.groupName == _selectedCategory).toList();
+      channels = channelProvider.channels
+          .where((c) => c.groupName == _selectedCategory)
+          .toList();
     }
 
     return Column(
@@ -537,7 +589,8 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
           child: Row(
             children: [
               Text(
-                _selectedCategory ?? (AppStrings.of(context)?.allChannels ?? 'All Channels'),
+                _selectedCategory ??
+                    (AppStrings.of(context)?.allChannels ?? 'All Channels'),
                 style: TextStyle(
                   color: AppTheme.getTextPrimary(context),
                   fontSize: 18,
@@ -546,7 +599,8 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
               ),
               const SizedBox(width: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppTheme.getSurfaceColor(context),
                   borderRadius: BorderRadius.circular(12),
@@ -583,7 +637,8 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
     );
   }
 
-  Widget _buildChannelCard(BuildContext context, dynamic channel, MultiScreenProvider multiScreenProvider) {
+  Widget _buildChannelCard(BuildContext context, dynamic channel,
+      MultiScreenProvider multiScreenProvider) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -610,8 +665,8 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                     topRight: Radius.circular(12),
                   ),
                   child: Container(
-                    color: Theme.of(context).brightness == Brightness.dark 
-                        ? const Color(0xFF0A0A0A) 
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF0A0A0A)
                         : const Color(0xFFB8B8B8),
                     child: Center(
                       child: Padding(
@@ -629,17 +684,18 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
               Expanded(
                 flex: 1,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: Center(
-                    child: Text(
-                      channel.name,
+                    child: AutoScrollText(
+                      text: channel.name,
                       style: TextStyle(
                         color: AppTheme.getTextPrimary(context),
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      scrollSpeed: 30.0,
+                      scrollDelay: const Duration(milliseconds: 500),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -652,25 +708,11 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
     );
   }
 
-  Widget _buildDefaultLogo() {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Image.asset(
-        'assets/images/default_logo.png',
-        fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => const Icon(
-          Icons.tv,
-          color: Colors.grey,
-          size: 32,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoOverlay(BuildContext context, ScreenPlayerState screen, SettingsProvider settings) {
+  Widget _buildInfoOverlay(BuildContext context, ScreenPlayerState screen,
+      SettingsProvider settings) {
     final showAny = settings.showClock || settings.showVideoInfo;
     if (!showAny) return const SizedBox.shrink();
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
@@ -687,8 +729,11 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                 return _buildInfoChip(_getCurrentTime(), Colors.blue);
               },
             ),
-          if (settings.showVideoInfo && screen.videoWidth > 0 && screen.videoHeight > 0)
-            _buildInfoChip('${screen.videoWidth}x${screen.videoHeight}', Colors.purple),
+          if (settings.showVideoInfo &&
+              screen.videoWidth > 0 &&
+              screen.videoHeight > 0)
+            _buildInfoChip(
+                '${screen.videoWidth}x${screen.videoHeight}', Colors.purple),
         ],
       ),
     );
@@ -704,7 +749,8 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
       ),
       child: Text(
         text,
-        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w500),
+        style: const TextStyle(
+            color: Colors.white, fontSize: 9, fontWeight: FontWeight.w500),
       ),
     );
   }
@@ -716,17 +762,18 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
 
   Widget _buildBottomInfo(BuildContext context, ScreenPlayerState screen) {
     final settingsProvider = context.watch<SettingsProvider>();
-    
+
     // 如果设置为不显示频道名称，则返回空组件
     if (!settingsProvider.showMultiScreenChannelName) {
       return const SizedBox.shrink();
     }
-    
+
     final epgProvider = context.watch<EpgProvider>();
-    final currentProgram = screen.channel != null 
-        ? epgProvider.getCurrentProgram(screen.channel!.epgId, screen.channel!.name)
+    final currentProgram = screen.channel != null
+        ? epgProvider.getCurrentProgram(
+            screen.channel!.epgId, screen.channel!.name)
         : null;
-    
+
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
@@ -736,34 +783,50 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
           colors: [Colors.black.withOpacity(0.8), Colors.transparent],
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            screen.channel?.name ?? '',
-            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          if (currentProgram != null) ...[
-            const SizedBox(height: 2),
-            Row(
-              children: [
-                Icon(Icons.play_circle_filled, color: AppTheme.getPrimaryColor(context), size: 10),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    currentProgram.title,
-                    style: TextStyle(color: AppTheme.getPrimaryColor(context), fontSize: 10),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: SizedBox(
+          width: 60,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AutoScrollText(
+                key: ValueKey('ch_${screen.channel?.id}'),
+                text: screen.channel?.name ?? '',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold),
+                scrollSpeed: 30.0,
+                scrollDelay: const Duration(milliseconds: 1000),
+                textAlign: TextAlign.left,
+              ),
+              if (currentProgram != null) ...[
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(Icons.play_circle_filled,
+                        color: AppTheme.getPrimaryColor(context), size: 10),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: AutoScrollText(
+                        key: ValueKey('pg_${currentProgram.title}'),
+                        text: currentProgram.title,
+                        style: TextStyle(
+                            color: AppTheme.getPrimaryColor(context),
+                            fontSize: 10),
+                        scrollSpeed: 30.0,
+                        scrollDelay: const Duration(milliseconds: 1000),
+                        textAlign: TextAlign.left,
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-          ],
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -778,7 +841,8 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
             CircularProgressIndicator(color: AppTheme.getPrimaryColor(context)),
             const SizedBox(height: 8),
             Text(
-              screen.channel?.name ?? (AppStrings.of(context)?.loading ?? 'Loading...'),
+              screen.channel?.name ??
+                  (AppStrings.of(context)?.loading ?? 'Loading...'),
               style: const TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ],
@@ -787,11 +851,12 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
     );
   }
 
-  Widget _buildEmptyScreenPlaceholder(BuildContext context, int index, bool isMiniMode) {
+  Widget _buildEmptyScreenPlaceholder(
+      BuildContext context, int index, bool isMiniMode) {
     if (isMiniMode) {
       return Container(color: Colors.grey[900]);
     }
-    
+
     return Container(
       color: Colors.grey[900],
       child: Center(
@@ -800,8 +865,14 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
           children: [
             Icon(Icons.add_circle_outline, size: 36, color: Colors.grey[600]),
             const SizedBox(height: 8),
-            Text((AppStrings.of(context)?.screenNumber ?? 'Screen {number}').replaceAll('{number}', '${index + 1}'), style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-            Text(AppStrings.of(context)?.clickToAddChannel ?? 'Click to add channel', style: TextStyle(color: Colors.grey[700], fontSize: 10)),
+            Text(
+                (AppStrings.of(context)?.screenNumber ?? 'Screen {number}')
+                    .replaceAll('{number}', '${index + 1}'),
+                style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+            Text(
+                AppStrings.of(context)?.clickToAddChannel ??
+                    'Click to add channel',
+                style: TextStyle(color: Colors.grey[700], fontSize: 10)),
           ],
         ),
       ),
