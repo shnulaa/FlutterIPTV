@@ -1,23 +1,23 @@
 {
-  "version": "1.4.32",
-  "build": 152,
-  "releaseDate": "2026-02-04",
+  "version": "1.4.33",
+  "build": 153,
+  "releaseDate": "2026-02-06",
   "assets": {
-    "windows": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.32/flutteriptv-Windows-x64-Setup.exe",
+    "windows": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.33/flutteriptv-Windows-x64-Setup.exe",
     "android_mobile": {
-      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.32/flutteriptv-Android-Mobile-arm64-v8a.apk",
-      "armeabi-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.32/flutteriptv-Android-Mobile-armeabi-v7a.apk",
-      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.32/flutteriptv-Android-Mobile-x86_64.apk"
+      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.33/flutteriptv-Android-Mobile-arm64-v8a.apk",
+      "armeabi-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.33/flutteriptv-Android-Mobile-armeabi-v7a.apk",
+      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.33/flutteriptv-Android-Mobile-x86_64.apk"
     },
     "android_tv": {
-      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.32/flutteriptv-AndroidTV-arm64-v8a.apk",
-      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.32/flutteriptv-AndroidTV-armeabi-v7a.apk",
-      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.32/flutteriptv-AndroidTV-x86_64.apk"
+      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.33/flutteriptv-AndroidTV-arm64-v8a.apk",
+      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.33/flutteriptv-AndroidTV-armeabi-v7a.apk",
+      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.4.33/flutteriptv-AndroidTV-x86_64.apk"
     }
   },
   "changelog": {
-    "zh": "- 修复：TV端观看历史记录问题（所有场景完整覆盖）\n- 修复：TV端首页焦点导航问题（观看记录可跳转到继续观看按钮）\n- 修复：首页点击频道重复记录观看历史的问题\n- 新增：TV端分屏模式内切换频道自动记录观看历史\n- 新增：TV端分屏模式退出后自动刷新观看历史\n- 优化：首页显示8个分类（原5个）",
-    "en": "- Fixed: TV watch history recording issues (all scenarios covered)\n- Fixed: TV home page focus navigation (watch history can jump to continue button)\n- Fixed: Duplicate watch history recording when clicking channels from home\n- Added: Auto-record watch history when switching channels in TV multi-screen mode\n- Added: Auto-refresh watch history after exiting TV multi-screen mode\n- Improved: Home page now shows 8 categories (was 5)"
+    "zh": "- 优化：所有频道卡片文字支持滚动显示（不再省略）\n- 新增：设置中可控制首页是否显示观看记录和收藏夹\n- 优化：首页显示顺序调整（观看记录第一，收藏夹第二）\n- 优化：频道卡片、分类卡片、收藏页面文字悬停/聚焦时自动滚动\n- 优化：AutoScrollText组件支持外部控制滚动状态",
+    "en": "- Improved: All channel card text now scrolls instead of truncating\n- Added: Settings to control watch history and favorites display on home\n- Improved: Home page order adjusted (watch history first, favorites second)\n- Improved: Channel cards, category cards, favorites page text auto-scroll on hover/focus\n- Improved: AutoScrollText component supports external scroll control"
   },
   "minVersion": "1.0.0"
 }

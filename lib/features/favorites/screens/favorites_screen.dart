@@ -6,6 +6,7 @@ import '../../../core/navigation/app_router.dart';
 import '../../../core/widgets/tv_focusable.dart';
 import '../../../core/widgets/tv_sidebar.dart';
 import '../../../core/widgets/channel_logo_widget.dart';
+import '../../../core/widgets/auto_scroll_text.dart';
 import '../../../core/platform/platform_detector.dart';
 import '../../../core/i18n/app_strings.dart';
 import '../providers/favorites_provider.dart';
@@ -370,149 +371,26 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     final isMobile = PlatformDetector.isMobile;
     final isLandscape = isMobile && MediaQuery.of(context).size.width > 600;
     
-    return TVFocusable(
-      autofocus: index == 0,
-      onSelect: () => _playChannel(channel),
-      focusScale: 1.02,
-      showFocusBorder: false,
-      builder: (context, isFocused, child) {
-        return AnimatedContainer(
-          duration: AppTheme.animationFast,
-          decoration: BoxDecoration(
-            color: AppTheme.getSurfaceColor(context),
-            borderRadius: BorderRadius.circular(isLandscape ? 12 : 16),  // 横屏时圆角更小
-            border: Border.all(
-              color: isFocused ? AppTheme.getPrimaryColor(context) : Colors.transparent,
-              width: isFocused ? 2 : 0,
+    return _FavoriteCardWrapper(
+      index: index,
+      channel: channel,
+      isLandscape: isLandscape,
+      onPlayChannel: () => _playChannel(channel),
+      onRemoveFavorite: () async {
+        await provider.removeFavorite(channel.id!);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text((AppStrings.of(context)?.removedFromFavorites ?? 'Removed "{name}" from favorites').replaceAll('{name}', channel.name)),
+              action: SnackBarAction(
+                label: AppStrings.of(context)?.undo ?? 'Undo',
+                onPressed: () => provider.addFavorite(channel),
+              ),
             ),
-            boxShadow: isFocused
-                ? [
-                    BoxShadow(
-                      color: AppTheme.getPrimaryColor(context).withOpacity(0.2),
-                      blurRadius: 12,
-                    ),
-                  ]
-                : null,
-          ),
-          child: child,
-        );
+          );
+        }
       },
-      child: Padding(
-        padding: EdgeInsets.all(isLandscape ? 6 : 10),  // 横屏时减少padding
-        child: Row(
-          children: [
-            // Drag Handle
-            ReorderableDragStartListener(
-              index: index,
-              child: Container(
-                padding: EdgeInsets.all(isLandscape ? 4 : 6),  // 横屏时减少padding
-                child: Icon(
-                  Icons.drag_indicator_rounded,
-                  color: AppTheme.textMuted,
-                  size: isLandscape ? 14 : 18,  // 横屏时图标更小
-                ),
-              ),
-            ),
-
-            SizedBox(width: isLandscape ? 6 : 8),  // 横屏时减少间距
-
-            // Channel Logo
-            ChannelLogoWidget(
-              channel: channel,
-              width: isLandscape ? 48 : 64,  // 横屏时logo更小
-              height: isLandscape ? 36 : 48,  // 横屏时logo更小
-              fit: BoxFit.contain,
-              borderRadius: BorderRadius.circular(isLandscape ? 8 : 10),  // 横屏时圆角更小
-            ),
-
-            SizedBox(width: isLandscape ? 10 : 16),  // 横屏时减少间距
-
-            // Channel Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    channel.name,
-                    style: TextStyle(
-                      color: AppTheme.getTextPrimary(context),
-                      fontSize: isLandscape ? 12 : 14,  // 横屏时字体更小
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (channel.groupName != null) ...[
-                    SizedBox(height: isLandscape ? 1 : 2),  // 横屏时减少间距
-                    Text(
-                      channel.groupName!,
-                      style: TextStyle(
-                        color: AppTheme.getTextSecondary(context),
-                        fontSize: isLandscape ? 10 : 11,  // 横屏时字体更小
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            // Actions
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Play Button
-                TVFocusable(
-                  onSelect: () => _playChannel(channel),
-                  child: Container(
-                    padding: EdgeInsets.all(isLandscape ? 6 : 8),  // 横屏时减少padding
-                    decoration: BoxDecoration(
-                      color: AppTheme.getPrimaryColor(context).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(isLandscape ? 6 : 8),  // 横屏时圆角更小
-                    ),
-                    child: Icon(
-                      Icons.play_arrow_rounded,
-                      color: AppTheme.getPrimaryColor(context),
-                      size: isLandscape ? 16 : 20,  // 横屏时图标更小
-                    ),
-                  ),
-                ),
-                SizedBox(width: isLandscape ? 4 : 6),  // 横屏时减少间距
-
-                // Remove Button
-                TVFocusable(
-                  onSelect: () async {
-                    await provider.removeFavorite(channel.id!);
-
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text((AppStrings.of(context)?.removedFromFavorites ?? 'Removed "{name}" from favorites').replaceAll('{name}', channel.name)),
-                          action: SnackBarAction(
-                            label: AppStrings.of(context)?.undo ?? 'Undo',
-                            onPressed: () => provider.addFavorite(channel),
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.errorColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(isLandscape ? 6 : 8),  // 横屏时圆角更小
-                    ),
-                    child: Icon(
-                      Icons.favorite,
-                      color: AppTheme.errorColor,
-                      size: isLandscape ? 16 : 20,  // 横屏时图标更小
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -559,6 +437,170 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           ],
         );
       },
+    );
+  }
+}
+
+class _FavoriteCardWrapper extends StatefulWidget {
+  final int index;
+  final dynamic channel;
+  final bool isLandscape;
+  final VoidCallback onPlayChannel;
+  final VoidCallback onRemoveFavorite;
+
+  const _FavoriteCardWrapper({
+    required this.index,
+    required this.channel,
+    required this.isLandscape,
+    required this.onPlayChannel,
+    required this.onRemoveFavorite,
+  });
+
+  @override
+  State<_FavoriteCardWrapper> createState() => _FavoriteCardWrapperState();
+}
+
+class _FavoriteCardWrapperState extends State<_FavoriteCardWrapper> {
+  bool _isHovered = false;
+  bool _isFocused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return TVFocusable(
+      autofocus: widget.index == 0,
+      onSelect: widget.onPlayChannel,
+      onFocus: () => setState(() => _isFocused = true),
+      onBlur: () => setState(() => _isFocused = false),
+      focusScale: 1.02,
+      showFocusBorder: false,
+      builder: (context, isFocused, child) {
+        return AnimatedContainer(
+          duration: AppTheme.animationFast,
+          decoration: BoxDecoration(
+            color: AppTheme.getSurfaceColor(context),
+            borderRadius: BorderRadius.circular(widget.isLandscape ? 12 : 16),
+            border: Border.all(
+              color: isFocused ? AppTheme.getPrimaryColor(context) : Colors.transparent,
+              width: isFocused ? 2 : 0,
+            ),
+            boxShadow: isFocused
+                ? [
+                    BoxShadow(
+                      color: AppTheme.getPrimaryColor(context).withOpacity(0.2),
+                      blurRadius: 12,
+                    ),
+                  ]
+                : null,
+          ),
+          child: MouseRegion(
+            onEnter: (_) => setState(() => _isHovered = true),
+            onExit: (_) => setState(() => _isHovered = false),
+            child: child,
+          ),
+        );
+      },
+      child: Padding(
+        padding: EdgeInsets.all(widget.isLandscape ? 6 : 10),
+        child: Row(
+          children: [
+            // Drag Handle
+            ReorderableDragStartListener(
+              index: widget.index,
+              child: Container(
+                padding: EdgeInsets.all(widget.isLandscape ? 4 : 6),
+                child: Icon(
+                  Icons.drag_indicator_rounded,
+                  color: AppTheme.textMuted,
+                  size: widget.isLandscape ? 14 : 18,
+                ),
+              ),
+            ),
+
+            SizedBox(width: widget.isLandscape ? 6 : 8),
+
+            // Channel Logo
+            ChannelLogoWidget(
+              channel: widget.channel,
+              width: widget.isLandscape ? 48 : 64,
+              height: widget.isLandscape ? 36 : 48,
+              fit: BoxFit.contain,
+              borderRadius: BorderRadius.circular(widget.isLandscape ? 8 : 10),
+            ),
+
+            SizedBox(width: widget.isLandscape ? 10 : 16),
+
+            // Channel Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AutoScrollText(
+                    text: widget.channel.name,
+                    style: TextStyle(
+                      color: AppTheme.getTextPrimary(context),
+                      fontSize: widget.isLandscape ? 12 : 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    forceScroll: _isHovered || _isFocused,
+                  ),
+                  if (widget.channel.groupName != null) ...[
+                    SizedBox(height: widget.isLandscape ? 1 : 2),
+                    AutoScrollText(
+                      text: widget.channel.groupName!,
+                      style: TextStyle(
+                        color: AppTheme.getTextSecondary(context),
+                        fontSize: widget.isLandscape ? 10 : 11,
+                      ),
+                      forceScroll: _isHovered || _isFocused,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // Actions
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Play Button
+                TVFocusable(
+                  onSelect: widget.onPlayChannel,
+                  child: Container(
+                    padding: EdgeInsets.all(widget.isLandscape ? 6 : 8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.getPrimaryColor(context).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(widget.isLandscape ? 6 : 8),
+                    ),
+                    child: Icon(
+                      Icons.play_arrow_rounded,
+                      color: AppTheme.getPrimaryColor(context),
+                      size: widget.isLandscape ? 16 : 20,
+                    ),
+                  ),
+                ),
+                SizedBox(width: widget.isLandscape ? 4 : 6),
+
+                // Remove Button
+                TVFocusable(
+                  onSelect: widget.onRemoveFavorite,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.errorColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(widget.isLandscape ? 6 : 8),
+                    ),
+                    child: Icon(
+                      Icons.favorite,
+                      color: AppTheme.errorColor,
+                      size: widget.isLandscape ? 16 : 20,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

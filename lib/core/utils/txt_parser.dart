@@ -19,8 +19,8 @@ class TXTParser {
 
       final dio = Dio();
       // Reduce timeout to 10 seconds as requested
-      dio.options.connectTimeout = const Duration(seconds: 3);
-      dio.options.receiveTimeout = const Duration(seconds: 3);
+      dio.options.connectTimeout = const Duration(seconds: 5);
+      dio.options.receiveTimeout = const Duration(seconds: 5);
 
       final response = await dio.get(
         url,

@@ -555,8 +555,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Ro
   }
 
   Widget _buildMainContent(BuildContext context) {
-    return Consumer2<PlaylistProvider, ChannelProvider>(
-      builder: (context, playlistProvider, channelProvider, _) {
+    return Consumer3<PlaylistProvider, ChannelProvider, SettingsProvider>(
+      builder: (context, playlistProvider, channelProvider, settingsProvider, _) {
         if (!playlistProvider.hasPlaylists) return _buildEmptyState();
 
         // 播放列表正在刷新或频道正在加载时显示加载状态
@@ -608,14 +608,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Ro
                         horizontal: PlatformDetector.isMobile ? 12 : 24),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        // 只有当观看记录不为空时才显示
-                        if (_watchHistoryChannels.isNotEmpty)
+                        // 观看记录排在第一个（如果设置中启用且有记录）
+                        if (settingsProvider.showWatchHistoryOnHome && _watchHistoryChannels.isNotEmpty) ...[
                           _buildChannelRow(
                               AppStrings.of(context)?.watchHistory ?? 'Watch History',
                               _watchHistoryChannels,
-                              isFirstRow: true), // 观看历史是第一行
-                        if (_watchHistoryChannels.isNotEmpty)
+                              isFirstRow: true), // 观看记录是第一行
                           SizedBox(height: PlatformDetector.isMobile ? 8 : 12),
+                        ],
+                        // 收藏夹排在第二个（如果设置中启用且有收藏）
+                        if (settingsProvider.showFavoritesOnHome && favChannels.isNotEmpty) ...[
+                          _buildChannelRow(
+                              AppStrings.of(context)?.myFavorites ?? 'My Favorites',
+                              favChannels,
+                              showMore: true,
+                              onMoreTap: () => Navigator.pushNamed(context, AppRouter.favorites),
+                              isFirstRow: !settingsProvider.showWatchHistoryOnHome || _watchHistoryChannels.isEmpty), // 如果观看记录不显示或为空，收藏夹是第一行
+                          SizedBox(height: PlatformDetector.isMobile ? 8 : 12),
+                        ],
                         ...channelProvider.groups.take(8).toList().asMap().entries.map((entry) {
                           final index = entry.key;
                           final group = entry.value;
@@ -624,6 +634,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Ro
                               .where((c) => c.groupName == group.name)
                               .take(20)
                               .toList();
+                          // 判断是否是第一行：观看记录和收藏夹都不显示时，第一个分类是第一行
+                          final isFirst = index == 0 && 
+                              (!settingsProvider.showWatchHistoryOnHome || _watchHistoryChannels.isEmpty) && 
+                              (!settingsProvider.showFavoritesOnHome || favChannels.isEmpty);
                           return Padding(
                             padding: EdgeInsets.only(
                                 bottom: PlatformDetector.isMobile ? 8 : 12),
@@ -634,20 +648,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Ro
                               onMoreTap: () => Navigator.pushNamed(
                                   context, AppRouter.channels,
                                   arguments: {'groupName': group.name}),
-                              isFirstRow: index == 0 && _watchHistoryChannels.isEmpty, // 如果没有观看历史，第一个分类是第一行
+                              isFirstRow: isFirst,
                             ),
                           );
                         }),
-                        if (favChannels.isNotEmpty) ...[
-                          _buildChannelRow(
-                              AppStrings.of(context)?.myFavorites ??
-                                  'My Favorites',
-                              favChannels,
-                              showMore: true,
-                              onMoreTap: () => Navigator.pushNamed(
-                                  context, AppRouter.favorites)),
-                          SizedBox(height: PlatformDetector.isMobile ? 8 : 12),
-                        ],
                       ]),
                     ),
                   ),

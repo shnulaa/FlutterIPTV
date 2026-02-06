@@ -7,6 +7,7 @@ class AutoScrollText extends StatefulWidget {
   final double scrollSpeed;
   final Duration scrollDelay;
   final TextAlign textAlign;
+  final bool forceScroll; // 新增：强制滚动控制
 
   const AutoScrollText({
     super.key,
@@ -15,6 +16,7 @@ class AutoScrollText extends StatefulWidget {
     this.scrollSpeed = 30.0,
     this.scrollDelay = const Duration(milliseconds: 1000),
     this.textAlign = TextAlign.left,
+    this.forceScroll = false, // 默认false，保持原有行为
     double? width, // 保持参数兼容性，但实际由布局决定
   });
 
@@ -53,6 +55,16 @@ class _AutoScrollTextState extends State<AutoScrollText>
       _controller.stop();
       _controller.reset();
       _checkOverflow();
+    }
+    
+    // 当 forceScroll 状态改变时，重新触发滚动逻辑
+    if (oldWidget.forceScroll != widget.forceScroll) {
+      if (widget.forceScroll && _isOverflowing) {
+        _startScrolling();
+      } else if (!widget.forceScroll && !_isHovering) {
+        _controller.stop();
+        _controller.animateTo(0, duration: const Duration(milliseconds: 300));
+      }
     }
   }
 
@@ -105,11 +117,11 @@ class _AutoScrollTextState extends State<AutoScrollText>
       _isHovering = hovering;
     });
 
-    if (hovering) {
-      // 每次 Hover 时重新检查溢出，以适应布局宽度的变化
+    if (hovering || widget.forceScroll) {
+      // 每次 Hover 时或强制滚动时重新检查溢出，以适应布局宽度的变化
       _checkOverflow();
     } else {
-      // Hover 结束，停止滚动
+      // Hover 结束且非强制滚动，停止滚动
       _controller.stop();
       _controller.animateTo(0, duration: const Duration(milliseconds: 300));
     }
@@ -118,7 +130,7 @@ class _AutoScrollTextState extends State<AutoScrollText>
   void _startScrolling() {
     // 延迟滚动
     Future.delayed(widget.scrollDelay, () {
-      if (mounted && _isHovering && _isOverflowing) {
+      if (mounted && (_isHovering || widget.forceScroll) && _isOverflowing) {
         if (!_controller.isAnimating) {
           _controller.repeat(reverse: true);
         }

@@ -322,16 +322,15 @@ class _ChannelCardState extends State<ChannelCard> {
         else ...[
           if (hasGroup) ...[
             SizedBox(height: isMobile ? 1 : 2),
-            Text(
-              widget.groupName!,
+            _AutoScrollText(
+              text: widget.groupName!,
               style: TextStyle(
                 color: AppTheme.getPrimaryColor(context).withOpacity(0.8), 
                 fontSize: isMobile ? 8 : 10,
                 height: 1.1,
                 fontWeight: FontWeight.w500,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              shouldScroll: _isHovered || _isFocused,
             ),
           ],
           SizedBox(height: isMobile ? 1 : 2),

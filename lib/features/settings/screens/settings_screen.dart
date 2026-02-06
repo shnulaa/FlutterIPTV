@@ -147,6 +147,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _showSuccess(context, value ? (strings?.simpleMenuEnabled ?? 'Simple menu enabled') : (strings?.simpleMenuDisabled ?? 'Simple menu disabled'));
                 },
               ),
+              _buildDivider(),
+              _buildSwitchTile(
+                context,
+                title: AppStrings.of(context)?.showWatchHistoryOnHome ?? 'Show Watch History on Home',
+                subtitle: AppStrings.of(context)?.showWatchHistoryOnHomeSubtitle ?? 'Display recently watched channels on home screen',
+                icon: Icons.history_rounded,
+                value: settings.showWatchHistoryOnHome,
+                onChanged: (value) {
+                  settings.setShowWatchHistoryOnHome(value);
+                  final strings = AppStrings.of(context);
+                  _showSuccess(context, value ? (strings?.watchHistoryOnHomeEnabled ?? 'Watch history on home enabled') : (strings?.watchHistoryOnHomeDisabled ?? 'Watch history on home disabled'));
+                },
+              ),
+              _buildDivider(),
+              _buildSwitchTile(
+                context,
+                title: AppStrings.of(context)?.showFavoritesOnHome ?? 'Show Favorites on Home',
+                subtitle: AppStrings.of(context)?.showFavoritesOnHomeSubtitle ?? 'Display favorite channels on home screen',
+                icon: Icons.favorite_rounded,
+                value: settings.showFavoritesOnHome,
+                onChanged: (value) {
+                  settings.setShowFavoritesOnHome(value);
+                  final strings = AppStrings.of(context);
+                  _showSuccess(context, value ? (strings?.favoritesOnHomeEnabled ?? 'Favorites on home enabled') : (strings?.favoritesOnHomeDisabled ?? 'Favorites on home disabled'));
+                },
+              ),
             ]),
 
             const SizedBox(height: 24),

@@ -42,6 +42,8 @@ class SettingsProvider extends ChangeNotifier {
   static const String _keyLogLevel = 'log_level'; // debug, release, off
   static const String _keyMobileOrientation = 'mobile_orientation'; // portrait, landscape, auto
   static const String _keyLastAppVersion = 'last_app_version'; // 用于检测版本更新
+  static const String _keyShowWatchHistoryOnHome = 'show_watch_history_on_home'; // 首页是否显示观看记录
+  static const String _keyShowFavoritesOnHome = 'show_favorites_on_home'; // 首页是否显示收藏夹
 
   // Settings values
   String _themeMode = 'dark';
@@ -80,6 +82,8 @@ class SettingsProvider extends ChangeNotifier {
   bool _simpleMenu = true; // 是否使用简单菜单栏（不展开）- 默认启用
   String _logLevel = 'off'; // 日志级别：debug, release, off - 默认关闭
   String _mobileOrientation = 'portrait'; // 手机端屏幕方向：portrait, landscape, auto - 默认竖屏
+  bool _showWatchHistoryOnHome = false; // 首页是否显示观看记录 - 默认不显示
+  bool _showFavoritesOnHome = false; // 首页是否显示收藏夹 - 默认不显示
 
   // Getters
   String get themeMode => _themeMode;
@@ -117,6 +121,8 @@ class SettingsProvider extends ChangeNotifier {
   bool get simpleMenu => _simpleMenu;
   String get logLevel => _logLevel;
   String get mobileOrientation => _mobileOrientation;
+  bool get showWatchHistoryOnHome => _showWatchHistoryOnHome;
+  bool get showFavoritesOnHome => _showFavoritesOnHome;
   
   /// 获取当前应该使用的配色方案
   String get currentColorScheme {
@@ -203,6 +209,10 @@ class SettingsProvider extends ChangeNotifier {
     // 加载手机端屏幕方向设置
     _mobileOrientation = prefs.getString(_keyMobileOrientation) ?? 'portrait';
     
+    // 加载首页显示设置
+    _showWatchHistoryOnHome = prefs.getBool(_keyShowWatchHistoryOnHome) ?? false;
+    _showFavoritesOnHome = prefs.getBool(_keyShowFavoritesOnHome) ?? false;
+    
     // 不在构造函数中调用 notifyListeners()，避免 build 期间触发重建
   }
 
@@ -285,6 +295,8 @@ class SettingsProvider extends ChangeNotifier {
     await prefs.setBool(_keySimpleMenu, _simpleMenu);
     await prefs.setString(_keyLogLevel, _logLevel);
     await prefs.setString(_keyMobileOrientation, _mobileOrientation);
+    await prefs.setBool(_keyShowWatchHistoryOnHome, _showWatchHistoryOnHome);
+    await prefs.setBool(_keyShowFavoritesOnHome, _showFavoritesOnHome);
   }
 
   // Setters with persistence
@@ -578,6 +590,22 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> setMobileOrientation(String orientation) async {
     ServiceLocator.log.d('SettingsProvider: 设置手机端屏幕方向 - $orientation');
     _mobileOrientation = orientation;
+    await _saveSettings();
+    notifyListeners();
+  }
+
+  /// 设置首页是否显示观看记录
+  Future<void> setShowWatchHistoryOnHome(bool show) async {
+    ServiceLocator.log.d('SettingsProvider: 设置首页显示观看记录 - $show');
+    _showWatchHistoryOnHome = show;
+    await _saveSettings();
+    notifyListeners();
+  }
+
+  /// 设置首页是否显示收藏夹
+  Future<void> setShowFavoritesOnHome(bool show) async {
+    ServiceLocator.log.d('SettingsProvider: 设置首页显示收藏夹 - $show');
+    _showFavoritesOnHome = show;
     await _saveSettings();
     notifyListeners();
   }

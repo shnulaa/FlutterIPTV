@@ -485,6 +485,16 @@ class AppStrings {
       _localizedValues['progressBarModeNeverDesc']!;
   String get progressBarModeSet => _localizedValues['progressBarModeSet']!;
 
+  // Home display settings
+  String get showWatchHistoryOnHome => _localizedValues['showWatchHistoryOnHome']!;
+  String get showWatchHistoryOnHomeSubtitle => _localizedValues['showWatchHistoryOnHomeSubtitle']!;
+  String get showFavoritesOnHome => _localizedValues['showFavoritesOnHome']!;
+  String get showFavoritesOnHomeSubtitle => _localizedValues['showFavoritesOnHomeSubtitle']!;
+  String get watchHistoryOnHomeEnabled => _localizedValues['watchHistoryOnHomeEnabled']!;
+  String get watchHistoryOnHomeDisabled => _localizedValues['watchHistoryOnHomeDisabled']!;
+  String get favoritesOnHomeEnabled => _localizedValues['favoritesOnHomeEnabled']!;
+  String get favoritesOnHomeDisabled => _localizedValues['favoritesOnHomeDisabled']!;
+
   // Map access for dynamic keys if needed
   String operator [](String key) => _localizedValues[key] ?? key;
 }
@@ -892,6 +902,16 @@ class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
     'progressBarModeAlwaysDesc': '所有内容都显示进度条',
     'progressBarModeNeverDesc': '所有内容都不显示进度条',
     'progressBarModeSet': '进度条显示已设置为：{mode}',
+
+    // Home display settings
+    'showWatchHistoryOnHome': '首页显示观看记录',
+    'showWatchHistoryOnHomeSubtitle': '在首页显示最近观看的频道',
+    'showFavoritesOnHome': '首页显示收藏夹',
+    'showFavoritesOnHomeSubtitle': '在首页显示收藏的频道',
+    'watchHistoryOnHomeEnabled': '首页观看记录显示已启用',
+    'watchHistoryOnHomeDisabled': '首页观看记录显示已关闭',
+    'favoritesOnHomeEnabled': '首页收藏夹显示已启用',
+    'favoritesOnHomeDisabled': '首页收藏夹显示已关闭',
 
     // Developer and debug settings
     'developerAndDebug': '开发者与调试',
@@ -1327,6 +1347,16 @@ class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
     'progressBarModeAlwaysDesc': 'Show progress bar for all content',
     'progressBarModeNeverDesc': 'Never show progress bar',
     'progressBarModeSet': 'Progress bar display set to: {mode}',
+
+    // Home display settings
+    'showWatchHistoryOnHome': 'Show Watch History on Home',
+    'showWatchHistoryOnHomeSubtitle': 'Display recently watched channels on home screen',
+    'showFavoritesOnHome': 'Show Favorites on Home',
+    'showFavoritesOnHomeSubtitle': 'Display favorite channels on home screen',
+    'watchHistoryOnHomeEnabled': 'Watch history on home enabled',
+    'watchHistoryOnHomeDisabled': 'Watch history on home disabled',
+    'favoritesOnHomeEnabled': 'Favorites on home enabled',
+    'favoritesOnHomeDisabled': 'Favorites on home disabled',
 
     // Developer and debug settings
     'developerAndDebug': 'Developer & Debug',
