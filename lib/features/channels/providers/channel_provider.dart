@@ -122,15 +122,24 @@ class ChannelProvider extends ChangeNotifier {
     _hasMoreToDisplay = true;
   }
 
-  // ✅ 清空全局缓存
+  // ✅ 清空全局缓存（切换/刷新/删除 playlist 时调用）
   void clearCache() {
+    // 1. 取消所有待通知主线程的队列
+    _notifyTimer?.cancel();
+    _hasPendingNotify = false;
+    
+    // 2. 取消所有正在进行的台标加载任务（通过增加 generation ID）
+    _loadingGeneration++;
+    
+    // 3. 清空所有缓存数据
     _allChannels.clear();
     _allGroups.clear();
     _displayedChannels.clear();
     _displayedCount = 0;
     _hasMoreToDisplay = true;
     _currentPlaylistId = null;
-    _loadingGeneration++;
+    
+    ServiceLocator.log.i('缓存已清空，台标加载已取消 (generation: $_loadingGeneration)', tag: 'ChannelProvider');
   }
 
   // ✅ 加载所有频道到全局缓存（一次性加载，但UI分页显示）
@@ -558,7 +567,14 @@ class ChannelProvider extends ChangeNotifier {
 
   // ✅ 清理台标加载队列（取消当前所有后台加载任务）
   void clearLogoLoadingQueue() {
+    // 1. 取消待通知主线程的队列
+    _notifyTimer?.cancel();
+    _hasPendingNotify = false;
+    
+    // 2. 增加 generation ID，取消所有正在进行的台标加载
     _loadingGeneration++;
+    
+    ServiceLocator.log.d('台标加载队列已清理 (generation: $_loadingGeneration)', tag: 'ChannelProvider');
   }
 
   // ✅ 后台填充备用台标 (分批处理，避免阻塞主线程)

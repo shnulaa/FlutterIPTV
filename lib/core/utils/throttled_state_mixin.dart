@@ -55,10 +55,15 @@ mixin ThrottledStateMixin<T extends StatefulWidget> on State<T> {
     }
   }
 
-  @override
-  void dispose() {
+  /// 清空待执行的 setState 队列（切换页面/数据时调用）
+  void clearPendingSetState() {
     _setStateTimer?.cancel();
     _pendingSetState = null;
+  }
+
+  @override
+  void dispose() {
+    clearPendingSetState();
     super.dispose();
   }
 }
