@@ -1,23 +1,23 @@
 {
-  "version": "1.5.3",
-  "build": 163,
+  "version": "1.5.4",
+  "build": 164,
   "releaseDate": "2026-02-12",
   "assets": {
-    "windows": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.3/flutteriptv-Windows-x64-Setup.exe",
+    "windows": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.4/flutteriptv-Windows-x64-Setup.exe",
     "android_mobile": {
-      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.3/flutteriptv-Android-Mobile-arm64-v8a.apk",
-      "armeabi-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.3/flutteriptv-Android-Mobile-armeabi-v7a.apk",
-      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.3/flutteriptv-Android-Mobile-x86_64.apk"
+      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.4/flutteriptv-Android-Mobile-arm64-v8a.apk",
+      "armeabi-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.4/flutteriptv-Android-Mobile-armeabi-v7a.apk",
+      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.4/flutteriptv-Android-Mobile-x86_64.apk"
     },
     "android_tv": {
-      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.3/flutteriptv-AndroidTV-arm64-v8a.apk",
-      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.3/flutteriptv-AndroidTV-armeabi-v7a.apk",
-      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.3/flutteriptv-AndroidTV-x86_64.apk"
+      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.4/flutteriptv-AndroidTV-arm64-v8a.apk",
+      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.4/flutteriptv-AndroidTV-armeabi-v7a.apk",
+      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.4/flutteriptv-AndroidTV-x86_64.apk"
     }
   },
   "changelog": {
-    "zh": "- 修复：Windows双显卡笔记本硬件解码问题，使用auto-copy模式提升兼容性\n- 优化：添加详细的播放器日志，记录GPU、解码器、渲染器信息\n- 优化：日志开关控制mpv日志监听，关闭日志时不产生性能开销\n- 优化：修正Windows端hwdec显示，正确显示硬件解码模式",
-    "en": "- Fix: Windows dual-GPU laptop hardware decoding issue, using auto-copy mode for better compatibility\n- Optimize: Added detailed player logs recording GPU, decoder, and renderer information\n- Optimize: Log switch controls mpv log listener, no performance overhead when logs are disabled\n- Optimize: Fixed Windows hwdec display to correctly show hardware decoding mode"
+    "zh": "- 优化：播放页面打开分类菜单时自动定位到当前播放频道\n- 优化：长按左键和点击分类按钮都会自动选中当前频道所属分类\n- 优化：分类菜单中当前播放频道自动高亮并滚动到可见区域",
+    "en": "- Optimize: Auto-locate to current playing channel when opening category menu on player page\n- Optimize: Both long-press left key and clicking category button will auto-select current channel's category\n- Optimize: Current playing channel is auto-highlighted and scrolled into view in category menu"
   },
   "minVersion": "1.0.0"
 }

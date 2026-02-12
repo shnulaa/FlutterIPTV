@@ -972,10 +972,39 @@ class _PlayerScreenState extends State<PlayerScreen>
         _longPressTimer?.cancel();
         _longPressTimer = Timer(const Duration(milliseconds: 500), () {
           if (mounted && _lastLeftKeyDownTime != null) {
-            // 长按：打开分类面板
+            // 长按：打开分类面板并定位到当前频道
+            final playerProvider = context.read<PlayerProvider>();
+            final channelProvider = context.read<ChannelProvider>();
+            final currentChannel = playerProvider.currentChannel;
+            
             setState(() {
               _showCategoryPanel = true;
-              _selectedCategory = null;
+              // 如果有当前频道，自动选中其所属分类
+              if (currentChannel != null && currentChannel.groupName != null) {
+                _selectedCategory = currentChannel.groupName;
+                
+                // 延迟滚动到当前频道位置
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (_selectedCategory != null) {
+                    final channels = channelProvider.getChannelsByGroup(_selectedCategory!);
+                    final currentIndex = channels.indexWhere((ch) => ch.id == currentChannel.id);
+                    
+                    if (currentIndex >= 0 && _channelScrollController.hasClients) {
+                      // 计算滚动位置（每个频道项约 44 像素高）
+                      final itemHeight = 44.0;
+                      final scrollOffset = currentIndex * itemHeight;
+                      
+                      _channelScrollController.animateTo(
+                        scrollOffset,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                      );
+                    }
+                  }
+                });
+              } else {
+                _selectedCategory = null;
+              }
             });
             _lastLeftKeyDownTime = null; // 标记已处理长按
           }
@@ -2415,9 +2444,38 @@ class _PlayerScreenState extends State<PlayerScreen>
                           _showCategoryPanel = false;
                           _selectedCategory = null;
                         } else {
-                          // 如果未显示，则显示
+                          // 如果未显示，则显示并定位到当前频道
+                          final playerProvider = context.read<PlayerProvider>();
+                          final channelProvider = context.read<ChannelProvider>();
+                          final currentChannel = playerProvider.currentChannel;
+                          
                           _showCategoryPanel = true;
-                          _selectedCategory = null;
+                          // 如果有当前频道，自动选中其所属分类
+                          if (currentChannel != null && currentChannel.groupName != null) {
+                            _selectedCategory = currentChannel.groupName;
+                            
+                            // 延迟滚动到当前频道位置
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (_selectedCategory != null) {
+                                final channels = channelProvider.getChannelsByGroup(_selectedCategory!);
+                                final currentIndex = channels.indexWhere((ch) => ch.id == currentChannel.id);
+                                
+                                if (currentIndex >= 0 && _channelScrollController.hasClients) {
+                                  // 计算滚动位置（每个频道项约 44 像素高）
+                                  final itemHeight = 44.0;
+                                  final scrollOffset = currentIndex * itemHeight;
+                                  
+                                  _channelScrollController.animateTo(
+                                    scrollOffset,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeOut,
+                                  );
+                                }
+                              }
+                            });
+                          } else {
+                            _selectedCategory = null;
+                          }
                         }
                       });
                     },
@@ -2841,7 +2899,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   final channel = channels[index];
                   final isPlaying = currentChannel?.id == channel.id;
                   return TVFocusable(
-                    autofocus: index == 0,
+                    autofocus: isPlaying, // 当前播放的频道自动获得焦点
                     onSelect: () {
                       // 保存上次播放的频道ID
                       final settingsProvider = context.read<SettingsProvider>();
