@@ -1,4 +1,4 @@
-﻿import 'package:flutter/widgets.dart';
+import 'package:flutter/widgets.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'dart:io';
@@ -42,10 +42,10 @@ class PlayerProvider extends ChangeNotifier {
   int _volumeBoostDb = 0;
 
   int _retryCount = 0;
-  static const int _maxRetries = 2;  // 鏀逛负閲嶈瘯2娆?
+  static const int _maxRetries = 2;  // 改为重试2次
   Timer? _retryTimer;
-  bool _isAutoSwitching = false; // 鏍囪鏄惁姝ｅ湪鑷姩鍒囨崲婧?
-  bool _isAutoDetecting = false; // 鏍囪鏄惁姝ｅ湪鑷姩妫€娴嬫簮
+  bool _isAutoSwitching = false; // 标记是否正在自动切换源
+  bool _isAutoDetecting = false; // 标记是否正在自动检测源
   bool _isSoftwareDecoding = false;
   bool _noVideoFallbackAttempted = false;
   bool _allowSoftwareFallback = true;
@@ -80,27 +80,27 @@ class PlayerProvider extends ChangeNotifier {
 
   /// Check if current content is seekable (VOD or replay)
   bool get isSeekable {
-    // 1. 妫€鏌ラ閬撶被鍨嬶紙濡傛灉鏄庣‘鏄洿鎾紝涓嶅彲鎷栧姩锛?
+    // 1. 检查直播类型（如果明确是直播，不可拖动）
     if (_currentChannel?.isLive == true) return false;
     
-    // 2. 妫€鏌ラ閬撶被鍨嬶紙濡傛灉鏄偣鎾垨鍥炴斁锛屽彲鎷栧姩锛?
+    // 2. 检查直播类型（如果是点播或回放，可拖动）
     if (_currentChannel?.isSeekable == true) {
-      // 浣嗚繕闇€瑕佹鏌?duration 鏄惁鏈夋晥
+      // 但还需要检查 duration 是否有效
       if (_duration.inSeconds > 0 && _duration.inSeconds <= 86400) {
         return true;
       }
     }
     
-    // 3. 妫€鏌?duration锛堢偣鎾唴瀹规湁鏄庣‘鏃堕暱锛?
-    // 鐩存挱娴侀€氬父 duration 涓?0 鎴栬秴澶у€?
+    // 3. 检查 duration（点播内容有明确时长）
+    // 直播流通常 duration 为 0 或超大值
     if (_duration.inSeconds > 0 && _duration.inSeconds <= 86400) {
-      // 鏈夋晥鏃堕暱锛?绉掑埌24灏忔椂锛夛紝浣嗚鎺掗櫎鐩存挱娴?
+      // 有效时长（1秒到24小时），但要排除直播流
       if (_currentChannel?.isLive != true) {
         return true;
       }
     }
     
-    // 4. 榛樿涓嶅彲鎷栧姩锛堝畨鍏ㄨ捣瑙侊級
+    // 4. 默认不可拖动（安全起见）
     return false;
   }
   
@@ -115,34 +115,34 @@ class PlayerProvider extends ChangeNotifier {
   /// Check if current content is live stream
   bool get isLiveStream => !isSeekable;
 
-  // 娓呴櫎閿欒鐘舵€侊紙鐢ㄤ簬鏄剧ず閿欒鍚庨槻姝㈤噸澶嶆樉绀猴級
+  // 清除错误状态（用于显示错误后防止重复显示）
   void clearError() {
     _error = null;
-    _errorDisplayed = true; // 鏍囪閿欒宸茶鏄剧ず锛岄槻姝㈤噸澶嶈Е鍙?
-    // 閲嶇疆鐘舵€佷负 idle锛岄伩鍏?hasError 涓€鐩翠负 true
+    _errorDisplayed = true; // 标记错误已被显示，防止重复触发
+    // 重置状态为 idle，避免 hasError 一直为 true
     if (_state == PlayerState.error) {
       _state = PlayerState.idle;
     }
     notifyListeners();
   }
 
-  // 閿欒闃叉姈锛氳褰曚笂娆￠敊璇椂闂达紝閬垮厤鐭椂闂村唴閲嶅瑙﹀彂
+  // 错误防抖：记录上次错误时间，避免短时间内重复触发
   DateTime? _lastErrorTime;
   String? _lastErrorMessage;
-  bool _errorDisplayed = false; // 鏍囪閿欒鏄惁宸茶鏄剧ず
+  bool _errorDisplayed = false; // 标记错误是否已被显示
 
   void _setError(String error) {
-    ServiceLocator.log.d('PlayerProvider: _setError 琚皟鐢?- 褰撳墠閲嶈瘯娆℃暟: $_retryCount/$_maxRetries, 閿欒: $error');
+    ServiceLocator.log.d('PlayerProvider: _setError 被调用 - 当前重试次数: $_retryCount/$_maxRetries, 错误: $error');
     
-    // 蹇界暐 seek 鐩稿叧鐨勯敊璇紙鐩存挱娴佷笉鏀寔 seek锛?
+    // 忽略 seek 相关的错误（直播流不支持 seek）
     if (error.contains('seekable') || 
         error.contains('Cannot seek') || 
         error.contains('seek in this stream')) {
-      ServiceLocator.log.d('PlayerProvider: 蹇界暐 seek 閿欒锛堢洿鎾祦涓嶆敮鎸佹嫋鍔級');
+      ServiceLocator.log.d('PlayerProvider: 忽略 seek 错误（直播流不支持拖动）');
       return;
     }
     
-    // 蹇界暐闊抽瑙ｇ爜璀﹀憡锛堝鏋滆兘鎾斁澹伴煶锛岃繖鍙槸璀﹀憡锛?
+    // 忽略音频解码警告（如果还能播放声音，这只是警告）
     if (error.contains('Error decoding audio') || 
         error.contains('audio decoder') ||
         error.contains('Audio decoding')) {
@@ -150,10 +150,10 @@ class PlayerProvider extends ChangeNotifier {
       return;
     }
     
-    // 灏濊瘯鑷姩閲嶈瘯锛堥噸璇曢樁娈典笉鍙楅槻鎶栭檺鍒讹級
+    // 尝试自动重试（重试阶段不受防护限制）
     if (_retryCount < _maxRetries && _currentChannel != null) {
       _retryCount++;
-      ServiceLocator.log.d('PlayerProvider: 鎾斁閿欒锛屽皾璇曢噸璇?($_retryCount/$_maxRetries): $error');
+      ServiceLocator.log.d('PlayerProvider: 播放错误，尝试重试($_retryCount/$_maxRetries): $error');
       _retryTimer?.cancel();
       _retryTimer = Timer(const Duration(milliseconds: 500), () {
         if (_currentChannel != null) {
@@ -163,38 +163,38 @@ class PlayerProvider extends ChangeNotifier {
       return;
     }
     
-    // 瓒呰繃閲嶈瘯娆℃暟锛屾鏌ユ槸鍚︽湁涓嬩竴涓簮
+    // 超过重试次数，检查是否有下一个源
     if (_currentChannel != null && _currentChannel!.hasMultipleSources) {
       final currentSourceIndex = _currentChannel!.currentSourceIndex;
       final totalSources = _currentChannel!.sourceCount;
       
-      ServiceLocator.log.d('PlayerProvider: 褰撳墠婧愮储寮? $currentSourceIndex, 鎬绘簮鏁? $totalSources');
+      ServiceLocator.log.d('PlayerProvider: 当前源索引: $currentSourceIndex, 总源数: $totalSources');
       
-      // 璁＄畻涓嬩竴涓簮绱㈠紩锛堜笉浣跨敤妯¤繍绠楋紝閬垮厤寰幆锛?
+      // 计算下一个源索引（不使用取模运算，避免循环）
       int nextIndex = currentSourceIndex + 1;
       
-      // 妫€鏌ヤ笅涓€涓簮鏄惁瀛樺湪
+      // 检查下一个源是否存在
       if (nextIndex < totalSources) {
-        // 涓嬩竴涓簮瀛樺湪锛屽厛妫€娴嬪啀灏濊瘯
-        ServiceLocator.log.d('PlayerProvider: 褰撳墠婧?(${currentSourceIndex + 1}/$totalSources) 閲嶈瘯澶辫触锛屾娴嬫簮 ${nextIndex + 1}');
+        // 下一个源存在，先检测再尝试
+        ServiceLocator.log.d('PlayerProvider: 当前源(${currentSourceIndex + 1}/$totalSources) 重试失败，检测源 ${nextIndex + 1}');
         
-        // 鏍囪寮€濮嬭嚜鍔ㄦ娴?
+        // 标记开始自动检测
         _isAutoDetecting = true;
-        // 寮傛妫€娴嬩笅涓€涓簮
+        // 异步检测下一个源
         _checkAndSwitchToNextSource(nextIndex, error);
         return;
       } else {
-        ServiceLocator.log.d('PlayerProvider: Reached last source (${currentSourceIndex + 1}/$totalSources), stop trying');
+        ServiceLocator.log.d('PlayerProvider: 已到最后一个源 (${currentSourceIndex + 1}/$totalSources), 停止尝试');
       }
     }
     
-    // 娌℃湁鏇村婧愭垨鎵€鏈夋簮閮藉け璐ワ紝鏄剧ず閿欒锛堟鏃舵墠搴旂敤闃叉姈锛?
+    // 没有更多源或所有源都失败，显示错误（此时才应用防抖）
     final now = DateTime.now();
-    // 濡傛灉閿欒宸茬粡琚樉绀鸿繃锛屼笉鍐嶈缃?
+    // 如果错误已经被显示过，不再设置
     if (_errorDisplayed) {
       return;
     }
-    // 鐩稿悓閿欒鍦?0绉掑唴涓嶉噸澶嶈缃?
+    // 相同错误在30秒内不重复设置
     if (_lastErrorMessage == error && _lastErrorTime != null && now.difference(_lastErrorTime!).inSeconds < 30) {
       return;
     }
@@ -208,16 +208,16 @@ class PlayerProvider extends ChangeNotifier {
   }
   
   
-  /// 妫€娴嬪苟鍒囨崲鍒颁笅涓€涓簮锛堢敤浜庤嚜鍔ㄥ垏鎹級
+  /// 检测并切换到下一个源（用于自动切换）
   Future<void> _checkAndSwitchToNextSource(int nextIndex, String originalError) async {
-    if (_currentChannel == null || !_isAutoDetecting) return; // 濡傛灉妫€娴嬭鍙栨秷锛屽仠姝?
+    if (_currentChannel == null || !_isAutoDetecting) return; // 如果检测被取消，停止
     
-    // 鏇存柊UI鏄剧ず姝ｅ湪妫€娴嬬殑婧?
+    // 更新UI显示正在检测的源
     _currentChannel!.currentSourceIndex = nextIndex;
     _state = PlayerState.loading;
     notifyListeners();
     
-    ServiceLocator.log.d('PlayerProvider: 妫€娴嬫簮 ${nextIndex + 1}/${_currentChannel!.sourceCount}');
+    ServiceLocator.log.d('PlayerProvider: 检测源 ${nextIndex + 1}/${_currentChannel!.sourceCount}');
     
     final testService = ChannelTestService();
     final tempChannel = Channel(
@@ -232,24 +232,24 @@ class PlayerProvider extends ChangeNotifier {
     
     final result = await testService.testChannel(tempChannel);
     
-    if (!_isAutoDetecting) return; // 妫€娴嬪畬鎴愬悗鍐嶆妫€鏌ユ槸鍚﹁鍙栨秷
+    if (!_isAutoDetecting) return; // 检测完成后再次检查是否被取消
     
     if (!result.isAvailable) {
-      ServiceLocator.log.d('PlayerProvider: 婧?${nextIndex + 1} 涓嶅彲鐢? ${result.error}锛岀户缁皾璇曚笅涓€涓簮');
+      ServiceLocator.log.d('PlayerProvider: 源 ${nextIndex + 1} 不可用: ${result.error}，继续尝试下一个源');
       
-      // 妫€鏌ユ槸鍚﹁繕鏈夋洿澶氭簮
+      // 检查是否还有更多源
       final totalSources = _currentChannel!.sourceCount;
       final nextNextIndex = nextIndex + 1;
       
       if (nextNextIndex < totalSources) {
-        // 缁х画妫€娴嬩笅涓€涓簮
+        // 继续检测下一个源
         _checkAndSwitchToNextSource(nextNextIndex, originalError);
       } else {
-        // 宸插埌杈炬渶鍚庝竴涓簮锛屾樉绀洪敊璇?
-        ServiceLocator.log.d('PlayerProvider: 宸插埌杈炬渶鍚庝竴涓簮锛屾墍鏈夋簮閮戒笉鍙敤');
+        // 已到最后一个源，显示错误
+        ServiceLocator.log.d('PlayerProvider: 已到最后一个源，所有源都不可用');
         _isAutoDetecting = false;
         _state = PlayerState.error;
-        _error = '鎵€鏈?$totalSources 涓簮鍧囦笉鍙敤';
+        _error = '所有 $totalSources 个源都不可用';
         notifyListeners();
       }
       return;
@@ -257,57 +257,57 @@ class PlayerProvider extends ChangeNotifier {
     
     ServiceLocator.log.d('PlayerProvider: Source ${nextIndex + 1} is available (${result.responseTime}ms), switching');
     _isAutoDetecting = false;
-    _retryCount = 0; // 閲嶇疆閲嶈瘯璁℃暟
-    _isAutoSwitching = true; // 鏍囪涓鸿嚜鍔ㄥ垏鎹?
-    _lastErrorMessage = null; // 閲嶇疆閿欒娑堟伅锛屽厑璁告柊婧愮殑閿欒琚鐞?
+    _retryCount = 0; // 重置重试计数
+    _isAutoSwitching = true; // 标记为自动切换
+    _lastErrorMessage = null; // 重置错误消息，允许新源的错误被处理
     _playCurrentSource();
-    _isAutoSwitching = false; // 閲嶇疆鏍囪
+    _isAutoSwitching = false; // 重置标记
   }
 
-  /// 閲嶈瘯鎾斁褰撳墠棰戦亾
+  /// 重试播放当前频道
   Future<void> _retryPlayback() async {
     if (_currentChannel == null) return;
     
-    ServiceLocator.log.d('PlayerProvider: 姝ｅ湪閲嶈瘯鎾斁 ${_currentChannel!.name}, 褰撳墠婧愮储寮? ${_currentChannel!.currentSourceIndex}, 閲嶈瘯璁℃暟: $_retryCount');
+    ServiceLocator.log.d('PlayerProvider: 正在重试播放 ${_currentChannel!.name}, 当前源索引: ${_currentChannel!.currentSourceIndex}, 重试计数: $_retryCount');
     final startTime = DateTime.now();
     
     _state = PlayerState.loading;
     _error = null;
     notifyListeners();
     
-    // 浣跨敤 currentUrl 鑰屼笉鏄?url锛屼互浣跨敤褰撳墠閫夋嫨鐨勬簮
+    // 使用 currentUrl 而不是 url，以使用当前选择的源
     final url = _currentChannel!.currentUrl;
-    ServiceLocator.log.d('PlayerProvider: 閲嶈瘯URL: $url');
+    ServiceLocator.log.d('PlayerProvider: 重试URL: $url');
     
     try {
       if (!_useNativePlayer) {
-        // 瑙ｆ瀽鐪熷疄鎾斁鍦板潃锛堝鐞?02閲嶅畾鍚戯級
         ServiceLocator.log.i('>>> Retry: start resolving redirect', tag: 'PlayerProvider');
+        // 解析真实播放地址（处理 302 重定向）
         final redirectStartTime = DateTime.now();
         
         final realUrl = await ServiceLocator.redirectCache.resolveRealPlayUrl(url);
         
         final redirectTime = DateTime.now().difference(redirectStartTime).inMilliseconds;
-        ServiceLocator.log.i('>>> 閲嶈瘯: 302閲嶅畾鍚戣В鏋愬畬鎴愶紝鑰楁椂: ${redirectTime}ms', tag: 'PlayerProvider');
-        ServiceLocator.log.d('>>> 閲嶈瘯: 浣跨敤鎾斁鍦板潃: $realUrl', tag: 'PlayerProvider');
+        ServiceLocator.log.i('>>> 重试: 302重定向解析完成，耗时: ${redirectTime}ms', tag: 'PlayerProvider');
+        ServiceLocator.log.d('>>> 重试: 使用播放地址: $realUrl', tag: 'PlayerProvider');
         
         final playStartTime = DateTime.now();
         await _mediaKitPlayer?.open(Media(realUrl));
         
         final playTime = DateTime.now().difference(playStartTime).inMilliseconds;
         final totalTime = DateTime.now().difference(startTime).inMilliseconds;
-        ServiceLocator.log.i('>>> 閲嶈瘯: 鎾斁鍣ㄥ垵濮嬪寲瀹屾垚锛岃€楁椂: ${playTime}ms', tag: 'PlayerProvider');
-        ServiceLocator.log.i('>>> 閲嶈瘯: 鎬昏€楁椂: ${totalTime}ms', tag: 'PlayerProvider');
+        ServiceLocator.log.i('>>> 重试: 播放器初始化完成，耗时: ${playTime}ms', tag: 'PlayerProvider');
+        ServiceLocator.log.i('>>> 重试: 总耗时: ${totalTime}ms', tag: 'PlayerProvider');
         
         _state = PlayerState.playing;
       }
-      // 娉ㄦ剰锛氫笉鍦ㄨ繖閲岄噸缃?_retryCount锛屽洜涓烘挱鏀惧櫒鍙兘杩樹細寮傛鎶ラ敊
-      // 閲嶈瘯璁℃暟浼氬湪鎾斁鐪熸绋冲畾鍚庯紙playing 鐘舵€佹寔缁竴娈垫椂闂达級鎴栧垏鎹㈤閬撴椂閲嶇疆
+      // 注意：不在这里重置 _retryCount，因为播放器可能还会异步报错
+      // 重试计数会在播放真正稳定后（playing 状态持续一段时间）或切换频道时重置
       ServiceLocator.log.d('PlayerProvider: Retry command sent');
     } catch (e) {
       final totalTime = DateTime.now().difference(startTime).inMilliseconds;
-      ServiceLocator.log.d('PlayerProvider: 閲嶈瘯澶辫触 (${totalTime}ms): $e');
-      // 閲嶈瘯澶辫触锛岀户缁皾璇曟垨鏄剧ず閿欒
+      ServiceLocator.log.d('PlayerProvider: 重试失败 (${totalTime}ms): $e');
+      // 重试失败，继续尝试或显示错误
       _setError('Failed to play channel: $e');
     }
     notifyListeners();
@@ -317,13 +317,13 @@ class PlayerProvider extends ChangeNotifier {
   String _videoCodec = '';
   double _fps = 0;
   
-  // 淇濆瓨鍒濆鍖栨椂鐨?hwdec 閰嶇疆
+  // 保存初始化时的 hwdec 配置
   String _configuredHwdec = 'unknown';
   
-  // FPS 鏄剧ず
+  // FPS 显示
   double _currentFps = 0;
   
-  // 瑙嗛淇℃伅
+  // 视频信息
   int _videoWidth = 0;
   int _videoHeight = 0;
   double _downloadSpeed = 0; // bytes per second
@@ -367,23 +367,23 @@ class PlayerProvider extends ChangeNotifier {
       return;
     }
 
-    // 鍏朵粬骞冲彴锛堝寘鎷?Android 鎵嬫満锛夐兘浣跨敤 media_kit
+    // 其他平台（包括 Android 手机）都使用 media_kit
     _initMediaKitPlayer(useSoftwareDecoding: useSoftwareDecoding);
   }
   
-  /// 棰勭儹鎾斁鍣?- 鍦ㄥ簲鐢ㄥ惎鍔ㄦ椂璋冪敤,鎻愬墠鍒濆鍖栨挱鏀惧櫒璧勬簮
-  /// 杩欐牱棣栨杩涘叆鎾斁椤甸潰鏃跺氨涓嶄細鍗￠】
+  /// 预热播放器 - 在应用启动时调用,提前初始化播放器资源
+  /// 这样首次进入播放页面时就不会卡顿
   Future<void> warmup() async {
     if (_useNativePlayer) {
-      return; // 鍘熺敓鎾斁鍣ㄤ笉闇€瑕侀鐑?
+      return; // 原生播放器不需要预热
     }
     
     if (_mediaKitPlayer == null) {
-      ServiceLocator.log.d('PlayerProvider: 棰勭儹鎾斁鍣?- 鍒濆鍖?media_kit', tag: 'PlayerProvider');
+      ServiceLocator.log.d('PlayerProvider: 预热播放器 - 初始化 media_kit', tag: 'PlayerProvider');
       _initMediaKitPlayer();
     }
     
-    // 浣跨敤绌?Media 棰勭儹浼氳Е鍙戦敊璇洖璋冿紝鍙兘瀵艰嚧棣栨鎾斁榛戝睆/绾㈠徆鍙?
+    // 使用空 Media 预热会触发错误回调，可能导致首次播放黑屏/蓝屏
     // 鐩墠鍙仛瀹炰緥鍒濆鍖栵紝涓嶅仛鏃犳晥濯掍綋棰勫姞杞?
   }
 
@@ -469,7 +469,7 @@ class PlayerProvider extends ChangeNotifier {
     }
 
     _configuredHwdec = hwdecMode ?? 'default';
-    ServiceLocator.log.i('纭欢瑙ｇ爜妯″紡: ${hwdecMode ?? "榛樿"}', tag: 'PlayerProvider');
+    ServiceLocator.log.i('硬件解码模式: ${hwdecMode ?? "默认"}', tag: 'PlayerProvider');
     ServiceLocator.log.i('纭欢鍔犻€? ${!effectiveSoftware}', tag: 'PlayerProvider');
 
     VideoControllerConfiguration config = VideoControllerConfiguration(
@@ -477,7 +477,7 @@ class PlayerProvider extends ChangeNotifier {
       enableHardwareAcceleration: !effectiveSoftware,
     );
 
-    // 榛樿鏄剧ず涓洪厤缃€硷紝鍚庣画鍙瀹為檯鏃ュ織瑕嗙洊
+    // 默认显示为配置值，后续可被实际运行时覆盖
     _hwdecMode = effectiveSoftware ? 'no' : _configuredHwdec;
     _vo = vo ?? 'auto';
 
@@ -485,11 +485,11 @@ class PlayerProvider extends ChangeNotifier {
     _setupMediaKitListeners();
     _updateDebugInfo();
     
-    ServiceLocator.log.i('鎾斁鍣ㄥ垵濮嬪寲瀹屾垚', tag: 'PlayerProvider');
+    ServiceLocator.log.i('播放器初始化完成', tag: 'PlayerProvider');
   }
 
   void _setupMediaKitListeners() {
-    ServiceLocator.log.d('璁剧疆鎾斁鍣ㄧ洃鍚櫒', tag: 'PlayerProvider');
+    ServiceLocator.log.d('设置播放器监听器', tag: 'PlayerProvider');
     
     // 鍙湪鏃ュ織寮€鍚椂鐩戝惉 mpv 鏃ュ織
       if (ServiceLocator.log.currentLevel != LogLevel.off) {
@@ -534,9 +534,9 @@ class PlayerProvider extends ChangeNotifier {
           ServiceLocator.log.d('馃摴 瑙ｇ爜鍣? ${log.text}', tag: 'PlayerProvider');
         }
         
-        // 璁板綍閿欒鍜岃鍛?
+        // 记录错误和警告
         if (log.level == MPVLogLevel.error) {
-          ServiceLocator.log.e('MPV閿欒: ${log.text}', tag: 'PlayerProvider');
+          ServiceLocator.log.e('MPV错误: ${log.text}', tag: 'PlayerProvider');
         } else if (log.level == MPVLogLevel.warn) {
           ServiceLocator.log.w('MPV璀﹀憡: ${log.text}', tag: 'PlayerProvider');
         }
@@ -544,11 +544,11 @@ class PlayerProvider extends ChangeNotifier {
       }
     
     _mediaKitPlayer!.stream.playing.listen((playing) {
-      ServiceLocator.log.d('鎾斁鐘舵€佸彉鍖? playing=$playing', tag: 'PlayerProvider');
+      ServiceLocator.log.d('播放状态变化: playing=$playing', tag: 'PlayerProvider');
       if (playing) {
         _state = PlayerState.playing;
         // 鍙湁鍦ㄦ挱鏀剧ǔ瀹氬悗鎵嶉噸缃噸璇曡鏁?
-        // 浣跨敤寤惰繜纭繚鎾斁鐪熸寮€濮嬶紝鑰屼笉鏄煭鏆傜殑鐘舵€佸彉鍖?
+        // 使用延迟确保播放真正开始，而不是短暂的状态变化
         Future.delayed(const Duration(seconds: 3), () {
           if (_state == PlayerState.playing && _currentChannel != null) {
             ServiceLocator.log.d('PlayerProvider: Playback stable, reset retry count');
@@ -562,7 +562,7 @@ class PlayerProvider extends ChangeNotifier {
     });
 
     _mediaKitPlayer!.stream.buffering.listen((buffering) {
-      ServiceLocator.log.d('缂撳啿鐘舵€? buffering=$buffering', tag: 'PlayerProvider');
+      ServiceLocator.log.d('缓冲状态: buffering=$buffering', tag: 'PlayerProvider');
       if (buffering && _state != PlayerState.idle && _state != PlayerState.error) {
         _state = PlayerState.buffering;
       } else if (!buffering && _state == PlayerState.buffering) {
@@ -614,17 +614,17 @@ class PlayerProvider extends ChangeNotifier {
     
     _mediaKitPlayer!.stream.error.listen((err) {
       if (err.isNotEmpty) {
-        ServiceLocator.log.e('鎾斁鍣ㄩ敊璇? $err', tag: 'PlayerProvider');
+        ServiceLocator.log.e('播放器错误: $err', tag: 'PlayerProvider');
         
-        // 鍒嗘瀽閿欒绫诲瀷
+        // 分析错误类型
         if (err.toLowerCase().contains('decode') || err.toLowerCase().contains('decoder')) {
-          ServiceLocator.log.e('>>> 瑙ｇ爜閿欒: $err', tag: 'PlayerProvider');
+          ServiceLocator.log.e('>>> 解码错误: $err', tag: 'PlayerProvider');
         } else if (err.toLowerCase().contains('render') || err.toLowerCase().contains('display')) {
-          ServiceLocator.log.e('>>> 娓叉煋閿欒: $err', tag: 'PlayerProvider');
+          ServiceLocator.log.e('>>> 网络错误: $err', tag: 'PlayerProvider');
         } else if (err.toLowerCase().contains('hwdec') || err.toLowerCase().contains('hardware')) {
           ServiceLocator.log.e('>>> 纭欢鍔犻€熼敊璇? $err', tag: 'PlayerProvider');
         } else if (err.toLowerCase().contains('codec')) {
-          ServiceLocator.log.e('>>> 缂栬В鐮佸櫒閿欒: $err', tag: 'PlayerProvider');
+          ServiceLocator.log.e('>>> 解码器错误: $err', tag: 'PlayerProvider');
         }
         
         if (_shouldTrySoftwareFallback(err)) {
@@ -659,7 +659,7 @@ class PlayerProvider extends ChangeNotifier {
     _debugInfoTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_mediaKitPlayer == null) return;
       
-      // 濡傛灉鏃ュ織鏈紑鍚垨灏氭湭瑙ｆ瀽鍒板疄闄呭€硷紝浣跨敤閰嶇疆鍊煎厹搴?
+      // 如果线程未开启或尚未解析到实际值，使用配置值兜底
       if (ServiceLocator.log.currentLevel == LogLevel.off &&
           (_hwdecMode == 'unknown' || _hwdecMode.isEmpty)) {
         _hwdecMode = _configuredHwdec;
@@ -681,7 +681,7 @@ class PlayerProvider extends ChangeNotifier {
       _videoWidth = newWidth;
       _videoHeight = newHeight;
       
-      // Windows 绔洿鎺ヤ娇鐢?track 涓殑 fps 淇℃伅
+      // Windows 端直接使用 track 中的 fps 信息
       // media_kit (mpv) 鐨勬覆鏌撳抚鐜囧熀鏈瓑浜庤棰戞簮甯х巼
       if (_state == PlayerState.playing && _fps > 0) {
         _currentFps = _fps;
@@ -690,7 +690,7 @@ class PlayerProvider extends ChangeNotifier {
       }
       
       // 浼扮畻涓嬭浇閫熷害 - 鍩轰簬瑙嗛鍒嗚鲸鐜囧拰甯х巼
-      // media_kit 娌℃湁鐩存帴鐨勪笅杞介€熷害 API锛屼娇鐢ㄨ棰戝弬鏁颁及绠?
+      // media_kit 没有直接的下载速度 API，使用视频参数估算
       if (_state == PlayerState.playing && _videoWidth > 0 && _videoHeight > 0) {
         final pixels = _videoWidth * _videoHeight;
         final fps = _fps > 0 ? _fps : 25.0;
@@ -820,8 +820,8 @@ class PlayerProvider extends ChangeNotifier {
     _currentChannel = channel;
     _state = PlayerState.loading;
     _error = null;
-    _lastErrorMessage = null; // 閲嶇疆閿欒闃叉姈
-    _errorDisplayed = false; // 閲嶇疆閿欒鏄剧ず鏍囪
+    _lastErrorMessage = null; // 重置错误防抖
+    _errorDisplayed = false; // 重置错误显示标记
     _retryCount = 0; // 閲嶇疆閲嶈瘯璁℃暟
     _retryTimer?.cancel(); // 鍙栨秷浠讳綍姝ｅ湪杩涜鐨勯噸璇?
     _isAutoDetecting = false; // 鍙栨秷浠讳綍姝ｅ湪杩涜鐨勮嚜鍔ㄦ娴?
@@ -829,7 +829,7 @@ class PlayerProvider extends ChangeNotifier {
     loadVolumeSettings(); // Apply volume boost settings
     notifyListeners();
 
-    // 濡傛灉鏈夊涓簮锛屽厛妫€娴嬫壘鍒扮涓€涓彲鐢ㄧ殑婧?
+    // 如果有多个源，先检测找到第一个可用的源
     if (channel.hasMultipleSources && !preserveCurrentSource) {
       ServiceLocator.log.i('频道有 ${channel.sourceCount} 个源，开始检测可用源', tag: 'PlayerProvider');
       final detectStartTime = DateTime.now();
@@ -853,15 +853,15 @@ class PlayerProvider extends ChangeNotifier {
     }
 
     final playUrl = channel.currentUrl;
-    ServiceLocator.log.d('鍑嗗鎾斁URL: $playUrl', tag: 'PlayerProvider');
+    ServiceLocator.log.d('准备播放URL: $playUrl', tag: 'PlayerProvider');
 
     try {
       final playerInitStartTime = DateTime.now();
       
-      // Android TV 浣跨敤鍘熺敓鎾斁鍣紝閫氳繃 MethodChannel 澶勭悊
+      // Android TV 使用原生播放器，通过 MethodChannel 处理
       // 鍏朵粬骞冲彴浣跨敤 media_kit
       if (!_useNativePlayer) {
-        // 瑙ｆ瀽鐪熷疄鎾斁鍦板潃锛堝鐞?02閲嶅畾鍚戯級
+        // 解析真实播放地址（处理 302 重定向）
         ServiceLocator.log.i('>>> Start resolving redirect', tag: 'PlayerProvider');
         final redirectStartTime = DateTime.now();
         
@@ -869,7 +869,7 @@ class PlayerProvider extends ChangeNotifier {
         
         final redirectTime = DateTime.now().difference(redirectStartTime).inMilliseconds;
         ServiceLocator.log.i('>>> 302閲嶅畾鍚戣В鏋愬畬鎴愶紝鑰楁椂: ${redirectTime}ms', tag: 'PlayerProvider');
-        ServiceLocator.log.d('>>> 浣跨敤鎾斁鍦板潃: $realUrl', tag: 'PlayerProvider');
+        ServiceLocator.log.d('>>> 使用播放地址: $realUrl', tag: 'PlayerProvider');
         
         // 寮€濮嬫挱鏀?
         ServiceLocator.log.i('>>> Start initializing player', tag: 'PlayerProvider');
@@ -878,7 +878,7 @@ class PlayerProvider extends ChangeNotifier {
         await _mediaKitPlayer?.open(Media(realUrl));
         
         final playTime = DateTime.now().difference(playStartTime).inMilliseconds;
-        ServiceLocator.log.i('>>> 鎾斁鍣ㄥ垵濮嬪寲瀹屾垚锛岃€楁椂: ${playTime}ms', tag: 'PlayerProvider');
+        ServiceLocator.log.i('>>> 播放器初始化完成，耗时: ${playTime}ms', tag: 'PlayerProvider');
         
         _state = PlayerState.playing;
         notifyListeners();
@@ -892,10 +892,10 @@ class PlayerProvider extends ChangeNotifier {
       
       final playerInitTime = DateTime.now().difference(playerInitStartTime).inMilliseconds;
       final totalTime = DateTime.now().difference(playStartTime).inMilliseconds;
-      ServiceLocator.log.i('>>> 鎾斁娴佺▼鎬昏€楁椂: ${totalTime}ms (鎾斁鍣ㄥ垵濮嬪寲: ${playerInitTime}ms)', tag: 'PlayerProvider');
-      ServiceLocator.log.i('========== 棰戦亾鎾斁鎬昏€楁椂: ${totalTime}ms ==========', tag: 'PlayerProvider');
+      ServiceLocator.log.i('>>> 播放流程总耗时: ${totalTime}ms (播放器初始化: ${playerInitTime}ms)', tag: 'PlayerProvider');
+      ServiceLocator.log.i('========== 频道播放总耗时: ${totalTime}ms ==========', tag: 'PlayerProvider');
     } catch (e) {
-      ServiceLocator.log.e('鎾斁棰戦亾澶辫触', tag: 'PlayerProvider', error: e);
+      ServiceLocator.log.e('播放频道失败', tag: 'PlayerProvider', error: e);
       _setError('Failed to play channel: $e');
       return;
     }
@@ -912,7 +912,7 @@ class PlayerProvider extends ChangeNotifier {
     }
   }
 
-  /// 鏌ユ壘绗竴涓彲鐢ㄧ殑婧?
+  /// 查找第一个可用的源
   Future<int?> _findFirstAvailableSource(Channel channel) async {
     ServiceLocator.log.d('寮€濮嬫娴?${channel.sourceCount} 涓簮', tag: 'PlayerProvider');
     final testService = ChannelTestService();
@@ -922,7 +922,7 @@ class PlayerProvider extends ChangeNotifier {
       channel.currentSourceIndex = i;
       notifyListeners();
       
-      // 鍒涘缓涓存椂棰戦亾瀵硅薄鐢ㄤ簬娴嬭瘯
+      // 创建临时频道对象用于测试
       final tempChannel = Channel(
         id: channel.id,
         name: channel.name,
@@ -943,7 +943,7 @@ class PlayerProvider extends ChangeNotifier {
         ServiceLocator.log.i('鉁?婧?${i + 1} 鍙敤锛屽搷搴旀椂闂? ${result.responseTime}ms锛屾娴嬭€楁椂: ${testTime}ms', tag: 'PlayerProvider');
         return i;
       } else {
-        ServiceLocator.log.w('鉁?婧?${i + 1} 涓嶅彲鐢? ${result.error}锛屾娴嬭€楁椂: ${testTime}ms', tag: 'PlayerProvider');
+        ServiceLocator.log.w('✗ 源 ${i + 1} 不可用: ${result.error}，检测耗时: ${testTime}ms', tag: 'PlayerProvider');
       }
     }
     
@@ -952,23 +952,23 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   Future<void> playUrl(String url, {String? name}) async {
-    // Android TV 浣跨敤鍘熺敓鎾斁鍣紝涓嶆敮鎸佹鏂规硶
+    // Android TV 使用原生播放器，不支持此方法
     if (_useNativePlayer) {
-      ServiceLocator.log.w('playUrl: Android TV 浣跨敤鍘熺敓鎾斁鍣紝涓嶆敮鎸佹鏂规硶', tag: 'PlayerProvider');
+      ServiceLocator.log.w('playUrl: Android TV 使用原生播放器，不支持此方法', tag: 'PlayerProvider');
       return;
     }
     
     final startTime = DateTime.now();
     _state = PlayerState.loading;
     _error = null;
-    _lastErrorMessage = null; // 閲嶇疆閿欒闃叉姈
-    _errorDisplayed = false; // 閲嶇疆閿欒鏄剧ず鏍囪
+    _lastErrorMessage = null; // 重置错误防抖
+    _errorDisplayed = false; // 重置错误显示标记
     _noVideoFallbackAttempted = false;
     loadVolumeSettings(); // Apply volume boost settings
     notifyListeners();
 
     try {
-      // 瑙ｆ瀽鐪熷疄鎾斁鍦板潃锛堝鐞?02閲嶅畾鍚戯級
+      // 解析真实播放地址（处理 302 重定向）
       ServiceLocator.log.i('>>> Start resolving redirect', tag: 'PlayerProvider');
       final redirectStartTime = DateTime.now();
       
@@ -976,7 +976,7 @@ class PlayerProvider extends ChangeNotifier {
       
       final redirectTime = DateTime.now().difference(redirectStartTime).inMilliseconds;
       ServiceLocator.log.i('>>> 302閲嶅畾鍚戣В鏋愬畬鎴愶紝鑰楁椂: ${redirectTime}ms', tag: 'PlayerProvider');
-      ServiceLocator.log.d('>>> 浣跨敤鎾斁鍦板潃: $realUrl', tag: 'PlayerProvider');
+        ServiceLocator.log.d('>>> 使用播放地址: $realUrl', tag: 'PlayerProvider');
       
       // 寮€濮嬫挱鏀?
       ServiceLocator.log.i('>>> Start initializing player', tag: 'PlayerProvider');
@@ -986,14 +986,14 @@ class PlayerProvider extends ChangeNotifier {
       
       final playTime = DateTime.now().difference(playStartTime).inMilliseconds;
       final totalTime = DateTime.now().difference(startTime).inMilliseconds;
-      ServiceLocator.log.i('>>> 鎾斁鍣ㄥ垵濮嬪寲瀹屾垚锛岃€楁椂: ${playTime}ms', tag: 'PlayerProvider');
-      ServiceLocator.log.i('>>> 鎾斁娴佺▼鎬昏€楁椂: ${totalTime}ms', tag: 'PlayerProvider');
+        ServiceLocator.log.i('>>> 播放器初始化完成，耗时: ${playTime}ms', tag: 'PlayerProvider');
+        ServiceLocator.log.i('>>> 播放流程总耗时: ${totalTime}ms', tag: 'PlayerProvider');
       
       _state = PlayerState.playing;
       _scheduleNoVideoFallbackIfNeeded();
     } catch (e) {
       final totalTime = DateTime.now().difference(startTime).inMilliseconds;
-      ServiceLocator.log.e('>>> 鎾斁澶辫触 (${totalTime}ms): $e', tag: 'PlayerProvider');
+      ServiceLocator.log.e('>>> 播放失败 (${totalTime}ms): $e', tag: 'PlayerProvider');
       _setError('Failed to play: $e');
       return;
     }
@@ -1001,22 +1001,22 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   void togglePlayPause() {
-    if (_useNativePlayer) return; // TV 绔敱鍘熺敓鎾斁鍣ㄥ鐞?
+    if (_useNativePlayer) return; // TV 端由原生播放器处理
     _mediaKitPlayer?.playOrPause();
   }
 
   void pause() {
-    if (_useNativePlayer) return; // TV 绔敱鍘熺敓鎾斁鍣ㄥ鐞?
+    if (_useNativePlayer) return; // TV 端由原生播放器处理
     _mediaKitPlayer?.pause();
   }
 
   void play() {
-    if (_useNativePlayer) return; // TV 绔敱鍘熺敓鎾斁鍣ㄥ鐞?
+    if (_useNativePlayer) return; // TV 端由原生播放器处理
     _mediaKitPlayer?.play();
   }
 
   Future<void> stop({bool silent = false}) async {
-    // 娓呴櫎閿欒鐘舵€佸拰瀹氭椂鍣?
+    // 清除错误状态和定时器
     _retryTimer?.cancel();
     _retryTimer = null;
     _retryCount = 0;
@@ -1039,7 +1039,7 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   void seek(Duration position) {
-    if (_useNativePlayer) return; // TV 绔敱鍘熺敓鎾斁鍣ㄥ鐞?
+    if (_useNativePlayer) return; // TV 端由原生播放器处理
     _mediaKitPlayer?.seek(position);
   }
 
@@ -1092,7 +1092,7 @@ class PlayerProvider extends ChangeNotifier {
 
   /// Calculate and apply the effective volume with boost
   void _applyVolume() {
-    if (_useNativePlayer) return; // TV 绔敱鍘熺敓鎾斁鍣ㄥ鐞?
+    if (_useNativePlayer) return; // TV 端由原生播放器处理
     
     if (_isMuted) {
       _mediaKitPlayer?.setVolume(0);
@@ -1108,7 +1108,7 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   void setPlaybackSpeed(double speed) {
-    if (_useNativePlayer) return; // TV 绔敱鍘熺敓鎾斁鍣ㄥ鐞?
+    if (_useNativePlayer) return; // TV 端由原生播放器处理
     _playbackSpeed = speed;
     _mediaKitPlayer?.setRate(speed);
     notifyListeners();
@@ -1224,7 +1224,7 @@ class PlayerProvider extends ChangeNotifier {
       return;
     }
     
-    ServiceLocator.log.i('婧愬彲鐢紝鍝嶅簲鏃堕棿: ${result.responseTime}ms', tag: 'PlayerProvider');
+    ServiceLocator.log.i('源可用，响应时间: ${result.responseTime}ms', tag: 'PlayerProvider');
     
     final url = _currentChannel!.currentUrl;
     final startTime = DateTime.now();
@@ -1238,7 +1238,7 @@ class PlayerProvider extends ChangeNotifier {
 
     try {
       if (!_useNativePlayer) {
-        // 瑙ｆ瀽鐪熷疄鎾斁鍦板潃锛堝鐞?02閲嶅畾鍚戯級
+        // 解析真实播放地址（处理 302 重定向）
         ServiceLocator.log.i('>>> Source switch: start resolving redirect', tag: 'PlayerProvider');
         final redirectStartTime = DateTime.now();
         
@@ -1246,23 +1246,23 @@ class PlayerProvider extends ChangeNotifier {
         
         final redirectTime = DateTime.now().difference(redirectStartTime).inMilliseconds;
         ServiceLocator.log.i('>>> 鍒囨崲婧? 302閲嶅畾鍚戣В鏋愬畬鎴愶紝鑰楁椂: ${redirectTime}ms', tag: 'PlayerProvider');
-        ServiceLocator.log.d('>>> 鍒囨崲婧? 浣跨敤鎾斁鍦板潃: $realUrl', tag: 'PlayerProvider');
+        ServiceLocator.log.d('>>> 切换源: 使用播放地址: $realUrl', tag: 'PlayerProvider');
         
         final playStartTime = DateTime.now();
         await _mediaKitPlayer?.open(Media(realUrl));
         
         final playTime = DateTime.now().difference(playStartTime).inMilliseconds;
         final totalTime = DateTime.now().difference(startTime).inMilliseconds;
-        ServiceLocator.log.i('>>> 鍒囨崲婧? 鎾斁鍣ㄥ垵濮嬪寲瀹屾垚锛岃€楁椂: ${playTime}ms', tag: 'PlayerProvider');
+        ServiceLocator.log.i('>>> 切换源: 播放器初始化完成，耗时: ${playTime}ms', tag: 'PlayerProvider');
         ServiceLocator.log.i('>>> 鍒囨崲婧? 鎬昏€楁椂: ${totalTime}ms', tag: 'PlayerProvider');
         
         _state = PlayerState.playing;
         _scheduleNoVideoFallbackIfNeeded();
       }
-      ServiceLocator.log.i('鎾斁鎴愬姛', tag: 'PlayerProvider');
+      ServiceLocator.log.i('播放成功', tag: 'PlayerProvider');
     } catch (e) {
       final totalTime = DateTime.now().difference(startTime).inMilliseconds;
-      ServiceLocator.log.e('鎾斁澶辫触 (${totalTime}ms)', tag: 'PlayerProvider', error: e);
+      ServiceLocator.log.e('播放失败 (${totalTime}ms)', tag: 'PlayerProvider', error: e);
       _setError('Failed to play source: $e');
       return;
     }
@@ -1300,7 +1300,7 @@ class PlayerProvider extends ChangeNotifier {
     _noVideoFallbackAttempted = true;
     Future.delayed(const Duration(seconds: 3), () {
       if (_isDisposed) return;
-      // 鑻ュ凡鎾斁浣嗕粛鏃犵敾闈紙瀹介珮涓?0锛夛紝灏濊瘯杞В鍥為€€
+      // 若已播放但仍无画面（宽度为0），尝试解码回调
       if (_state == PlayerState.playing && _videoWidth == 0 && _videoHeight == 0) {
         ServiceLocator.log.w('PlayerProvider: 闊抽鏈変絾鏃犵敾闈紝灏濊瘯杞В鍥為€€', tag: 'PlayerProvider');
         _attemptSoftwareFallback();

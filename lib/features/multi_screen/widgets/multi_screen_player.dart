@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -137,7 +137,7 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
             }
           },
           child: GestureDetector(
-            // Mini妯″紡涓嬫暣涓尯鍩熷彲鎷栧姩
+            // Mini模式下整个区域可拖动
             onPanStart:
                 isMiniMode ? (_) => windowManager.startDragging() : null,
             onTap: () {
@@ -1048,7 +1048,7 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
         ? 110.0
         : 60.0;
 
-    // 濡傛灉璁剧疆涓轰笉鏄剧ず棰戦亾鍚嶇О锛屽垯杩斿洖绌虹粍浠?
+    // 如果配置为不显示频道名称，则返回空数组
     if (!settingsProvider.showMultiScreenChannelName) {
       return const SizedBox.shrink();
     }
