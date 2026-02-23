@@ -8,6 +8,8 @@ class Playlist {
   final bool isActive;
   final DateTime? lastUpdated;
   final DateTime createdAt;
+  final String? backupPath; // 备份文件路径
+  final DateTime? lastBackupTime; // 最后备份时间
 
   // Runtime properties
   int channelCount;
@@ -24,6 +26,8 @@ class Playlist {
     DateTime? createdAt,
     this.channelCount = 0,
     this.groupCount = 0,
+    this.backupPath,
+    this.lastBackupTime,
   }) : createdAt = createdAt ?? DateTime.now();
 
   factory Playlist.fromMap(Map<String, dynamic> map) {
@@ -36,6 +40,8 @@ class Playlist {
       isActive: (map['is_active'] as int?) == 1,
       lastUpdated: map['last_updated'] != null ? DateTime.fromMillisecondsSinceEpoch(map['last_updated'] as int) : null,
       createdAt: map['created_at'] != null ? DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int) : DateTime.now(),
+      backupPath: map['backup_path'] as String?,
+      lastBackupTime: map['last_backup_time'] != null ? DateTime.fromMillisecondsSinceEpoch(map['last_backup_time'] as int) : null,
     );
   }
 
@@ -49,6 +55,8 @@ class Playlist {
       'is_active': isActive ? 1 : 0,
       'last_updated': lastUpdated?.millisecondsSinceEpoch,
       'created_at': createdAt.millisecondsSinceEpoch,
+      'backup_path': backupPath,
+      'last_backup_time': lastBackupTime?.millisecondsSinceEpoch,
     };
   }
 
@@ -63,6 +71,8 @@ class Playlist {
     DateTime? createdAt,
     int? channelCount,
     int? groupCount,
+    String? backupPath,
+    DateTime? lastBackupTime,
   }) {
     return Playlist(
       id: id ?? this.id,
@@ -75,6 +85,8 @@ class Playlist {
       createdAt: createdAt ?? this.createdAt,
       channelCount: channelCount ?? this.channelCount,
       groupCount: groupCount ?? this.groupCount,
+      backupPath: backupPath ?? this.backupPath,
+      lastBackupTime: lastBackupTime ?? this.lastBackupTime,
     );
   }
 
@@ -86,6 +98,9 @@ class Playlist {
 
   /// Check if this is a temporary playlist (imported via QR)
   bool get isTemporary => filePath != null && filePath!.contains('temp') && filePath!.contains('playlist_');
+  
+  /// Check if playlist has a backup file
+  bool get hasBackup => backupPath != null && backupPath!.isNotEmpty;
 
   /// Get the source path (URL or file path)
   String get sourcePath => url ?? filePath ?? '';

@@ -610,7 +610,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Ro
               child: CircularProgressIndicator(color: AppTheme.primaryColor));
         }
 
-        // 如果播放列表已加载但首页数据为空，尝试重新加载
+        // 如果播放列表已加载但首页数据为空，显示空状态并提供操作按钮
         if (playlistProvider.hasPlaylists && channelProvider.allChannels.isEmpty) {
           // 使用 addPostFrameCallback 避免在 build 期间调用 setState
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -622,8 +622,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Ro
               }
             }
           });
-          return const Center(
-              child: CircularProgressIndicator(color: AppTheme.primaryColor));
+          // 显示空状态UI，包含操作按钮
+          return _buildEmptyChannelsState(playlistProvider);
         }
 
         final favChannels = _getFavoriteChannels(channelProvider);
@@ -1556,6 +1556,164 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Ro
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyChannelsState(PlaylistProvider playlistProvider) {
+    final activePlaylist = playlistProvider.activePlaylist;
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+                gradient: AppTheme.getGradient(context),
+                borderRadius: BorderRadius.circular(24)),
+            child: const Icon(Icons.tv_off_rounded,
+                size: 48, color: Colors.white),
+          ),
+          const SizedBox(height: 20),
+          Text('No Channels',
+              style: TextStyle(
+                  color: AppTheme.getTextPrimary(context),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text(
+              'The playlist "${activePlaylist?.name ?? 'Unknown'}" has no channels',
+              style: TextStyle(
+                  color: AppTheme.getTextSecondary(context), fontSize: 13),
+              textAlign: TextAlign.center),
+          const SizedBox(height: 24),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            alignment: WrapAlignment.center,
+            children: [
+              TVFocusable(
+                autofocus: true,
+                onSelect: () => _showAddPlaylistDialog(),
+                focusScale: 1.0,
+                showFocusBorder: false,
+                builder: (context, isFocused, child) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.getGradient(context),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                      border: isFocused
+                          ? Border.all(
+                              color: AppTheme.getPrimaryColor(context),
+                              width: 2)
+                          : null,
+                    ),
+                    child: child,
+                  );
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Text(
+                      AppStrings.of(context)?.addPlaylist ?? 'Add Playlist',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+              if (activePlaylist != null)
+                TVFocusable(
+                  onSelect: () => _refreshCurrentPlaylist(
+                      playlistProvider, context.read<ChannelProvider>()),
+                  focusScale: 1.0,
+                  showFocusBorder: false,
+                  builder: (context, isFocused, child) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isFocused
+                            ? AppTheme.getGlassColor(context)
+                            : AppTheme.getGlassColor(context).withOpacity(0.5),
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusPill),
+                        border: Border.all(
+                            color: isFocused
+                                ? AppTheme.getPrimaryColor(context)
+                                : AppTheme.getGlassBorderColor(context),
+                            width: isFocused ? 2 : 1),
+                      ),
+                      child: child,
+                    );
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.refresh_rounded,
+                          size: 18,
+                          color: AppTheme.getTextPrimary(context)),
+                      const SizedBox(width: 8),
+                      Text(
+                        AppStrings.of(context)?.refresh ?? 'Refresh',
+                        style: TextStyle(
+                            color: AppTheme.getTextPrimary(context),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ),
+              TVFocusable(
+                onSelect: () => Navigator.pushNamed(
+                    context, AppRouter.playlistList),
+                focusScale: 1.0,
+                showFocusBorder: false,
+                builder: (context, isFocused, child) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isFocused
+                          ? AppTheme.getGlassColor(context)
+                          : AppTheme.getGlassColor(context).withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                      border: Border.all(
+                          color: isFocused
+                              ? AppTheme.getPrimaryColor(context)
+                              : AppTheme.getGlassBorderColor(context),
+                          width: isFocused ? 2 : 1),
+                    ),
+                    child: child,
+                  );
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.playlist_play_rounded,
+                        size: 18,
+                        color: AppTheme.getTextPrimary(context)),
+                    const SizedBox(width: 8),
+                    Text(
+                      AppStrings.of(context)?.playlistList ?? 'Playlists',
+                      style: TextStyle(
+                          color: AppTheme.getTextPrimary(context),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

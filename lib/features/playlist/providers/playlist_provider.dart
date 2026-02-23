@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:dio/dio.dart';
 import '../../../core/models/playlist.dart';
 import '../../../core/models/channel.dart';
 import '../../../core/services/service_locator.dart';
@@ -21,6 +22,9 @@ class PlaylistProvider extends ChangeNotifier {
   /// Last extracted EPG URL from M3U file (for UI display only)
   String? _lastExtractedEpgUrl;
   String? get lastExtractedEpgUrl => _lastExtractedEpgUrl;
+  
+  /// Playlists that need backup creation (for lazy migration)
+  final Set<int> _playlistsNeedingBackup = {};
 
   // Getters
 
@@ -91,6 +95,31 @@ class PlaylistProvider extends ChangeNotifier {
         );
         ServiceLocator.log.d('设置活动播放列表: ${_activePlaylist?.name}', tag: 'PlaylistProvider');
       }
+      
+      // 检查并标记需要创建备份的播放列表（向后兼容）
+      _playlistsNeedingBackup.clear();
+      for (final playlist in _playlists) {
+        if (playlist.id == null) continue;
+        
+        if (playlist.backupPath == null) {
+          // 旧版本数据，没有备份
+          _playlistsNeedingBackup.add(playlist.id!);
+          ServiceLocator.log.d('播放列表 "${playlist.name}" (ID: ${playlist.id}) 需要创建备份', tag: 'PlaylistProvider');
+        } else {
+          // 验证备份文件是否存在
+          final backupFile = File(playlist.backupPath!);
+          if (!await backupFile.exists()) {
+            _playlistsNeedingBackup.add(playlist.id!);
+            ServiceLocator.log.w('播放列表 "${playlist.name}" (ID: ${playlist.id}) 备份文件丢失，需要重新创建', tag: 'PlaylistProvider');
+          }
+        }
+      }
+      
+      // 后台异步创建缺失的备份（不阻塞UI）
+      if (_playlistsNeedingBackup.isNotEmpty) {
+        ServiceLocator.log.i('发现 ${_playlistsNeedingBackup.length} 个播放列表需要创建备份，开始后台处理', tag: 'PlaylistProvider');
+        unawaited(_createMissingBackups());
+      }
 
       final loadTime = DateTime.now().difference(startTime).inMilliseconds;
       ServiceLocator.log.i('播放列表加载完成，耗时: ${loadTime}ms', tag: 'PlaylistProvider');
@@ -156,6 +185,7 @@ class PlaylistProvider extends ChangeNotifier {
 
     int? playlistId;
     String? tempFilePath;
+    String? originalContent; // 保存原始内容用于创建备份
     
     try {
       // Step 1: Create playlist record (10%)
@@ -188,6 +218,13 @@ class PlaylistProvider extends ChangeNotifier {
         _importProgress = 0.15;
         notifyListeners();
         
+        // 下载内容用于备份
+        try {
+          originalContent = await _downloadContentFromUrl(url);
+        } catch (e) {
+          ServiceLocator.log.w('下载内容用于备份失败: $e', tag: 'PlaylistProvider');
+        }
+        
         if (format == 'txt') {
           channels = await TXTParser.parseFromUrl(url, playlistId!, mergeRule: effectiveMergeRule);
         } else {
@@ -196,6 +233,8 @@ class PlaylistProvider extends ChangeNotifier {
         }
       } else if (content != null) {
         // From content string
+        originalContent = content; // 保存原始内容
+        
         final format = _detectPlaylistFormat('', content: content);
         ServiceLocator.log.i('检测到播放列表格式: $format', tag: 'PlaylistProvider');
         
@@ -209,18 +248,26 @@ class PlaylistProvider extends ChangeNotifier {
           epgUrl = M3UParser.lastParseResult?.epgUrl;
         }
         
-        // Save content as temporary file for future refreshes
-        final tempDir = await getTemporaryDirectory();
+        // Save content to permanent storage for future refreshes
+        // 使用应用文档目录而不是临时目录，避免Android TV系统清理导致文件丢失
+        final appDir = await getApplicationDocumentsDirectory();
+        final playlistDir = Directory('${appDir.path}/playlists');
         
-        // Clean up old temp files for this playlist before creating new one
-        await _cleanupOldTempFiles(tempDir, playlistId!);
+        // 确保播放列表目录存在
+        if (!await playlistDir.exists()) {
+          await playlistDir.create(recursive: true);
+          ServiceLocator.log.d('创建播放列表存储目录: ${playlistDir.path}', tag: 'PlaylistProvider');
+        }
+        
+        // Clean up old files for this playlist before creating new one
+        await _cleanupOldPlaylistFiles(playlistDir, playlistId!);
         
         final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final tempFile = File('${tempDir.path}/playlist_${playlistId}_$timestamp.m3u');
-        await tempFile.writeAsString(content);
-        tempFilePath = tempFile.path;
+        final playlistFile = File('${playlistDir.path}/playlist_${playlistId}_$timestamp.m3u');
+        await playlistFile.writeAsString(content);
+        tempFilePath = playlistFile.path;
         
-        ServiceLocator.log.d('保存临时播放列表文件: $tempFilePath', tag: 'PlaylistProvider');
+        ServiceLocator.log.d('保存播放列表文件到永久存储: $tempFilePath', tag: 'PlaylistProvider');
       } else if (filePath != null) {
         // From local file
         final format = _detectPlaylistFormat(filePath);
@@ -228,6 +275,16 @@ class PlaylistProvider extends ChangeNotifier {
         
         _importProgress = 0.15;
         notifyListeners();
+        
+        // 读取文件内容用于备份
+        try {
+          final file = File(filePath);
+          if (await file.exists()) {
+            originalContent = await file.readAsString();
+          }
+        } catch (e) {
+          ServiceLocator.log.w('读取文件内容用于备份失败: $e', tag: 'PlaylistProvider');
+        }
         
         if (format == 'txt') {
           channels = await TXTParser.parseFromFile(filePath, playlistId!, mergeRule: effectiveMergeRule);
@@ -317,6 +374,17 @@ class PlaylistProvider extends ChangeNotifier {
       // Reload playlists
       await loadPlaylists();
       
+      // 创建备份文件（导入成功后立即创建）
+      if (playlistId != null && originalContent != null && originalContent.isNotEmpty) {
+        try {
+          final format = _detectPlaylistFormat(url ?? filePath ?? '', content: originalContent);
+          await _updateBackupFile(playlistId, originalContent, format);
+          ServiceLocator.log.i('导入成功，已创建备份文件', tag: 'PlaylistProvider');
+        } catch (e) {
+          ServiceLocator.log.w('创建备份文件失败（不影响导入）: $e', tag: 'PlaylistProvider');
+        }
+      }
+      
       // Run ANALYZE to update database statistics after large import
       if (playlistId != null) {
         try {
@@ -377,7 +445,28 @@ class PlaylistProvider extends ChangeNotifier {
     }
   }
 
-  /// Clean up old temporary files for a playlist
+  /// Clean up old playlist files for a specific playlist
+  Future<void> _cleanupOldPlaylistFiles(Directory playlistDir, int playlistId) async {
+    try {
+      final files = playlistDir.listSync();
+      final pattern = RegExp('playlist_${playlistId}_\\d+\\.m3u');
+      
+      for (final file in files) {
+        if (file is File && pattern.hasMatch(file.path)) {
+          try {
+            await file.delete();
+            ServiceLocator.log.d('删除旧播放列表文件: ${file.path}', tag: 'PlaylistProvider');
+          } catch (e) {
+            ServiceLocator.log.w('删除旧播放列表文件失败: ${file.path}', tag: 'PlaylistProvider', error: e);
+          }
+        }
+      }
+    } catch (e) {
+      ServiceLocator.log.w('清理旧播放列表文件时出错', tag: 'PlaylistProvider', error: e);
+    }
+  }
+
+  /// Clean up old temporary files for a playlist (deprecated, kept for compatibility)
   Future<void> _cleanupOldTempFiles(Directory tempDir, int playlistId) async {
     try {
       final files = tempDir.listSync();
@@ -669,17 +758,33 @@ class PlaylistProvider extends ChangeNotifier {
         );
       });
 
-      // Delete temporary file if this is a temporary playlist
-      if (playlist.isTemporary && playlist.filePath != null) {
+      // Delete playlist file if exists (both temp and permanent storage)
+      if (playlist.filePath != null) {
         try {
           final file = File(playlist.filePath!);
           if (await file.exists()) {
             await file.delete();
-            ServiceLocator.log.d('已删除临时播放列表文件: ${playlist.filePath}', tag: 'PlaylistProvider');
+            ServiceLocator.log.d('已删除播放列表文件: ${playlist.filePath}', tag: 'PlaylistProvider');
           }
         } catch (e) {
-          ServiceLocator.log.w('删除临时文件时出错: $e', tag: 'PlaylistProvider');
+          ServiceLocator.log.w('删除播放列表文件时出错: $e', tag: 'PlaylistProvider');
         }
+      }
+      
+      // Also clean up any old files for this playlist in both directories
+      try {
+        // Clean up from temp directory
+        final tempDir = await getTemporaryDirectory();
+        await _cleanupOldTempFiles(tempDir, playlistId);
+        
+        // Clean up from permanent storage
+        final appDir = await getApplicationDocumentsDirectory();
+        final playlistDir = Directory('${appDir.path}/playlists');
+        if (await playlistDir.exists()) {
+          await _cleanupOldPlaylistFiles(playlistDir, playlistId);
+        }
+      } catch (e) {
+        ServiceLocator.log.w('清理播放列表文件时出错: $e', tag: 'PlaylistProvider');
       }
 
       // 清除重定向缓存（因为播放列表的URL可能已失效）
@@ -804,30 +909,66 @@ class PlaylistProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Clean up all old temporary playlist files
+  /// Clean up all old playlist files from both temp and permanent storage
   Future<void> cleanupAllTempFiles() async {
+    int totalDeleted = 0;
+    
     try {
+      // 清理临时目录中的旧文件（兼容旧版本）
       final tempDir = await getTemporaryDirectory();
-      final files = tempDir.listSync();
-      final pattern = RegExp(r'playlist_\d+_\d+\.m3u');
-      
-      int deletedCount = 0;
-      for (final file in files) {
-        if (file is File && pattern.hasMatch(file.path)) {
-          try {
-            await file.delete();
-            deletedCount++;
-          } catch (e) {
-            ServiceLocator.log.w('删除临时文件失败: ${file.path}', tag: 'PlaylistProvider');
+      if (await tempDir.exists()) {
+        final tempFiles = tempDir.listSync();
+        final pattern = RegExp(r'playlist_\d+_\d+\.m3u');
+        
+        for (final file in tempFiles) {
+          if (file is File && pattern.hasMatch(file.path)) {
+            try {
+              await file.delete();
+              totalDeleted++;
+            } catch (e) {
+              ServiceLocator.log.w('删除临时文件失败: ${file.path}', tag: 'PlaylistProvider');
+            }
           }
         }
       }
       
-      if (deletedCount > 0) {
-        ServiceLocator.log.i('清理了 $deletedCount 个临时播放列表文件', tag: 'PlaylistProvider');
+      // 清理永久存储目录中不再使用的播放列表文件
+      final appDir = await getApplicationDocumentsDirectory();
+      final playlistDir = Directory('${appDir.path}/playlists');
+      
+      if (await playlistDir.exists()) {
+        final playlistFiles = playlistDir.listSync();
+        final pattern = RegExp(r'playlist_\d+_\d+\.m3u');
+        
+        // 获取所有有效的播放列表ID
+        final validPlaylistIds = _playlists.map((p) => p.id).whereType<int>().toSet();
+        
+        for (final file in playlistFiles) {
+          if (file is File && pattern.hasMatch(file.path)) {
+            // 提取播放列表ID
+            final match = RegExp(r'playlist_(\d+)_\d+\.m3u').firstMatch(file.path);
+            if (match != null) {
+              final playlistId = int.tryParse(match.group(1)!);
+              // 如果播放列表ID不在有效列表中，删除文件
+              if (playlistId != null && !validPlaylistIds.contains(playlistId)) {
+                try {
+                  await file.delete();
+                  totalDeleted++;
+                  ServiceLocator.log.d('删除无效播放列表文件: ${file.path}', tag: 'PlaylistProvider');
+                } catch (e) {
+                  ServiceLocator.log.w('删除播放列表文件失败: ${file.path}', tag: 'PlaylistProvider');
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      if (totalDeleted > 0) {
+        ServiceLocator.log.i('清理了 $totalDeleted 个播放列表文件', tag: 'PlaylistProvider');
       }
     } catch (e) {
-      ServiceLocator.log.e('清理临时文件失败', tag: 'PlaylistProvider', error: e);
+      ServiceLocator.log.e('清理播放列表文件失败', tag: 'PlaylistProvider', error: e);
     }
   }
 
@@ -994,6 +1135,190 @@ class PlaylistProvider extends ChangeNotifier {
     } catch (e) {
       ServiceLocator.log.e('恢复收藏关联失败', tag: 'PlaylistProvider', error: e);
       return 0;
+    }
+  }
+  
+  // ============ 备份相关方法 ============
+  
+  /// 后台创建缺失的备份（不阻塞UI）
+  Future<void> _createMissingBackups() async {
+    for (final playlistId in _playlistsNeedingBackup.toList()) {
+      try {
+        await _createBackupForPlaylist(playlistId);
+        _playlistsNeedingBackup.remove(playlistId);
+      } catch (e) {
+        ServiceLocator.log.w('为播放列表 $playlistId 创建备份失败: $e', tag: 'PlaylistProvider');
+      }
+    }
+  }
+  
+  /// 为指定播放列表创建备份
+  Future<void> _createBackupForPlaylist(int playlistId) async {
+    final playlist = _playlists.firstWhere(
+      (p) => p.id == playlistId,
+      orElse: () => Playlist(name: ''),
+    );
+    
+    if (playlist.id == null) {
+      ServiceLocator.log.w('播放列表ID为空，跳过备份创建', tag: 'PlaylistProvider');
+      return;
+    }
+    
+    String? sourceContent;
+    
+    // 尝试从各种来源获取内容
+    try {
+      if (playlist.url != null && playlist.url!.isNotEmpty) {
+        // 从URL重新下载
+        ServiceLocator.log.d('从URL获取播放列表内容: ${playlist.url}', tag: 'PlaylistProvider');
+        sourceContent = await _downloadContentFromUrl(playlist.url!);
+      } else if (playlist.filePath != null && playlist.filePath!.isNotEmpty) {
+        // 从原始文件读取
+        final file = File(playlist.filePath!);
+        if (await file.exists()) {
+          ServiceLocator.log.d('从文件读取播放列表内容: ${playlist.filePath}', tag: 'PlaylistProvider');
+          sourceContent = await file.readAsString();
+        } else {
+          ServiceLocator.log.w('原始文件不存在: ${playlist.filePath}', tag: 'PlaylistProvider');
+        }
+      }
+      
+      // 如果上述方法都失败，尝试从旧的临时文件查找
+      if (sourceContent == null) {
+        sourceContent = await _tryFindOldTempFile(playlistId);
+      }
+    } catch (e) {
+      ServiceLocator.log.w('获取播放列表内容失败: $e', tag: 'PlaylistProvider');
+    }
+    
+    if (sourceContent != null && sourceContent.isNotEmpty) {
+      // 创建备份文件
+      final backupPath = await _saveBackupFile(playlistId, sourceContent, playlist.format);
+      
+      // 更新数据库
+      await ServiceLocator.database.update(
+        'playlists',
+        {
+          'backup_path': backupPath,
+          'file_path': backupPath, // 同时更新file_path以保持向后兼容
+          'last_backup_time': DateTime.now().millisecondsSinceEpoch,
+        },
+        where: 'id = ?',
+        whereArgs: [playlistId],
+      );
+      
+      ServiceLocator.log.i('成功为播放列表 "${playlist.name}" (ID: $playlistId) 创建备份: $backupPath', tag: 'PlaylistProvider');
+    } else {
+      ServiceLocator.log.w('无法获取播放列表 "${playlist.name}" (ID: $playlistId) 的内容，跳过备份创建', tag: 'PlaylistProvider');
+    }
+  }
+  
+  /// 从URL下载内容
+  Future<String> _downloadContentFromUrl(String url) async {
+    final dio = Dio();
+    final response = await dio.get(
+      url,
+      options: Options(
+        responseType: ResponseType.plain,
+        followRedirects: true,
+        validateStatus: (status) => status! < 500,
+      ),
+    );
+    
+    if (response.statusCode == 200) {
+      return response.data.toString();
+    } else {
+      throw Exception('HTTP ${response.statusCode}');
+    }
+  }
+  
+  /// 保存备份文件
+  Future<String> _saveBackupFile(int playlistId, String content, String format) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final backupDir = Directory('${appDir.path}/playlists/backups');
+    
+    // 确保备份目录存在
+    if (!await backupDir.exists()) {
+      await backupDir.create(recursive: true);
+      ServiceLocator.log.d('创建备份目录: ${backupDir.path}', tag: 'PlaylistProvider');
+    }
+    
+    // 使用固定文件名（不带时间戳），便于更新
+    final extension = format.toLowerCase() == 'txt' ? 'txt' : 'm3u';
+    final backupFile = File('${backupDir.path}/playlist_${playlistId}_backup.$extension');
+    
+    await backupFile.writeAsString(content);
+    ServiceLocator.log.d('保存备份文件: ${backupFile.path}', tag: 'PlaylistProvider');
+    
+    return backupFile.path;
+  }
+  
+  /// 尝试从旧的临时目录查找文件（兼容旧版本）
+  Future<String?> _tryFindOldTempFile(int playlistId) async {
+    try {
+      // 查找临时目录中的旧文件
+      final tempDir = await getTemporaryDirectory();
+      if (!await tempDir.exists()) return null;
+      
+      final files = tempDir.listSync();
+      final pattern = RegExp('playlist_${playlistId}_\\d+\\.m3u');
+      
+      for (final file in files) {
+        if (file is File && pattern.hasMatch(file.path)) {
+          ServiceLocator.log.i('找到旧版本临时文件: ${file.path}', tag: 'PlaylistProvider');
+          final content = await file.readAsString();
+          
+          // 迁移：删除旧临时文件（已经创建备份）
+          try {
+            await file.delete();
+            ServiceLocator.log.d('删除旧临时文件: ${file.path}', tag: 'PlaylistProvider');
+          } catch (e) {
+            ServiceLocator.log.w('删除旧临时文件失败: $e', tag: 'PlaylistProvider');
+          }
+          
+          return content;
+        }
+      }
+      
+      // 也检查永久存储目录中的旧文件
+      final appDir = await getApplicationDocumentsDirectory();
+      final playlistDir = Directory('${appDir.path}/playlists');
+      if (await playlistDir.exists()) {
+        final playlistFiles = playlistDir.listSync();
+        for (final file in playlistFiles) {
+          if (file is File && pattern.hasMatch(file.path)) {
+            ServiceLocator.log.i('找到旧版本播放列表文件: ${file.path}', tag: 'PlaylistProvider');
+            return await file.readAsString();
+          }
+        }
+      }
+    } catch (e) {
+      ServiceLocator.log.w('查找旧文件失败: $e', tag: 'PlaylistProvider');
+    }
+    
+    return null;
+  }
+  
+  /// 更新备份文件
+  Future<void> _updateBackupFile(int playlistId, String content, String format) async {
+    try {
+      final backupPath = await _saveBackupFile(playlistId, content, format);
+      
+      // 更新数据库
+      await ServiceLocator.database.update(
+        'playlists',
+        {
+          'backup_path': backupPath,
+          'file_path': backupPath, // 同时更新file_path以保持向后兼容
+          'last_backup_time': DateTime.now().millisecondsSinceEpoch,
+        },
+        where: 'id = ?',
+        whereArgs: [playlistId],
+      );
+      
+      ServiceLocator.log.d('更新播放列表 $playlistId 的备份文件', tag: 'PlaylistProvider');
+    } catch (e) {
+      ServiceLocator.log.w('更新备份文件失败: $e', tag: 'PlaylistProvider');
     }
   }
 }

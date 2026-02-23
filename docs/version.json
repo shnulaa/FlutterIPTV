@@ -1,23 +1,23 @@
 {
-  "version": "1.5.8",
-  "build": 168,
-  "releaseDate": "2026-02-20",
+  "version": "1.5.9",
+  "build": 169,
+  "releaseDate": "2026-02-23",
   "assets": {
-    "windows": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.8/flutteriptv-Windows-x64-Setup.exe",
+    "windows": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.9/flutteriptv-Windows-x64-Setup.exe",
     "android_mobile": {
-      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.8/flutteriptv-Android-Mobile-arm64-v8a.apk",
-      "armeabi-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.8/flutteriptv-Android-Mobile-armeabi-v7a.apk",
-      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.8/flutteriptv-Android-Mobile-x86_64.apk"
+      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.9/flutteriptv-Android-Mobile-arm64-v8a.apk",
+      "armeabi-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.9/flutteriptv-Android-Mobile-armeabi-v7a.apk",
+      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.9/flutteriptv-Android-Mobile-x86_64.apk"
     },
     "android_tv": {
-      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.8/flutteriptv-AndroidTV-arm64-v8a.apk",
-      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.8/flutteriptv-AndroidTV-armeabi-v7a.apk",
-      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.8/flutteriptv-AndroidTV-x86_64.apk"
+      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.9/flutteriptv-AndroidTV-arm64-v8a.apk",
+      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.9/flutteriptv-AndroidTV-armeabi-v7a.apk",
+      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.9/flutteriptv-AndroidTV-x86_64.apk"
     }
   },
   "changelog": {
-    "zh": "- 新增：播放列表卡片支持 TV 遥控焦点精细导航（卡片/复制/刷新/删除）\n- 优化：删除播放列表后在 TV 端自动重建页面并恢复焦点，避免焦点丢失\n- 优化：频道页与侧边栏宽度调整，频道名称改为自动滚动显示，长标题可完整查看\n- 修复：播放器返回逻辑改为 maybePop，避免直接退回首页\n- 国际化：新增“操作”“URL已复制到剪贴板”等中英文文案",
-    "en": "- New: Added precise TV focus navigation for playlist actions (card/copy/refresh/delete)\n- Improved: Rebuilds playlist page and restores focus after deletion on TV to prevent focus loss\n- Improved: Tuned sidebar/channel widths and enabled auto-scrolling channel titles for long names\n- Fixed: Changed player back navigation to maybePop to avoid always jumping to home\n- I18n: Added localized strings for actions and URL copied message"
+    "zh": "- 修复：Windows 播放页面上下键失效问题（进度条焦点冲突）\n- 优化：EPG 导入改为异步加载，不阻塞 UI\n- 修复：TV 端导入 TXT 后频道数量变为 0 的问题（文件存储改为永久目录）\n- 新增：播放列表备份功能，导入时自动创建备份，向后兼容旧版本\n- 修复：首页频道数量为 0 时显示白屏问题，现在显示操作按钮（添加播放列表、刷新等）",
+    "en": "- Fixed: Windows player up/down key navigation issue (progress bar focus conflict)\n- Improved: EPG import now loads asynchronously without blocking UI\n- Fixed: TV imported TXT playlist channels becoming 0 after some time (changed to permanent storage)\n- New: Playlist backup feature with automatic backup on import, backward compatible\n- Fixed: Home screen white screen when channel count is 0, now shows action buttons (add playlist, refresh, etc.)"
   },
   "minVersion": "1.0.0"
 }

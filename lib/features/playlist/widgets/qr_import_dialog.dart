@@ -112,10 +112,10 @@ class _QrImportDialogState extends State<QrImportDialog> {
             
             if (playlistEpgUrl != null && playlistEpgUrl.isNotEmpty) {
               ServiceLocator.log.d('加载播放列表EPG: $playlistEpgUrl (兜底: $fallbackEpgUrl)');
-              await epgProvider.loadEpg(playlistEpgUrl, fallbackUrl: fallbackEpgUrl, silent: true);
+              epgProvider.loadEpg(playlistEpgUrl, fallbackUrl: fallbackEpgUrl, silent: true);
             } else if (fallbackEpgUrl != null && fallbackEpgUrl.isNotEmpty) {
               ServiceLocator.log.d('使用兜底EPG URL: $fallbackEpgUrl');
-              await epgProvider.loadEpg(fallbackEpgUrl, silent: true);
+              epgProvider.loadEpg(fallbackEpgUrl, silent: true);
             }
           }
         }

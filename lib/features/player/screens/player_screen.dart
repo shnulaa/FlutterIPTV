@@ -510,8 +510,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     final settingsProvider = context.read<SettingsProvider>();
 
     try {
-      // Try to find the matching channel to enable playlist navigation
-      final channel = channelProvider.channels.firstWhere(
+      // ✅ 使用全部频道列表而不是分页显示的频道，确保能找到当前频道
+      final channel = channelProvider.allChannels.firstWhere(
         (c) => c.url == widget.channelUrl,
       );
 
@@ -818,11 +818,11 @@ class _PlayerScreenState extends State<PlayerScreen>
         final channelProvider = context.read<ChannelProvider>();
         if (dy > 0) {
           // 下滑 -> 上一个频道
-          playerProvider.playPrevious(channelProvider.filteredChannels);
+          playerProvider.playPrevious(channelProvider.allChannels);
           _saveLastChannelId(playerProvider.currentChannel);
         } else {
           // 上滑 -> 下一个频道
-          playerProvider.playNext(channelProvider.filteredChannels);
+          playerProvider.playNext(channelProvider.allChannels);
           _saveLastChannelId(playerProvider.currentChannel);
         }
         // 强制刷新 UI
@@ -1085,7 +1085,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
       final channelProvider = context.read<ChannelProvider>();
-      playerProvider.playPrevious(channelProvider.filteredChannels);
+      playerProvider.playPrevious(channelProvider.allChannels);
       // 保存上次播放的频道 ID
       _saveLastChannelId(playerProvider.currentChannel);
       return KeyEventResult.handled;
@@ -1100,7 +1100,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
       final channelProvider = context.read<ChannelProvider>();
-      playerProvider.playNext(channelProvider.filteredChannels);
+      playerProvider.playNext(channelProvider.allChannels);
       // 保存上次播放的频道 ID
       _saveLastChannelId(playerProvider.currentChannel);
       return KeyEventResult.handled;
