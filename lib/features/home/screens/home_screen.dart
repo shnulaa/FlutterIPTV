@@ -49,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Ro
   AppUpdate? _availableUpdate; // 可用的更新
   final ScrollController _scrollController = ScrollController(); // 添加滚动控制器
   final FocusNode _continueButtonFocusNode = FocusNode(); // 继续观看按钮的焦点节点
+  bool _hasTriggeredEmptyChannelLoad = false; // ✅ 标记是否已触发空频道加载，避免重复触发
 
   @override
   void initState() {
@@ -145,6 +146,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Ro
 
     // 当加载完成时刷新推荐频道
     if (!channelProvider.isLoading && channelProvider.channels.isNotEmpty) {
+      // ✅ 频道加载成功后，重置空频道加载标记
+      _hasTriggeredEmptyChannelLoad = false;
+      
       // 频道数量变化或首次加载时刷新
       if (channelProvider.channels.length != _lastChannelCount ||
           _watchHistoryChannels.isEmpty) {
@@ -164,6 +168,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Ro
       _lastPlaylistId = currentPlaylistId;
       _watchHistoryChannels = [];
       _lastChannelCount = 0;
+      _hasTriggeredEmptyChannelLoad = false; // ✅ 播放列表切换时重置标记
 
       // ✅ 播放列表切换时，清空缓存并重新加载
       if (currentPlaylistId != null) {
@@ -604,26 +609,37 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Ro
               child: CircularProgressIndicator(color: AppTheme.primaryColor));
         }
 
-        // ✅ 首页使用独立的加载状态
+        // 如果播放列表已加载但首页数据为空，显示空状态并提供操作按钮
+        if (playlistProvider.hasPlaylists && channelProvider.allChannels.isEmpty) {
+          // ✅ 只在第一次检测到空频道时触发加载，避免重复触发
+          if (!_hasTriggeredEmptyChannelLoad && !channelProvider.isLoading) {
+            _hasTriggeredEmptyChannelLoad = true;
+            // 使用 addPostFrameCallback 避免在 build 期间调用 setState
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && !channelProvider.isLoading) {
+                ServiceLocator.log.d('HomeScreen: 频道列表为空，触发数据重新加载');
+                final activePlaylist = playlistProvider.activePlaylist;
+                if (activePlaylist?.id != null) {
+                  channelProvider.loadAllChannelsToCache(activePlaylist!.id!);
+                }
+              }
+            });
+          }
+          
+          // ✅ 如果正在加载且是第一次加载，显示加载状态
+          if (channelProvider.isLoading && !_hasTriggeredEmptyChannelLoad) {
+            return const Center(
+                child: CircularProgressIndicator(color: AppTheme.primaryColor));
+          }
+          
+          // ✅ 否则显示空状态UI，包含操作按钮
+          return _buildEmptyChannelsState(playlistProvider);
+        }
+
+        // ✅ 首页使用独立的加载状态（仅在有频道数据时显示）
         if (channelProvider.isLoading) {
           return const Center(
               child: CircularProgressIndicator(color: AppTheme.primaryColor));
-        }
-
-        // 如果播放列表已加载但首页数据为空，显示空状态并提供操作按钮
-        if (playlistProvider.hasPlaylists && channelProvider.allChannels.isEmpty) {
-          // 使用 addPostFrameCallback 避免在 build 期间调用 setState
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && !channelProvider.isLoading) {
-              ServiceLocator.log.d('HomeScreen: 频道列表为空，触发数据重新加载');
-              final activePlaylist = playlistProvider.activePlaylist;
-              if (activePlaylist?.id != null) {
-                channelProvider.loadAllChannelsToCache(activePlaylist!.id!);
-              }
-            }
-          });
-          // 显示空状态UI，包含操作按钮
-          return _buildEmptyChannelsState(playlistProvider);
         }
 
         final favChannels = _getFavoriteChannels(channelProvider);
@@ -938,8 +954,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Ro
             builder: (context) => const AddPlaylistDialog(),
           );
 
-    // 如果成功添加了播放列表，刷新数据
+    // 如果成功添加了播放列表，刷新数据并重置标记
     if (result == true && mounted) {
+      _hasTriggeredEmptyChannelLoad = false; // ✅ 重置标记，允许重新加载
       _loadData();
     }
   }

@@ -488,6 +488,7 @@ class _AddPlaylistDialogState extends State<AddPlaylistDialog> {
           title: AppStrings.of(context)?.fromFile ?? 'From File',
           subtitle: AppStrings.of(context)?.importFromUsb ?? 'Import from USB or local storage',
           isPrimary: true,
+          autofocus: true, // ✅ TV端第一个选项自动获取焦点
         ),
         const SizedBox(height: 12),
         _buildImportCard(
@@ -496,6 +497,7 @@ class _AddPlaylistDialogState extends State<AddPlaylistDialog> {
           title: AppStrings.of(context)?.scanToImport ?? 'Scan to Import',
           subtitle: AppStrings.of(context)?.scanQrToImport ?? 'Use your phone to scan QR code',
           isPrimary: false,
+          autofocus: false,
         ),
       ],
     );
@@ -511,7 +513,7 @@ class _AddPlaylistDialogState extends State<AddPlaylistDialog> {
           focusNode: _nameFocusNode,
           hintText: AppStrings.of(context)?.playlistName ?? 'Playlist Name',
           prefixIcon: Icons.label_outline_rounded,
-          autofocus: true,
+          autofocus: false, // ✅ Windows 端不自动聚焦输入框
         ),
         const SizedBox(height: 12),
         _buildTextField(
@@ -551,6 +553,7 @@ class _AddPlaylistDialogState extends State<AddPlaylistDialog> {
                 onPressed: () => _pickFile(provider),
                 icon: Icons.folder_open_rounded,
                 label: AppStrings.of(context)?.fromFile ?? 'File',
+                autofocus: true, // ✅ Windows 端第一个按钮自动获取焦点
               ),
             ),
             const SizedBox(width: 12),
@@ -651,10 +654,12 @@ class _AddPlaylistDialogState extends State<AddPlaylistDialog> {
     required VoidCallback? onPressed,
     required IconData icon,
     required String label,
+    bool autofocus = false, // ✅ 添加 autofocus 参数
   }) {
     final isWindows = !PlatformDetector.isTV && !PlatformDetector.isMobile;
     
     return TVFocusable(
+      autofocus: autofocus, // ✅ 使用 autofocus 参数
       onSelect: onPressed,
       focusScale: isWindows ? 1.0 : 1.02, // Windows端不缩放
       showFocusBorder: !isWindows, // Windows端不显示外层焦点边框
@@ -707,8 +712,10 @@ class _AddPlaylistDialogState extends State<AddPlaylistDialog> {
     required String title,
     required String subtitle,
     required bool isPrimary,
+    bool autofocus = false, // ✅ 添加 autofocus 参数
   }) {
     return TVFocusable(
+      autofocus: autofocus, // ✅ 使用 autofocus 参数
       onSelect: onPressed,
       focusScale: 1.02,
       showFocusBorder: true,
