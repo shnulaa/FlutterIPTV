@@ -18,6 +18,7 @@ import '../providers/settings_provider.dart';
 import '../providers/dlna_provider.dart';
 import '../widgets/qr_log_export_dialog.dart';
 import '../../epg/providers/epg_provider.dart';
+import '../../backup/screens/backup_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final bool embedded;
@@ -666,6 +667,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // ]),
 
             const SizedBox(height: 24),
+
+            // Backup & Restore Section (只在 Mobile 和 Windows 端显示)
+            if (!PlatformDetector.isTV) ...[
+              _buildSectionHeader(AppStrings.of(context)?.backupAndRestore ?? '备份与恢复'),
+              _buildSettingsCard([
+                _buildActionTile(
+                  context,
+                  title: AppStrings.of(context)?.backupAndRestore ?? '备份与恢复',
+                  subtitle: '备份和恢复应用数据',
+                  icon: Icons.backup_rounded,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => BackupScreen()),
+                    );
+                  },
+                ),
+              ]),
+              const SizedBox(height: 24),
+            ],
 
             // Developer & Debug Settings
             _buildSectionHeader(AppStrings.of(context)?.developerAndDebug ?? 'Developer & Debug'),
@@ -1600,6 +1621,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required VoidCallback onTap,
     bool isDestructive = false,
   }) {
+    final isMobile = PlatformDetector.isMobile;
+    final isLandscape = isMobile && MediaQuery.of(context).size.width > 600;
+    
     return TVFocusable(
       onSelect: onTap,
       focusScale: 1.0,
@@ -1616,22 +1640,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: EdgeInsets.symmetric(
+            horizontal: isLandscape ? 12 : 16,
+            vertical: isLandscape ? 8 : 14,
+          ),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(isLandscape ? 6 : 8),
                 decoration: BoxDecoration(
                   color: (isDestructive ? AppTheme.errorColor : AppTheme.getPrimaryColor(context)).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(isLandscape ? 6 : 8),
                 ),
                 child: Icon(
                   icon,
                   color: isDestructive ? AppTheme.errorColor : AppTheme.getPrimaryColor(context),
-                  size: 20,
+                  size: isLandscape ? 16 : 20,
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: isLandscape ? 12 : 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1640,7 +1667,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       title,
                       style: TextStyle(
                         color: isDestructive ? AppTheme.errorColor : AppTheme.getTextPrimary(context),
-                        fontSize: 15,
+                        fontSize: isLandscape ? 13 : 15,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1649,7 +1676,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       subtitle,
                       style: TextStyle(
                         color: AppTheme.getTextMuted(context),
-                        fontSize: 12,
+                        fontSize: isLandscape ? 10 : 12,
                       ),
                     ),
                   ],

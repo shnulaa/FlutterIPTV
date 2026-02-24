@@ -328,8 +328,23 @@ class DatabaseHelper {
   }
 
   Future<void> close() async {
-    await _database?.close();
-    _database = null;
+    ServiceLocator.log.i('关闭数据库连接', tag: 'DatabaseHelper');
+    if (_database != null) {
+      try {
+        // 在关闭前执行 WAL checkpoint，确保所有数据写入主数据库文件
+        ServiceLocator.log.d('执行 WAL checkpoint', tag: 'DatabaseHelper');
+        await _database!.execute('PRAGMA wal_checkpoint(TRUNCATE)');
+        ServiceLocator.log.d('WAL checkpoint 完成', tag: 'DatabaseHelper');
+      } catch (e) {
+        ServiceLocator.log.w('WAL checkpoint 失败（可能不是 WAL 模式）', tag: 'DatabaseHelper', error: e);
+      }
+      
+      await _database!.close();
+      _database = null;
+      ServiceLocator.log.i('数据库连接已关闭', tag: 'DatabaseHelper');
+    } else {
+      ServiceLocator.log.d('数据库连接已经是关闭状态', tag: 'DatabaseHelper');
+    }
   }
 
   // Generic CRUD operations

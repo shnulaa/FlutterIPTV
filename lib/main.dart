@@ -25,6 +25,7 @@ import 'features/settings/providers/settings_provider.dart';
 import 'features/settings/providers/dlna_provider.dart';
 import 'features/epg/providers/epg_provider.dart';
 import 'features/multi_screen/providers/multi_screen_provider.dart';
+import 'features/backup/providers/backup_provider.dart';
 import 'core/widgets/window_title_bar.dart';
 
 void main() async {
@@ -177,6 +178,7 @@ class _FlutterIPTVAppState extends State<FlutterIPTVApp> {
         ChangeNotifierProvider(create: (_) => EpgProvider()),
         ChangeNotifierProvider(create: (_) => DlnaProvider()),
         ChangeNotifierProvider(create: (_) => MultiScreenProvider()),
+        ChangeNotifierProvider(create: (_) => BackupProvider()),
       ],
       child: Consumer<SettingsProvider>(
         builder: (context, settings, _) {

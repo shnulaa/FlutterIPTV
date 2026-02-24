@@ -200,6 +200,51 @@ class AppStrings {
   String get unavailable => _localizedValues['unavailable']!;
   String get localFile => _localizedValues['localFile']!;
 
+  // Backup and Restore
+  String get backupAndRestore => _localizedValues['backupAndRestore']!;
+  String get localBackup => _localizedValues['localBackup']!;
+  String get webdavBackup => _localizedValues['webdavBackup']!;
+  String get createBackup => _localizedValues['createBackup']!;
+  String get restoreBackup => _localizedValues['restoreBackup']!;
+  String get backupList => _localizedValues['backupList']!;
+  String get noBackupsYet => _localizedValues['noBackupsYet']!;
+  String get backupCreated => _localizedValues['backupCreated']!;
+  String get backupFailed => _localizedValues['backupFailed']!;
+  String get restoreSuccess => _localizedValues['restoreSuccess']!;
+  String get restoreFailed => _localizedValues['restoreFailed']!;
+  String get restoreWarning => _localizedValues['restoreWarning']!;
+  String get restoreWarningMessage => _localizedValues['restoreWarningMessage']!;
+  String get restoreConfirm => _localizedValues['restoreConfirm']!;
+  String get backupInfo => _localizedValues['backupInfo']!;
+  String get webdavConfig => _localizedValues['webdavConfig']!;
+  String get serverUrl => _localizedValues['serverUrl']!;
+  String get username => _localizedValues['username']!;
+  String get password => _localizedValues['password']!;
+  String get remotePath => _localizedValues['remotePath']!;
+  String get testConnection => _localizedValues['testConnection']!;
+  String get connectionSuccess => _localizedValues['connectionSuccess']!;
+  String get connectionFailed => _localizedValues['connectionFailed']!;
+  String get uploadToWebdav => _localizedValues['uploadToWebdav']!;
+  String get downloadFromWebdav => _localizedValues['downloadFromWebdav']!;
+  String get backupSize => _localizedValues['backupSize']!;
+  String get backupDate => _localizedValues['backupDate']!;
+  String get deleteBackup => _localizedValues['deleteBackup']!;
+  String get deleteBackupConfirm => _localizedValues['deleteBackupConfirm']!;
+  String get backupDeleted => _localizedValues['backupDeleted']!;
+  String get creating => _localizedValues['creating']!;
+  String get restoring => _localizedValues['restoring']!;
+  String get uploading => _localizedValues['uploading']!;
+  String get downloading => _localizedValues['downloading']!;
+  String get versionIncompatible => _localizedValues['versionIncompatible']!;
+  String get versionIncompatibleMessage => _localizedValues['versionIncompatibleMessage']!;
+  String get willAutoMigrate => _localizedValues['willAutoMigrate']!;
+  String get remoteConfig => _localizedValues['remoteConfig']!;
+  String get scanToConfig => _localizedValues['scanToConfig']!;
+  String get configTimeout => _localizedValues['configTimeout']!;
+  String get configReceived => _localizedValues['configReceived']!;
+  String get appVersion => _localizedValues['appVersion']!;
+  String get backupTime => _localizedValues['backupTime']!;
+  String get browse => _localizedValues['browse']!;
   // Home screen
   String get recommendedChannels => _localizedValues['recommendedChannels']!;
   String get watchHistory => _localizedValues['watchHistory']!;
@@ -500,7 +545,6 @@ class AppStrings {
   String get sentToTV => _localizedValues['sentToTV']!;
   String get sendFailed => _localizedValues['sendFailed']!;
   String get networkError => _localizedValues['networkError']!;
-  String get uploading => _localizedValues['uploading']!;
 
   // Simple menu
   String get simpleMenu => _localizedValues['simpleMenu']!;
@@ -732,6 +776,51 @@ class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
     'testChannel': '测试频道',
     'unavailable': '失效',
     'localFile': '本地文件',
+    // Backup and Restore
+    'backupAndRestore': '备份与恢复',
+    'localBackup': '本地备份',
+    'webdavBackup': 'WebDAV 云备份',
+    'createBackup': '创建备份',
+    'restoreBackup': '恢复备份',
+    'backupList': '备份列表',
+    'noBackupsYet': '暂无备份',
+    'backupCreated': '备份创建成功',
+    'backupFailed': '备份失败',
+    'restoreSuccess': '恢复成功，应用将重启',
+    'restoreFailed': '恢复失败',
+    'restoreWarning': '恢复警告',
+    'restoreWarningMessage': '恢复将完全覆盖当前所有数据，建议先创建当前数据的备份。是否继续？',
+    'restoreConfirm': '确认恢复',
+    'backupInfo': '备份信息',
+    'webdavConfig': 'WebDAV 配置',
+    'serverUrl': '服务器地址',
+    'username': '用户名',
+    'password': '密码',
+    'remotePath': '远程路径',
+    'testConnection': '测试连接',
+    'connectionSuccess': '连接成功',
+    'connectionFailed': '连接失败',
+    'uploadToWebdav': '备份到 WebDAV',
+    'downloadFromWebdav': '从 WebDAV 恢复',
+    'backupSize': '大小',
+    'backupDate': '日期',
+    'deleteBackup': '删除备份',
+    'deleteBackupConfirm': '确定要删除此备份吗？',
+    'backupDeleted': '备份已删除',
+    'creating': '创建中...',
+    'restoring': '恢复中...',
+    'uploading': '上传中...',
+    'downloading': '下载中...',
+    'versionIncompatible': '版本不兼容',
+    'versionIncompatibleMessage': '备份文件来自更新版本的应用，请先更新应用到最新版本',
+    'willAutoMigrate': '备份版本较旧，恢复后将自动升级数据库',
+    'remoteConfig': '远程配置',
+    'scanToConfig': '扫码配置 WebDAV',
+    'configTimeout': '配置超时',
+    'configReceived': '配置已接收',
+    'appVersion': '应用版本',
+    'backupTime': '备份时间',
+    'browse': '浏览',
     // Home screen
     'recommendedChannels': '推荐频道',
     'watchHistory': '观看记录',
@@ -956,7 +1045,6 @@ class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
     'sentToTV': '已发送到电视，请在电视上查看',
     'sendFailed': '发送失败',
     'networkError': '网络错误，请确保设备在同一局域网',
-    'uploading': '正在上传...',
     // Simple menu
     'simpleMenu': '简易菜单',
     'simpleMenuSubtitle': '菜单栏保持收起状态（不自动展开）',
@@ -1186,6 +1274,51 @@ class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
     'testChannel': 'Test Channel',
     'unavailable': 'Unavailable',
     'localFile': 'Local File',
+    // Backup and Restore
+    'backupAndRestore': 'Backup & Restore',
+    'localBackup': 'Local Backup',
+    'webdavBackup': 'WebDAV Cloud Backup',
+    'createBackup': 'Create Backup',
+    'restoreBackup': 'Restore Backup',
+    'backupList': 'Backup List',
+    'noBackupsYet': 'No backups yet',
+    'backupCreated': 'Backup created successfully',
+    'backupFailed': 'Backup failed',
+    'restoreSuccess': 'Restore successful, app will restart',
+    'restoreFailed': 'Restore failed',
+    'restoreWarning': 'Restore Warning',
+    'restoreWarningMessage': 'Restore will completely overwrite all current data. It is recommended to create a backup of current data first. Continue?',
+    'restoreConfirm': 'Confirm Restore',
+    'backupInfo': 'Backup Info',
+    'webdavConfig': 'WebDAV Configuration',
+    'serverUrl': 'Server URL',
+    'username': 'Username',
+    'password': 'Password',
+    'remotePath': 'Remote Path',
+    'testConnection': 'Test Connection',
+    'connectionSuccess': 'Connection successful',
+    'connectionFailed': 'Connection failed',
+    'uploadToWebdav': 'Backup to WebDAV',
+    'downloadFromWebdav': 'Restore from WebDAV',
+    'backupSize': 'Size',
+    'backupDate': 'Date',
+    'deleteBackup': 'Delete Backup',
+    'deleteBackupConfirm': 'Are you sure you want to delete this backup?',
+    'backupDeleted': 'Backup deleted',
+    'creating': 'Creating...',
+    'restoring': 'Restoring...',
+    'uploading': 'Uploading...',
+    'downloading': 'Downloading...',
+    'versionIncompatible': 'Version Incompatible',
+    'versionIncompatibleMessage': 'Backup is from a newer version of the app. Please update the app first.',
+    'willAutoMigrate': 'Backup is from an older version, database will be automatically upgraded after restore',
+    'remoteConfig': 'Remote Configuration',
+    'scanToConfig': 'Scan to Configure WebDAV',
+    'configTimeout': 'Configuration timeout',
+    'configReceived': 'Configuration received',
+    'appVersion': 'App Version',
+    'backupTime': 'Backup Time',
+    'browse': 'Browse',
     // Home screen
     'recommendedChannels': 'Recommended',
     'watchHistory': 'Watch History',
@@ -1433,7 +1566,6 @@ class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
     'sendFailed': 'Send failed',
     'networkError':
         'Network error, please ensure devices are on the same network',
-    'uploading': 'Uploading...',
     // Simple menu
     'simpleMenu': 'Simple Menu',
     'simpleMenuSubtitle': 'Keep menu collapsed (no auto-expand)',
