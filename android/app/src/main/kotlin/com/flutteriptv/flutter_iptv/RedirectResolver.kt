@@ -2,6 +2,11 @@ package com.flutteriptv.flutter_iptv
 
 import android.util.Log
 import java.net.HttpURLConnection
+import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
+import javax.net.ssl.HostnameVerifier
 
 /**
  * 统一的302重定向解析工具类
@@ -13,6 +18,23 @@ object RedirectResolver {
     private const val CONNECT_TIMEOUT = 2000
     private const val READ_TIMEOUT = 2000
     private const val USER_AGENT = "Wget/1.21.3"
+    
+    // 信任所有证书的 TrustManager（用于 IPTV 场景）
+    private val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
+        override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+        override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
+        override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
+    })
+    
+    // 接受所有主机名的 HostnameVerifier
+    private val trustAllHostnames = HostnameVerifier { _, _ -> true }
+    
+    // SSL Context（延迟初始化）
+    private val sslContext: SSLContext by lazy {
+        SSLContext.getInstance("TLS").apply {
+            init(null, trustAllCerts, java.security.SecureRandom())
+        }
+    }
     
     // 缓存配置
     private const val CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000L // 24小时
@@ -137,6 +159,13 @@ object RedirectResolver {
         return try {
             val connectStartTime = System.currentTimeMillis()
             val connection = java.net.URL(url).openConnection() as HttpURLConnection
+            
+            // 如果是 HTTPS 连接，跳过 SSL 证书验证（IPTV 场景常见 IP + HTTPS）
+            if (connection is HttpsURLConnection) {
+                connection.sslSocketFactory = sslContext.socketFactory
+                connection.hostnameVerifier = trustAllHostnames
+            }
+            
             connection.instanceFollowRedirects = false
             connection.setRequestProperty("User-Agent", USER_AGENT)
             connection.connectTimeout = CONNECT_TIMEOUT
