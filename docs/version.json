@@ -1,23 +1,23 @@
 {
-  "version": "1.5.13",
-  "build": 173,
-  "releaseDate": "2026-02-25",
+  "version": "1.5.14",
+  "build": 174,
+  "releaseDate": "2026-02-27",
   "assets": {
-    "windows": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.13/flutteriptv-Windows-x64-Setup.exe",
+    "windows": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.14/flutteriptv-Windows-x64-Setup.exe",
     "android_mobile": {
-      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.13/flutteriptv-Android-Mobile-arm64-v8a.apk",
-      "armeabi-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.13/flutteriptv-Android-Mobile-armeabi-v7a.apk",
-      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.13/flutteriptv-Android-Mobile-x86_64.apk"
+      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.14/flutteriptv-Android-Mobile-arm64-v8a.apk",
+      "armeabi-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.14/flutteriptv-Android-Mobile-armeabi-v7a.apk",
+      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.14/flutteriptv-Android-Mobile-x86_64.apk"
     },
     "android_tv": {
-      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.13/flutteriptv-AndroidTV-arm64-v8a.apk",
-      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.13/flutteriptv-AndroidTV-armeabi-v7a.apk",
-      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.13/flutteriptv-AndroidTV-x86_64.apk"
+      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.14/flutteriptv-AndroidTV-arm64-v8a.apk",
+      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.14/flutteriptv-AndroidTV-armeabi-v7a.apk",
+      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.14/flutteriptv-AndroidTV-x86_64.apk"
     }
   },
   "changelog": {
-    "zh": "- Android TV 端增加本地备份和恢复功能\n- Android TV 端增加 WebDAV 备份和恢复功能\n- 修复 TV 端备份恢复界面焦点框显示问题\n- 优化跨平台备份恢复路径映射逻辑",
-    "en": "- Added local backup/restore for Android TV\n- Added WebDAV backup/restore for Android TV\n- Fixed focus border issues in TV backup/restore UI\n- Optimized cross-platform backup/restore path mapping"
+    "zh": "- TV 端新增快进快退功能：左右键短按快进快退，长按持续加速\n- 设置中新增快进快退跨度选项：5秒/10秒/30秒/60秒/120秒可选\n- 优化按键操作：频道键长按切换源，左键双击打开分类面板\n- 修复进度条显示逻辑，支持\"总是显示\"模式下的拖动操作\n- 更新操作说明文档和界面提示",
+    "en": "- Added seek functionality for TV: Short press left/right to seek, long press for continuous seeking\n- Added seek step duration setting: 5s/10s/30s/60s/120s options\n- Optimized key operations: Long press channel keys to switch sources, double click left for category panel\n- Fixed progress bar display logic, support dragging in 'always show' mode\n- Updated control instructions in documentation and UI"
   },
   "minVersion": "1.0.0"
 }

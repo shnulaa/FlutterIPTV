@@ -322,6 +322,7 @@ class NativePlayerChannel {
     bool showNetworkSpeed = true,
     bool showVideoInfo = true,
     String progressBarMode = 'auto', // 进度条显示模式：auto, always, never
+    int seekStepSeconds = 10, // 快进/快退跨度（秒）
     bool showChannelName = false, // 多屏播放是否显示频道名称
     Function? onClosed,
   }) async {
@@ -330,7 +331,7 @@ class NativePlayerChannel {
       _onPlayerClosedCallback = onClosed;
 
       ServiceLocator.log.d(
-          'NativePlayerChannel: launching player with url=$url, name=$name, index=$index, channels=${urls?.length ?? 0}, isDlna=$isDlnaMode, buffer=$bufferStrength, progressBarMode=$progressBarMode, showChannelName=$showChannelName');
+          'NativePlayerChannel: launching player with url=$url, name=$name, index=$index, channels=${urls?.length ?? 0}, isDlna=$isDlnaMode, buffer=$bufferStrength, progressBarMode=$progressBarMode, seekStepSeconds=$seekStepSeconds, showChannelName=$showChannelName');
       final result = await _channel.invokeMethod<bool>('launchPlayer', {
         'url': url,
         'name': name,
@@ -349,6 +350,7 @@ class NativePlayerChannel {
         'showNetworkSpeed': showNetworkSpeed,
         'showVideoInfo': showVideoInfo,
         'progressBarMode': progressBarMode, // 传递进度条显示模式
+        'seekStepSeconds': seekStepSeconds, // 传递快进/快退跨度
         'showChannelName': showChannelName, // 传递多屏频道名称显示设置
       });
       ServiceLocator.log.d('NativePlayerChannel: launch result=$result');

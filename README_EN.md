@@ -105,9 +105,13 @@ Download the latest version from [Releases Page](https://github.com/shnulaa/Flut
 | Action | Remote Button | Description |
 |--------|---------------|-------------|
 | Play/Pause | OK (short press) | Toggle playback |
-| Channel Up/Down | D-Pad Up/Down | Switch channels |
-| Open Category Panel | D-Pad Left (long press) | Show category list |
-| Switch Source | D-Pad Left/Right | Switch between sources |
+| Channel Up/Down | Channel Up/Down (short press) | Switch channels |
+| Switch Source | Channel Up/Down (long press) | Switch between sources |
+| Seek Backward | D-Pad Left (short press) | Seek backward (5/10/30/60/120s configurable) |
+| Seek Forward | D-Pad Right (short press) | Seek forward (5/10/30/60/120s configurable) |
+| Continuous Rewind | D-Pad Left (long press) | Continuous rewind (speed multiplier increases) |
+| Continuous Fast Forward | D-Pad Right (long press) | Continuous fast forward (speed multiplier increases) |
+| Open Category Panel | D-Pad Left (double click) | Show category list |
 | Favorite | OK (double click) | Add/remove favorite |
 | Enter Multi-Screen | OK (long press) | Enter 2x2 split screen mode |
 | Exit Player | Back (double press) | Return to channel list |

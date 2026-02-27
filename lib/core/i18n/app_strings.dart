@@ -575,6 +575,16 @@ class AppStrings {
       _localizedValues['progressBarModeNeverDesc']!;
   String get progressBarModeSet => _localizedValues['progressBarModeSet']!;
 
+  // Seek step settings
+  String get seekStepSeconds => _localizedValues['seekStepSeconds']!;
+  String get seekStepSecondsSubtitle => _localizedValues['seekStepSecondsSubtitle']!;
+  String get seekStep5s => _localizedValues['seekStep5s']!;
+  String get seekStep10s => _localizedValues['seekStep10s']!;
+  String get seekStep30s => _localizedValues['seekStep30s']!;
+  String get seekStep60s => _localizedValues['seekStep60s']!;
+  String get seekStep120s => _localizedValues['seekStep120s']!;
+  String get seekStepSet => _localizedValues['seekStepSet']!;
+
   // Home display settings
   String get showWatchHistoryOnHome => _localizedValues['showWatchHistoryOnHome']!;
   String get showWatchHistoryOnHomeSubtitle => _localizedValues['showWatchHistoryOnHomeSubtitle']!;
@@ -1074,6 +1084,16 @@ class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
     'progressBarModeAlwaysDesc': '所有内容都显示进度条',
     'progressBarModeNeverDesc': '所有内容都不显示进度条',
     'progressBarModeSet': '进度条显示已设置为：{mode}',
+
+    // Seek step settings
+    'seekStepSeconds': '快进/快退跨度',
+    'seekStepSecondsSubtitle': '设置长按左右键时的跳转秒数',
+    'seekStep5s': '5秒',
+    'seekStep10s': '10秒',
+    'seekStep30s': '30秒',
+    'seekStep60s': '60秒',
+    'seekStep120s': '120秒',
+    'seekStepSet': '快进/快退跨度已设置为：{seconds}秒',
 
     // Home display settings
     'showWatchHistoryOnHome': '首页显示观看记录',
@@ -1604,6 +1624,16 @@ class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
     'progressBarModeAlwaysDesc': 'Show progress bar for all content',
     'progressBarModeNeverDesc': 'Never show progress bar',
     'progressBarModeSet': 'Progress bar display set to: {mode}',
+
+    // Seek step settings
+    'seekStepSeconds': 'Seek Step Duration',
+    'seekStepSecondsSubtitle': 'Set jump duration when long-pressing left/right keys',
+    'seekStep5s': '5 seconds',
+    'seekStep10s': '10 seconds',
+    'seekStep30s': '30 seconds',
+    'seekStep60s': '60 seconds',
+    'seekStep120s': '120 seconds',
+    'seekStepSet': 'Seek step duration set to: {seconds} seconds',
 
     // Home display settings
     'showWatchHistoryOnHome': 'Show Watch History on Home',

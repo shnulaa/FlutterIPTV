@@ -94,19 +94,28 @@ class NativePlayerFragment : Fragment() {
     private val LONG_PRESS_THRESHOLD = 500L // 500ms for long press
     private var longPressHandled = false // 防止长按后继续触发
     private var isSeekingWithLeftRight = false // 标记是否正在用左右键拖动进度
-    private var seekSpeedMultiplier = 1 // 快进快退速度倍数（递增）
+    private var seekSpeedMultiplier = 1.0f // 快进快退速度倍数（递增，浮点数）
     
     // Double click detection for left key (show category panel)
     private var lastLeftKeyUpTime = 0L
     private val LEFT_DOUBLE_CLICK_INTERVAL = 600L // 600ms内按两次左键显示分类面板
+    private var leftKeyShortPressRunnable: Runnable? = null // 延迟执行左键短按（用于双击检测）
     
     // Long press detection for right key (seeking)
     private var rightKeyDownTime = 0L
     private var rightLongPressHandled = false
+    private var rightKeyShortPressRunnable: Runnable? = null // 延迟执行右键短按（避免与长按冲突）
     
     // Long press detection for center/enter key (favorite)
     private var centerKeyDownTime = 0L
     private var centerLongPressHandled = false
+    
+    // Long press detection for channel up/down keys (switch source)
+    private var channelUpKeyDownTime = 0L
+    private var channelUpLongPressHandled = false
+    private var channelDownKeyDownTime = 0L
+    private var channelDownLongPressHandled = false
+    
     private var isManualSwitching = false
     private var currentVerificationId = 0L
 
@@ -125,6 +134,7 @@ class NativePlayerFragment : Fragment() {
     private var isDlnaMode: Boolean = false
     private var bufferStrength: String = "fast"
     private var progressBarMode: String = "auto" // 进度条显示模式：auto, always, never
+    private var seekStepSeconds: Int = 10 // 快进/快退跨度（秒）
     
     // Category data
     private var categories: MutableList<CategoryItem> = mutableListOf()
@@ -214,6 +224,7 @@ class NativePlayerFragment : Fragment() {
         private const val ARG_SHOW_NETWORK_SPEED = "show_network_speed"
         private const val ARG_SHOW_VIDEO_INFO = "show_video_info"
         private const val ARG_PROGRESS_BAR_MODE = "progress_bar_mode"
+        private const val ARG_SEEK_STEP_SECONDS = "seek_step_seconds"
         private const val ARG_INITIAL_SOURCE_INDEX = "initial_source_index"
 
         fun newInstance(
@@ -234,6 +245,7 @@ class NativePlayerFragment : Fragment() {
             showNetworkSpeed: Boolean = true,
             showVideoInfo: Boolean = true,
             progressBarMode: String = "auto",
+            seekStepSeconds: Int = 10,
             initialSourceIndex: Int = 0
         ): NativePlayerFragment {
             return NativePlayerFragment().apply {
@@ -255,6 +267,7 @@ class NativePlayerFragment : Fragment() {
                     putBoolean(ARG_SHOW_NETWORK_SPEED, showNetworkSpeed)
                     putBoolean(ARG_SHOW_VIDEO_INFO, showVideoInfo)
                     putString(ARG_PROGRESS_BAR_MODE, progressBarMode)
+                    putInt(ARG_SEEK_STEP_SECONDS, seekStepSeconds)
                     putInt(ARG_INITIAL_SOURCE_INDEX, initialSourceIndex)
                 }
             }
@@ -292,6 +305,7 @@ class NativePlayerFragment : Fragment() {
             isDlnaMode = it.getBoolean(ARG_IS_DLNA_MODE, false)
             bufferStrength = it.getString(ARG_BUFFER_STRENGTH, "fast") ?: "fast"
             progressBarMode = it.getString(ARG_PROGRESS_BAR_MODE, "auto") ?: "auto" // 读取进度条显示模式
+            seekStepSeconds = it.getInt(ARG_SEEK_STEP_SECONDS, 10) // 读取快进/快退跨度
             showFps = it.getBoolean(ARG_SHOW_FPS, true)
             showClock = it.getBoolean(ARG_SHOW_CLOCK, true)
             showNetworkSpeed = it.getBoolean(ARG_SHOW_NETWORK_SPEED, true)
@@ -301,6 +315,7 @@ class NativePlayerFragment : Fragment() {
         
         Log.d(TAG, "=== 参数读取完成 ===")
         Log.d(TAG, "progressBarMode: $progressBarMode")
+        Log.d(TAG, "seekStepSeconds: $seekStepSeconds")
         Log.d(TAG, "isDlnaMode: $isDlnaMode")
         Log.d(TAG, "currentIndex: $currentIndex")
         Log.d(TAG, "channelIsSeekable.size: ${channelIsSeekable.size}")
@@ -948,24 +963,18 @@ class NativePlayerFragment : Fragment() {
                 
                 // 如果长按已处理，继续处理重复事件（持续快退，速度递增）
                 if (longPressHandled) {
-                    // 检查是否是可拖动内容
-                    val currentIsSeekable = if (currentIndex >= 0 && currentIndex < channelIsSeekable.size) {
-                        channelIsSeekable[currentIndex]
-                    } else {
-                        false
-                    }
-                    
-                    if (currentIsSeekable && progressContainer.visibility == View.VISIBLE) {
-                        // 递增速度：每次重复事件增加倍数（最大10倍）
-                        seekSpeedMultiplier = (seekSpeedMultiplier + 1).coerceAtMost(10)
-                        val seekAmount = 5000 * seekSpeedMultiplier // 5秒 * 倍数
+                    // 只要进度条可见就允许快退
+                    if (progressContainer.visibility == View.VISIBLE) {
+                        // 递增速度：每次重复事件增加0.1倍（最大1.2倍）
+                        seekSpeedMultiplier = (seekSpeedMultiplier + 0.05f).coerceAtMost(5.2f)
+                        val seekAmount = (seekStepSeconds * 1000 * seekSpeedMultiplier).toLong() // 用户设置的秒数 * 倍数
                         
                         // 持续快退
                         player?.let { p ->
                             val currentPos = p.currentPosition
                             val newPos = (currentPos - seekAmount).coerceAtLeast(0)
                             p.seekTo(newPos)
-                            Log.d(TAG, "持续快退 (${seekSpeedMultiplier}x): ${formatTime(currentPos)} -> ${formatTime(newPos)} (-${seekAmount/1000}s)")
+                            Log.d(TAG, "持续快退 (${String.format("%.1f", seekSpeedMultiplier)}x): ${formatTime(currentPos)} -> ${formatTime(newPos)} (-${seekAmount/1000}s)")
                         }
                         showControls()
                     }
@@ -981,39 +990,31 @@ class NativePlayerFragment : Fragment() {
                 if (event.repeatCount == 0) {
                     leftKeyDownTime = System.currentTimeMillis()
                     longPressHandled = false
-                    seekSpeedMultiplier = 1 // 重置速度倍数
+                    seekSpeedMultiplier = 1.0f // 重置速度倍数
                     Log.d(TAG, "左键按下，开始计时")
                 }
                 
-                // 检测长按 - 拖动进度条（仅在可拖动内容时）
+                // 检测长按 - 快退（只要进度条显示就可以拖动）
                 val pressDuration = System.currentTimeMillis() - leftKeyDownTime
                 if (event.repeatCount > 0 && !longPressHandled && pressDuration >= LONG_PRESS_THRESHOLD) {
-                    Log.d(TAG, "检测到左键长按，pressDuration=$pressDuration")
+                    Log.d(TAG, "检测到左键长按，pressDuration=$pressDuration, progressVisible=${progressContainer.visibility == View.VISIBLE}")
                     
-                    // 检查是否是可拖动内容
-                    val currentIsSeekable = if (currentIndex >= 0 && currentIndex < channelIsSeekable.size) {
-                        channelIsSeekable[currentIndex]
-                    } else {
-                        false
-                    }
-                    
-                    Log.d(TAG, "currentIsSeekable=$currentIsSeekable, progressVisible=${progressContainer.visibility == View.VISIBLE}")
-                    
-                    if (currentIsSeekable && progressContainer.visibility == View.VISIBLE) {
+                    // 只要进度条可见就允许快退
+                    if (progressContainer.visibility == View.VISIBLE) {
                         longPressHandled = true
                         isSeekingWithLeftRight = true
-                        seekSpeedMultiplier = 1 // 初始速度
+                        seekSpeedMultiplier = 1.0f // 初始速度
                         // 快退
                         player?.let { p ->
                             val currentPos = p.currentPosition
-                            val newPos = (currentPos - 10000).coerceAtLeast(0) // 首次快退10秒
+                            val newPos = (currentPos - seekStepSeconds * 1000).coerceAtLeast(0) // 使用用户设置的跨度
                             p.seekTo(newPos)
-                            Log.d(TAG, "长按左键快退: ${formatTime(currentPos)} -> ${formatTime(newPos)}")
+                            Log.d(TAG, "长按左键快退: ${formatTime(currentPos)} -> ${formatTime(newPos)} (-${seekStepSeconds}s)")
                         }
                         showControls()
                         return true
                     } else {
-                        Log.d(TAG, "不满足快退条件")
+                        Log.d(TAG, "进度条不可见，无法快退")
                     }
                 }
                 return true
@@ -1028,17 +1029,11 @@ class NativePlayerFragment : Fragment() {
                 
                 // 如果长按已处理，继续处理重复事件（持续快进，速度递增）
                 if (rightLongPressHandled) {
-                    // 检查是否是可拖动内容
-                    val currentIsSeekable = if (currentIndex >= 0 && currentIndex < channelIsSeekable.size) {
-                        channelIsSeekable[currentIndex]
-                    } else {
-                        false
-                    }
-                    
-                    if (currentIsSeekable && progressContainer.visibility == View.VISIBLE) {
-                        // 递增速度：每次重复事件增加倍数（最大10倍）
-                        seekSpeedMultiplier = (seekSpeedMultiplier + 1).coerceAtMost(10)
-                        val seekAmount = 5000 * seekSpeedMultiplier // 5秒 * 倍数
+                    // 只要进度条可见就允许快进
+                    if (progressContainer.visibility == View.VISIBLE) {
+                        // 递增速度：每次重复事件增加0.1倍（最大1.2倍）
+                        seekSpeedMultiplier = (seekSpeedMultiplier + 0.1f).coerceAtMost(1.2f)
+                        val seekAmount = (seekStepSeconds * 1000 * seekSpeedMultiplier).toLong() // 用户设置的秒数 * 倍数
                         
                         // 持续快进
                         player?.let { p ->
@@ -1046,7 +1041,7 @@ class NativePlayerFragment : Fragment() {
                             val duration = p.duration
                             val newPos = (currentPos + seekAmount).coerceAtMost(duration)
                             p.seekTo(newPos)
-                            Log.d(TAG, "持续快进 (${seekSpeedMultiplier}x): ${formatTime(currentPos)} -> ${formatTime(newPos)} (+${seekAmount/1000}s)")
+                            Log.d(TAG, "持续快进 (${String.format("%.1f", seekSpeedMultiplier)}x): ${formatTime(currentPos)} -> ${formatTime(newPos)} (+${seekAmount/1000}s)")
                         }
                         showControls()
                     }
@@ -1062,40 +1057,32 @@ class NativePlayerFragment : Fragment() {
                 if (event.repeatCount == 0) {
                     rightKeyDownTime = System.currentTimeMillis()
                     rightLongPressHandled = false
-                    seekSpeedMultiplier = 1 // 重置速度倍数
+                    seekSpeedMultiplier = 1.0f // 重置速度倍数
                     Log.d(TAG, "右键按下，开始计时")
                 }
                 
-                // 检测长按 - 拖动进度条（仅在可拖动内容时）
+                // 检测长按 - 快进（只要进度条显示就可以拖动）
                 val pressDuration = System.currentTimeMillis() - rightKeyDownTime
                 if (event.repeatCount > 0 && !rightLongPressHandled && pressDuration >= LONG_PRESS_THRESHOLD) {
-                    Log.d(TAG, "检测到右键长按，pressDuration=$pressDuration")
+                    Log.d(TAG, "检测到右键长按，pressDuration=$pressDuration, progressVisible=${progressContainer.visibility == View.VISIBLE}")
                     
-                    // 检查是否是可拖动内容
-                    val currentIsSeekable = if (currentIndex >= 0 && currentIndex < channelIsSeekable.size) {
-                        channelIsSeekable[currentIndex]
-                    } else {
-                        false
-                    }
-                    
-                    Log.d(TAG, "currentIsSeekable=$currentIsSeekable, progressVisible=${progressContainer.visibility == View.VISIBLE}")
-                    
-                    if (currentIsSeekable && progressContainer.visibility == View.VISIBLE) {
+                    // 只要进度条可见就允许快进
+                    if (progressContainer.visibility == View.VISIBLE) {
                         rightLongPressHandled = true
                         isSeekingWithLeftRight = true
-                        seekSpeedMultiplier = 1 // 初始速度
+                        seekSpeedMultiplier = 1.0f // 初始速度
                         // 快进
                         player?.let { p ->
                             val currentPos = p.currentPosition
                             val duration = p.duration
-                            val newPos = (currentPos + 10000).coerceAtMost(duration) // 首次快进10秒
+                            val newPos = (currentPos + seekStepSeconds * 1000).coerceAtMost(duration) // 使用用户设置的跨度
                             p.seekTo(newPos)
-                            Log.d(TAG, "长按右键快进: ${formatTime(currentPos)} -> ${formatTime(newPos)}")
+                            Log.d(TAG, "长按右键快进: ${formatTime(currentPos)} -> ${formatTime(newPos)} (+${seekStepSeconds}s)")
                         }
                         showControls()
                         return true
                     } else {
-                        Log.d(TAG, "不满足快进条件")
+                        Log.d(TAG, "进度条不可见，无法快进")
                     }
                 }
                 return true
@@ -1107,8 +1094,32 @@ class NativePlayerFragment : Fragment() {
                         showControls()
                         return true
                     }
-                    Log.d(TAG, "Channel UP pressed")
-                    previousChannel()
+                    
+                    // 如果长按已处理，继续处理重复事件（持续切换源）
+                    if (channelUpLongPressHandled) {
+                        // 长按期间不做任何操作，等待松开时处理
+                        return true
+                    }
+                    
+                    // 记录按下时间，用于长按检测
+                    if (event.repeatCount == 0) {
+                        channelUpKeyDownTime = System.currentTimeMillis()
+                        channelUpLongPressHandled = false
+                        Log.d(TAG, "Channel UP key down, start timing")
+                    }
+                    
+                    // 检测长按 - 切换到上一个源
+                    val pressDuration = System.currentTimeMillis() - channelUpKeyDownTime
+                    if (event.repeatCount > 0 && !channelUpLongPressHandled && pressDuration >= LONG_PRESS_THRESHOLD) {
+                        Log.d(TAG, "Channel UP long press detected, pressDuration=$pressDuration")
+                        if (hasMultipleSources()) {
+                            channelUpLongPressHandled = true
+                            previousSource()
+                            return true
+                        }
+                    }
+                    
+                    // 短按会在 handleKeyUp 中处理
                 }
                 return false // Let RecyclerView handle if panel is visible
             }
@@ -1119,8 +1130,32 @@ class NativePlayerFragment : Fragment() {
                         showControls()
                         return true
                     }
-                    Log.d(TAG, "Channel DOWN pressed")
-                    nextChannel()
+                    
+                    // 如果长按已处理，继续处理重复事件（持续切换源）
+                    if (channelDownLongPressHandled) {
+                        // 长按期间不做任何操作，等待松开时处理
+                        return true
+                    }
+                    
+                    // 记录按下时间，用于长按检测
+                    if (event.repeatCount == 0) {
+                        channelDownKeyDownTime = System.currentTimeMillis()
+                        channelDownLongPressHandled = false
+                        Log.d(TAG, "Channel DOWN key down, start timing")
+                    }
+                    
+                    // 检测长按 - 切换到下一个源
+                    val pressDuration = System.currentTimeMillis() - channelDownKeyDownTime
+                    if (event.repeatCount > 0 && !channelDownLongPressHandled && pressDuration >= LONG_PRESS_THRESHOLD) {
+                        Log.d(TAG, "Channel DOWN long press detected, pressDuration=$pressDuration")
+                        if (hasMultipleSources()) {
+                            channelDownLongPressHandled = true
+                            nextSource()
+                            return true
+                        }
+                    }
+                    
+                    // 短按会在 handleKeyUp 中处理
                 }
                 return false // Let RecyclerView handle if panel is visible
             }
@@ -1185,7 +1220,7 @@ class NativePlayerFragment : Fragment() {
                 // 重置长按标志和速度倍数
                 val wasLongPressHandled = longPressHandled
                 longPressHandled = false
-                seekSpeedMultiplier = 1 // 重置速度倍数
+                seekSpeedMultiplier = 1.0f // 重置速度倍数
                 
                 // 如果是长按触发的（拖动进度），不再处理
                 if (wasLongPressHandled) {
@@ -1216,14 +1251,34 @@ class NativePlayerFragment : Fragment() {
                     // 检测双击 - 显示分类面板
                     if (lastLeftKeyUpTime > 0 && timeSinceLastLeft < LEFT_DOUBLE_CLICK_INTERVAL) {
                         Log.d(TAG, "Double click left detected, showing category panel")
+                        // 取消延迟的快退操作
+                        leftKeyShortPressRunnable?.let { handler.removeCallbacks(it) }
+                        leftKeyShortPressRunnable = null
                         showCategoryPanel()
                         lastLeftKeyUpTime = 0L
                     } else {
-                        // 单击 - 切换源（如果有多个源）
+                        // 单击左键 - 延迟执行快退（等待可能的双击）
                         lastLeftKeyUpTime = currentTime
-                        if (hasMultipleSources()) {
-                            previousSource()
+                        
+                        // 取消之前的延迟操作
+                        leftKeyShortPressRunnable?.let { handler.removeCallbacks(it) }
+                        
+                        // 创建新的延迟操作
+                        leftKeyShortPressRunnable = Runnable {
+                            // 只在进度条可见时执行快退
+                            if (progressContainer.visibility == View.VISIBLE) {
+                                player?.let { p ->
+                                    val currentPos = p.currentPosition
+                                    val newPos = (currentPos - seekStepSeconds * 1000).coerceAtLeast(0)
+                                    p.seekTo(newPos)
+                                    Log.d(TAG, "短按左键快退: ${formatTime(currentPos)} -> ${formatTime(newPos)} (-${seekStepSeconds}s)")
+                                }
+                                showControls()
+                            }
                         }
+                        
+                        // 延迟执行，等待可能的双击
+                        handler.postDelayed(leftKeyShortPressRunnable!!, LEFT_DOUBLE_CLICK_INTERVAL)
                     }
                 }
                 leftKeyDownTime = 0L
@@ -1233,7 +1288,7 @@ class NativePlayerFragment : Fragment() {
                 // 重置长按标志和速度倍数
                 val wasLongPressHandled = rightLongPressHandled
                 rightLongPressHandled = false
-                seekSpeedMultiplier = 1 // 重置速度倍数
+                seekSpeedMultiplier = 1.0f // 重置速度倍数
                 
                 // 如果是长按触发的（拖动进度），不再处理
                 if (wasLongPressHandled) {
@@ -1254,14 +1309,90 @@ class NativePlayerFragment : Fragment() {
                     return true
                 }
                 
-                // 短按右键 - 切换到下一个源
+                // 短按右键 - 快进
                 val pressDuration = System.currentTimeMillis() - rightKeyDownTime
                 if (rightKeyDownTime > 0 && pressDuration < LONG_PRESS_THRESHOLD) {
-                    if (hasMultipleSources()) {
-                        nextSource()
+                    Log.d(TAG, "Right key short press, seek forward")
+                    
+                    // 只在进度条可见时执行快进
+                    if (progressContainer.visibility == View.VISIBLE) {
+                        player?.let { p ->
+                            val currentPos = p.currentPosition
+                            val duration = p.duration
+                            val newPos = (currentPos + seekStepSeconds * 1000).coerceAtMost(duration)
+                            p.seekTo(newPos)
+                            Log.d(TAG, "短按右键快进: ${formatTime(currentPos)} -> ${formatTime(newPos)} (+${seekStepSeconds}s)")
+                        }
+                        showControls()
                     }
                 }
                 rightKeyDownTime = 0L
+                return true
+            }
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP -> {
+                // 重置长按标志
+                val wasLongPressHandled = channelUpLongPressHandled
+                channelUpLongPressHandled = false
+                
+                // 如果是长按触发的（切换源），不再处理短按
+                if (wasLongPressHandled) {
+                    channelUpKeyDownTime = 0L
+                    Log.d(TAG, "Channel UP long press handled, skip short press")
+                    return true
+                }
+                
+                // 分类面板可见时不处理
+                if (categoryPanelVisible) {
+                    channelUpKeyDownTime = 0L
+                    return true
+                }
+                
+                // DLNA 模式不处理
+                if (isDlnaMode) {
+                    channelUpKeyDownTime = 0L
+                    return true
+                }
+                
+                // 短按频道上键 - 切换到上一个频道
+                val pressDuration = System.currentTimeMillis() - channelUpKeyDownTime
+                if (channelUpKeyDownTime > 0 && pressDuration < LONG_PRESS_THRESHOLD) {
+                    Log.d(TAG, "Channel UP short press, previous channel")
+                    previousChannel()
+                }
+                channelUpKeyDownTime = 0L
+                return true
+            }
+            KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN -> {
+                // 重置长按标志
+                val wasLongPressHandled = channelDownLongPressHandled
+                channelDownLongPressHandled = false
+                
+                // 如果是长按触发的（切换源），不再处理短按
+                if (wasLongPressHandled) {
+                    channelDownKeyDownTime = 0L
+                    Log.d(TAG, "Channel DOWN long press handled, skip short press")
+                    return true
+                }
+                
+                // 分类面板可见时不处理
+                if (categoryPanelVisible) {
+                    channelDownKeyDownTime = 0L
+                    return true
+                }
+                
+                // DLNA 模式不处理
+                if (isDlnaMode) {
+                    channelDownKeyDownTime = 0L
+                    return true
+                }
+                
+                // 短按频道下键 - 切换到下一个频道
+                val pressDuration = System.currentTimeMillis() - channelDownKeyDownTime
+                if (channelDownKeyDownTime > 0 && pressDuration < LONG_PRESS_THRESHOLD) {
+                    Log.d(TAG, "Channel DOWN short press, next channel")
+                    nextChannel()
+                }
+                channelDownKeyDownTime = 0L
                 return true
             }
         }
@@ -2498,6 +2629,8 @@ class NativePlayerFragment : Fragment() {
         hideControlsRunnable?.let { handler.removeCallbacks(it) }
         retryRunnable?.let { handler.removeCallbacks(it) }
         sourceIndicatorHideRunnable?.let { handler.removeCallbacks(it) }
+        leftKeyShortPressRunnable?.let { handler.removeCallbacks(it) }
+        rightKeyShortPressRunnable?.let { handler.removeCallbacks(it) }
         stopProgressUpdate() // 停止进度更新
         stopFpsCalculation() // 停止 FPS 计算
         stopClockUpdate() // 停止时钟更新

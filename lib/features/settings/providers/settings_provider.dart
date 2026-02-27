@@ -41,6 +41,7 @@ class SettingsProvider extends ChangeNotifier {
   static const String _keyLastMultiScreenSourceIndexes =
       'last_multi_screen_source_indexes'; // comma-separated source indexes
   static const String _keyShowMultiScreenChannelName = 'show_multi_screen_channel_name'; // 多屏播放是否显示频道名称
+  static const String _keySeekStepSeconds = 'seek_step_seconds'; // 快进/快退跨度（秒）
   static const String _keyDarkColorScheme = 'dark_color_scheme';
   static const String _keyLightColorScheme = 'light_color_scheme';
   static const String _keyFontFamily = 'font_family';
@@ -87,6 +88,7 @@ class SettingsProvider extends ChangeNotifier {
   List<int?> _lastMultiScreenChannels = [null, null, null, null]; // 分屏频道ID列表
   List<int> _lastMultiScreenSourceIndexes = [0, 0, 0, 0]; // 分屏源索引列表
   bool _showMultiScreenChannelName = false; // 多屏播放是否显示频道名称（默认关闭）
+  int _seekStepSeconds = 10; // 快进/快退跨度（秒），默认10秒
   String _darkColorScheme = 'ocean'; // 黑暗模式配色方案（默认海洋）
   String _lightColorScheme = 'sky'; // 明亮模式配色方案（默认天空）
   String _fontFamily = 'Arial'; // 字体设置（默认Arial，英文环境）
@@ -131,6 +133,7 @@ class SettingsProvider extends ChangeNotifier {
   List<int?> get lastMultiScreenChannels => _lastMultiScreenChannels;
   List<int> get lastMultiScreenSourceIndexes => _lastMultiScreenSourceIndexes;
   bool get showMultiScreenChannelName => _showMultiScreenChannelName;
+  int get seekStepSeconds => _seekStepSeconds;
   String get darkColorScheme => _darkColorScheme;
   String get lightColorScheme => _lightColorScheme;
   String get fontFamily => _fontFamily;
@@ -195,6 +198,7 @@ class SettingsProvider extends ChangeNotifier {
     _activeScreenIndex = prefs.getInt(_keyActiveScreenIndex) ?? 0;
     _lastPlayMode = prefs.getString(_keyLastPlayMode) ?? 'single';
     _showMultiScreenChannelName = prefs.getBool(_keyShowMultiScreenChannelName) ?? false;
+    _seekStepSeconds = prefs.getInt(_keySeekStepSeconds) ?? 10;
     ServiceLocator.log.d('SettingsProvider: loaded showMultiScreenChannelName=$_showMultiScreenChannelName');
     
     // 加载分屏频道ID列表
@@ -332,6 +336,7 @@ class SettingsProvider extends ChangeNotifier {
     await prefs.setString(_keyLastMultiScreenSourceIndexes,
         _lastMultiScreenSourceIndexes.map((e) => e.toString()).join(','));
     await prefs.setBool(_keyShowMultiScreenChannelName, _showMultiScreenChannelName);
+    await prefs.setInt(_keySeekStepSeconds, _seekStepSeconds);
     await prefs.setString(_keyDarkColorScheme, _darkColorScheme);
     await prefs.setString(_keyLightColorScheme, _lightColorScheme);
     await prefs.setString(_keyFontFamily, _fontFamily);
@@ -545,6 +550,15 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 设置快进/快退跨度（秒）
+  Future<void> setSeekStepSeconds(int seconds) async {
+    if (seconds == 5 || seconds == 10 || seconds == 30 || seconds == 60 || seconds == 120) {
+      _seekStepSeconds = seconds;
+      await _saveSettings();
+      notifyListeners();
+    }
+  }
+
   /// 设置上次播放模式
   Future<void> setLastPlayMode(String mode) async {
     _lastPlayMode = mode;
@@ -712,6 +726,7 @@ class SettingsProvider extends ChangeNotifier {
     _showNetworkSpeed = true;
     _showVideoInfo = true;
     _progressBarMode = 'auto';
+    _seekStepSeconds = 10;
     _enableMultiScreen = true;
     _defaultScreenPosition = 1;
     _activeScreenIndex = 0;

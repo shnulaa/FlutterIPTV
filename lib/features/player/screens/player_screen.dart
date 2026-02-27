@@ -321,7 +321,8 @@ class _PlayerScreenState extends State<PlayerScreen>
           showClock: showClock,
           showNetworkSpeed: showNetworkSpeed,
           showVideoInfo: showVideoInfo,
-          progressBarMode: settingsProvider.progressBarMode, // 传递€掕繘搴︽潯显示模式紡
+          progressBarMode: settingsProvider.progressBarMode, // 传递进度条显示模式
+          seekStepSeconds: settingsProvider.seekStepSeconds, // 传递快进/快退跨度
           showChannelName:
               settingsProvider.showMultiScreenChannelName, // 传递多屏频道名称显示设置
           onClosed: () {
