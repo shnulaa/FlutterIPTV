@@ -13,10 +13,13 @@ import 'core/theme/app_theme.dart';
 import 'core/navigation/app_router.dart';
 import 'core/services/service_locator.dart';
 import 'core/services/auto_refresh_service.dart';
+import 'core/services/disclaimer_service.dart';
 import 'core/services/native_log_channel.dart';
 import 'core/platform/native_player_channel.dart';
 import 'core/platform/platform_detector.dart';
 import 'core/widgets/channel_logo_widget.dart';
+import 'core/screens/disclaimer_screen.dart';
+import 'core/screens/loading_screen.dart';
 import 'features/channels/providers/channel_provider.dart';
 import 'features/player/providers/player_provider.dart';
 import 'features/playlist/providers/playlist_provider.dart';
@@ -207,11 +210,18 @@ class _DlnaAwareAppState extends State<_DlnaAwareApp> with WindowListener {
   final AutoRefreshService _autoRefreshService = AutoRefreshService();
   bool _lastAutoRefreshState = false;
   int _lastRefreshInterval = 24;
+  
+  // 免责声明状态
+  bool _disclaimerAccepted = false;
+  bool _disclaimerChecking = true;
 
   @override
   void initState() {
     super.initState();
     ServiceLocator.log.d('_DlnaAwareApp.initState() 被调用', tag: 'AutoRefresh');
+
+    // 检查免责声明状态
+    _checkDisclaimerStatus();
 
     // Windows 窗口关闭监听
     if (Platform.isWindows) {
@@ -228,6 +238,42 @@ class _DlnaAwareAppState extends State<_DlnaAwareApp> with WindowListener {
       // 应用屏幕方向设置
       _applyOrientationSettings();
     });
+  }
+
+  /// 检查免责声明状态
+  Future<void> _checkDisclaimerStatus() async {
+    ServiceLocator.log.d('开始检查免责声明状态', tag: 'Disclaimer');
+    try {
+      final hasAccepted = await DisclaimerService().hasAccepted();
+      ServiceLocator.log.d('免责声明状态: $hasAccepted', tag: 'Disclaimer');
+      
+      if (mounted) {
+        setState(() {
+          _disclaimerAccepted = hasAccepted;
+          _disclaimerChecking = false;
+        });
+        ServiceLocator.log.d('状态已更新: accepted=$_disclaimerAccepted, checking=$_disclaimerChecking', tag: 'Disclaimer');
+      }
+    } catch (e, stackTrace) {
+      ServiceLocator.log.e('检查免责声明状态失败: $e', tag: 'Disclaimer');
+      ServiceLocator.log.e('堆栈: $stackTrace', tag: 'Disclaimer');
+      if (mounted) {
+        setState(() {
+          _disclaimerChecking = false;
+        });
+      }
+    }
+  }
+
+  /// 处理免责声明同意
+  void _handleDisclaimerAccepted() {
+    ServiceLocator.log.d('收到免责声明同意回调', tag: 'Disclaimer');
+    if (mounted) {
+      setState(() {
+        _disclaimerAccepted = true;
+      });
+      ServiceLocator.log.d('状态已更新为已同意，将显示正常应用', tag: 'Disclaimer');
+    }
   }
 
   /// 应用屏幕方向设置
@@ -552,6 +598,84 @@ class _DlnaAwareAppState extends State<_DlnaAwareApp> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
+    ServiceLocator.log.d('_DlnaAwareAppState.build() - checking=$_disclaimerChecking, accepted=$_disclaimerAccepted', tag: 'Disclaimer');
+    
+    // 加载中
+    if (_disclaimerChecking) {
+      ServiceLocator.log.d('显示加载页面', tag: 'Disclaimer');
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: LoadingScreen(),
+      );
+    }
+
+    // 未同意免责声明，显示免责声明页面
+    if (!_disclaimerAccepted) {
+      ServiceLocator.log.d('显示免责声明页面', tag: 'Disclaimer');
+      
+      // 从 SharedPreferences 读取用户设置的语言
+      final prefs = ServiceLocator.prefs;
+      final localeCode = prefs.getString('locale'); // 使用正确的键名
+      ServiceLocator.log.d('从 SharedPreferences 读取语言 (locale): $localeCode', tag: 'Disclaimer');
+      
+      Locale? locale;
+      if (localeCode != null && localeCode.isNotEmpty) {
+        // 解析 locale 格式（可能是 "zh" 或 "zh_CN"）
+        final parts = localeCode.split('_');
+        locale = Locale(parts[0], parts.length > 1 ? parts[1] : '');
+        ServiceLocator.log.d('使用用户设置的语言: ${locale.languageCode}_${locale.countryCode}', tag: 'Disclaimer');
+      } else {
+        // 如果用户没有设置，从系统获取语言
+        try {
+          final systemLocales = WidgetsBinding.instance.platformDispatcher.locales;
+          ServiceLocator.log.d('系统语言列表: $systemLocales', tag: 'Disclaimer');
+          if (systemLocales.isNotEmpty) {
+            // 查找支持的语言（中文或英文）
+            locale = systemLocales.firstWhere(
+              (l) => l.languageCode == 'zh' || l.languageCode == 'en',
+              orElse: () => systemLocales.first,
+            );
+            ServiceLocator.log.d('使用系统语言: ${locale.languageCode}', tag: 'Disclaimer');
+          }
+        } catch (e) {
+          ServiceLocator.log.e('获取系统语言失败: $e', tag: 'Disclaimer');
+        }
+        
+        if (locale == null) {
+          ServiceLocator.log.d('未找到系统语言，使用默认中文', tag: 'Disclaimer');
+          locale = const Locale('zh', ''); // 默认使用中文
+        }
+      }
+      
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AppThemeDynamic.getLightTheme('ocean', 'Microsoft YaHei'),
+        darkTheme: AppThemeDynamic.getDarkTheme('ocean', 'Microsoft YaHei'),
+        themeMode: ThemeMode.system,
+        locale: locale, // 使用用户设置的语言或系统语言
+        supportedLocales: const [
+          Locale('en', ''),
+          Locale('zh', ''),
+        ],
+        localizationsDelegates: const [
+          AppStrings.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: DisclaimerScreen(
+          onAccepted: _handleDisclaimerAccepted,
+        ),
+      );
+    }
+
+    // 已同意，显示正常应用
+    ServiceLocator.log.d('免责声明已同意，显示正常应用', tag: 'Disclaimer');
+    return _buildNormalApp(context);
+  }
+
+  /// 构建正常的应用（已同意免责声明后）
+  Widget _buildNormalApp(BuildContext context) {
     // 监听 settings 变化，确保主题能够更新
     return Consumer<SettingsProvider>(
       builder: (context, settings, _) {
