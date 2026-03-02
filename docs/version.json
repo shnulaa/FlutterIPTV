@@ -1,23 +1,26 @@
 {
-  "version": "1.5.17",
-  "build": 177,
+  "version": "1.5.18",
+  "build": 178,
   "releaseDate": "2026-03-02",
   "assets": {
-    "windows": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.17/flutteriptv-Windows-x64-Setup.exe",
+    "windows": {
+      "installer": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.18/flutteriptv-Windows-x64-Setup.exe",
+      "portable": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.18/flutteriptv-Windows-x64-Portable.zip"
+    },
     "android_mobile": {
-      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.17/flutteriptv-Android-Mobile-arm64-v8a.apk",
-      "armeabi-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.17/flutteriptv-Android-Mobile-armeabi-v7a.apk",
-      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.17/flutteriptv-Android-Mobile-x86_64.apk"
+      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.18/flutteriptv-Android-Mobile-arm64-v8a.apk",
+      "armeabi-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.18/flutteriptv-Android-Mobile-armeabi-v7a.apk",
+      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.18/flutteriptv-Android-Mobile-x86_64.apk"
     },
     "android_tv": {
-      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.17/flutteriptv-AndroidTV-arm64-v8a.apk",
-      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.17/flutteriptv-AndroidTV-armeabi-v7a.apk",
-      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.17/flutteriptv-AndroidTV-x86_64.apk"
+      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.18/flutteriptv-AndroidTV-arm64-v8a.apk",
+      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.18/flutteriptv-AndroidTV-armeabi-v7a.apk",
+      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.18/flutteriptv-AndroidTV-x86_64.apk"
     }
   },
   "changelog": {
-    "zh": "- 优化：频道台标本地化，PNG转WebP格式压缩（节省14MB）\n- 优化：思源黑体字体子集化（节省6MB）\n- 优化：删除侵权字体，添加思源黑体粗体\n- 修复：Windows端频道图标加载卡死问题\n- 修复：台标加载PNG/WebP格式转换问题",
-    "en": "- Optimization: Localized channel logos, PNG to WebP compression (saved 14MB)\n- Optimization: Source Han Sans font subsetting (saved 6MB)\n- Optimization: Removed infringing fonts, added Source Han Sans Bold\n- Fix: Windows channel icon loading freeze issue\n- Fix: Logo loading PNG/WebP format conversion issue"
+    "zh": "- 新增：Windows便携版（免安装ZIP包）\n- 优化：GitHub Actions自动构建便携版\n- 优化：Release Notes添加侵权声明和使用说明\n- 优化：便携版包含README和portable标识文件",
+    "en": "- New: Windows Portable Version (No installation ZIP package)\n- Optimization: GitHub Actions auto-build portable version\n- Optimization: Added copyright notice and usage guide to Release Notes\n- Optimization: Portable version includes README and portable marker file"
   },
   "minVersion": "1.0.0"
 }
