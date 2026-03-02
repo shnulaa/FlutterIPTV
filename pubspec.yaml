@@ -1,7 +1,7 @@
 ﻿name: flutter_iptv
 description: A professional IPTV player application supporting Windows, Android Mobile, and Android TV with D-Pad navigation.
 publish_to: 'none'
-version: 1.5.16+176
+version: 1.5.17+177
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
@@ -85,53 +85,18 @@ flutter:
   
   assets:
     - assets/icons/
+    - assets/icons/img/
     - assets/images/
     - assets/fonts/
     - assets/html/
     - assets/sql/
 
   fonts:
-    # 涓枃瀛椾綋
-    - family: SimHei
+    # Open Source Font - Source Han Sans SC (Normal)
+    - family: SourceHanSansSC-Normal
       fonts:
-        - asset: assets/fonts/SimHei.ttf
-    - family: SimSun
+        - asset: assets/fonts/SourceHanSansSC-Normal.otf
+    # Open Source Font - Source Han Sans SC (Bold)
+    - family: SourceHanSansSC-Bold
       fonts:
-        - asset: assets/fonts/SimSun.ttc
-    - family: KaiTi
-      fonts:
-        - asset: assets/fonts/KaiTi.ttf
-    - family: FangSong
-      fonts:
-        - asset: assets/fonts/FangSong.ttf
-    - family: MicrosoftYaHei
-      fonts:
-        - asset: assets/fonts/MicrosoftYaHei.ttc
-    # 鑻辨枃瀛椾綋
-    - family: Arial
-      fonts:
-        - asset: assets/fonts/Arial.ttf
-    - family: Calibri
-      fonts:
-        - asset: assets/fonts/Calibri.ttf
-    - family: Georgia
-      fonts:
-        - asset: assets/fonts/Georgia.ttf
-    - family: Verdana
-      fonts:
-        - asset: assets/fonts/Verdana.ttf
-    - family: Tahoma
-      fonts:
-        - asset: assets/fonts/Tahoma.ttf
-    - family: TimesNewRoman
-      fonts:
-        - asset: assets/fonts/TimesNewRoman.ttf
-    - family: SegoeUI
-      fonts:
-        - asset: assets/fonts/SegoeUI.ttf
-    - family: Impact
-      fonts:
-        - asset: assets/fonts/Impact.ttf
-
-
-
+        - asset: assets/fonts/SourceHanSansSC-Bold.otf

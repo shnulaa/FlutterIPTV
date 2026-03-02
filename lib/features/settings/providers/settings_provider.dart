@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/services/service_locator.dart';
 import '../../../core/services/log_service.dart';
+import '../../../core/theme/app_theme.dart';
 
 class SettingsProvider extends ChangeNotifier {
   // Keys for SharedPreferences
@@ -91,7 +92,7 @@ class SettingsProvider extends ChangeNotifier {
   int _seekStepSeconds = 10; // 快进/快退跨度（秒），默认10秒
   String _darkColorScheme = 'ocean'; // 黑暗模式配色方案（默认海洋）
   String _lightColorScheme = 'sky'; // 明亮模式配色方案（默认天空）
-  String _fontFamily = 'Arial'; // 字体设置（默认Arial，英文环境）
+  String _fontFamily = 'System'; // 字体设置（默认System，使用系统字体）
   bool _simpleMenu = true; // 是否使用简单菜单栏（不展开）- 默认启用
   String _logLevel = 'off'; // 日志级别：debug, release, off - 默认关闭
   String _mobileOrientation = 'portrait'; // 手机端屏幕方向：portrait, landscape, auto - 默认竖屏
@@ -157,7 +158,7 @@ class SettingsProvider extends ChangeNotifier {
     _checkVersionUpdate();
   }
 
-  void _loadSettings() {
+  Future<void> _loadSettings() async {
     final prefs = ServiceLocator.prefs;
 
     _themeMode = prefs.getString(_keyThemeMode) ?? 'dark';
@@ -240,6 +241,22 @@ class SettingsProvider extends ChangeNotifier {
     
     // 加载字体设置
     _fontFamily = prefs.getString(_keyFontFamily) ?? 'System';
+    
+    // ✅ 字体迁移逻辑：将旧的侵权字体自动迁移到System
+    if (AppTheme.fontMigrationMap.containsKey(_fontFamily)) {
+      final oldFont = _fontFamily;
+      _fontFamily = AppTheme.fontMigrationMap[_fontFamily]!;
+      ServiceLocator.log.i('字体迁移: $oldFont → $_fontFamily');
+      // 保存迁移后的字体，避免下次再检查
+      await prefs.setString(_keyFontFamily, _fontFamily);
+    }
+    
+    // 再次检查字体是否有效（防御性编程）
+    if (!AppTheme.fontMap.containsKey(_fontFamily)) {
+      ServiceLocator.log.w('字体无效: $_fontFamily，重置为System');
+      _fontFamily = 'System';
+      await prefs.setString(_keyFontFamily, _fontFamily);
+    }
     
     // 加载简单菜单设置
     _simpleMenu = prefs.getBool(_keySimpleMenu) ?? true;
@@ -733,7 +750,7 @@ class SettingsProvider extends ChangeNotifier {
     _lastMultiScreenSourceIndexes = [0, 0, 0, 0];
     _darkColorScheme = 'ocean';
     _lightColorScheme = 'sky';
-    _fontFamily = 'Arial';
+    _fontFamily = 'System';
 
     await _saveSettings();
     

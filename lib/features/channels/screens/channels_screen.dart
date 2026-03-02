@@ -1079,8 +1079,8 @@ class _ChannelsScreenState extends State<ChannelsScreen> with ThrottledStateMixi
                     final crossAxisCount =
                         CardSizeCalculator.calculateCardsPerRow(availableWidth);
 
-                    ServiceLocator.log.d(
-                        '[ChannelsScreen] SliverLayoutBuilder - 宽度=$availableWidth, 每行=$crossAxisCount 张卡片');
+                    // ServiceLocator.log.d(
+                    //     '[ChannelsScreen] SliverLayoutBuilder - 宽度=$availableWidth, 每行=$crossAxisCount 张卡片');
 
                     return SliverGrid(
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

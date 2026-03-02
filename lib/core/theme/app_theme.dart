@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'color_scheme_data.dart';
 import 'color_scheme_manager.dart';
-import '../services/service_locator.dart';
 
 class AppTheme {
   // Lotus Theme - Brand Colors
@@ -159,54 +158,46 @@ class AppTheme {
   /// 字体映射（使用项目内字体文件）
   static const Map<String, String?> fontMap = {
     'System': null, // 系统字体（所有平台）
-    // 中文字体
-    'Microsoft YaHei': 'MicrosoftYaHei',
-    'SimHei': 'SimHei',
-    'SimSun': 'SimSun',
-    'KaiTi': 'KaiTi',
-    'FangSong': 'FangSong',
-    // 英文字体
-    'Arial': 'Arial',
-    'Calibri': 'Calibri',
-    'Georgia': 'Georgia',
-    'Verdana': 'Verdana',
-    'Tahoma': 'Tahoma',
-    'Times New Roman': 'TimesNewRoman',
-    'Segoe UI': 'SegoeUI',
-    'Impact': 'Impact',
+    'Source Han Sans SC Normal': 'SourceHanSansSC-Normal', // 思源黑体-常规（开源）
+    'Source Han Sans SC Bold': 'SourceHanSansSC-Bold', // 思源黑体-粗体（开源）
+  };
+  
+  /// 字体迁移映射表 - 将旧的侵权字体映射到思源黑体粗体
+  /// 用于自动迁移用户之前选择的字体
+  static const Map<String, String> fontMigrationMap = {
+    // 中文字体 → 思源黑体粗体
+    'SimHei': 'Source Han Sans SC Bold',
+    'SimSun': 'Source Han Sans SC Bold',
+    'KaiTi': 'Source Han Sans SC Bold',
+    'FangSong': 'Source Han Sans SC Bold',
+    'Microsoft YaHei': 'Source Han Sans SC Bold',
+    'MicrosoftYaHei': 'Source Han Sans SC Bold',
+    // 英文字体 → 思源黑体粗体
+    'Arial': 'Source Han Sans SC Bold',
+    'Calibri': 'Source Han Sans SC Bold',
+    'Georgia': 'Source Han Sans SC Bold',
+    'Verdana': 'Source Han Sans SC Bold',
+    'Tahoma': 'Source Han Sans SC Bold',
+    'TimesNewRoman': 'Source Han Sans SC Bold',
+    'Times New Roman': 'Source Han Sans SC Bold',
+    'SegoeUI': 'Source Han Sans SC Bold',
+    'Segoe UI': 'Source Han Sans SC Bold',
+    'Impact': 'Source Han Sans SC Bold',
+    // 已删除的字体 → 思源黑体粗体
+    'Source Han Sans SC ExtraLight': 'Source Han Sans SC Bold',
+    'OPPO Sans': 'Source Han Sans SC Bold',
+    // System → 思源黑体粗体
+    'System': 'Source Han Sans SC Bold',
   };
   
   /// 根据平台和语言获取可用的字体列表
   /// 所有平台都显示相同的字体选项（使用项目内字体文件）
   static List<String> getAvailableFonts([String? languageCode]) {
-    final isChinese = languageCode == null || languageCode.startsWith('zh');
-    
-    if (isChinese) {
-      return [
-        'System',
-        'Microsoft YaHei',
-        'SimHei',
-        'SimSun',
-        'KaiTi',
-        'FangSong',
-        // 添加常用英文字体
-        'Arial',
-        'Segoe UI',
-      ];
-    } else {
-      return [
-        'System',
-        // 英文字体
-        'Arial',
-        'Segoe UI',
-        'Calibri',
-        'Georgia',
-        'Verdana',
-        'Tahoma',
-        'Times New Roman',
-        'Impact',
-      ];
-    }
+    return [
+      'System',
+      'Source Han Sans SC Normal',
+      'Source Han Sans SC Bold',
+    ];
   }
   
   /// 根据字体名称获取fontFamily

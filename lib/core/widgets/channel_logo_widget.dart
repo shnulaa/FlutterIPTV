@@ -383,9 +383,11 @@ class _ChannelLogoWidgetState extends State<ChannelLogoWidget> with ThrottledSta
       // 标记为失败，避免下次重建时再次尝试无效链接
       _logoState.markM3uLogoFailed(channelName);
       
-      // ✅ 不调用 setState，避免大量频道失败时消息队列爆炸
-      // errorWidget 会直接返回 fallback，无需重建
-      // ServiceLocator.log.d('[ChannelLogo] M3U台标失败，标记失败状态 - $channelName');
+      // ✅ 使用throttledSetState触发rebuild，让build()方法加载fallback
+      // 由于fallback是本地asset，加载很快，不会造成性能问题
+      throttledSetState(() {});
+      
+      // ServiceLocator.log.d('[ChannelLogo] M3U台标失败，已标记并触发rebuild - $channelName');
     }
   }
 
@@ -394,6 +396,24 @@ class _ChannelLogoWidgetState extends State<ChannelLogoWidget> with ThrottledSta
       return _buildPlaceholder();
     }
 
+    // Check if this is a local asset path
+    if (logoUrl.startsWith('assets/')) {
+      // Use Image.asset for local assets
+      // ServiceLocator.log.d('[ChannelLogo] 加载本地asset: $logoUrl (${widget.channel.name})');
+      return Image.asset(
+        logoUrl,
+        width: widget.width,
+        height: widget.height,
+        fit: widget.fit,
+        errorBuilder: (context, error, stackTrace) {
+          // If local asset fails, show placeholder
+          ServiceLocator.log.w('[ChannelLogo] 本地asset加载失败: $logoUrl - $error');
+          return _buildPlaceholder();
+        },
+      );
+    }
+
+    // Use CachedNetworkImage for network URLs (M3U logos)
     return CachedNetworkImage(
       imageUrl: logoUrl,
       width: widget.width,
@@ -405,26 +425,9 @@ class _ChannelLogoWidgetState extends State<ChannelLogoWidget> with ThrottledSta
         if (isM3uLogo) {
           _onM3uLogoError();
           
-          // ✅ M3U 失败时，立即尝试显示 fallback 台标
-          final fallback = widget.channel.fallbackLogoUrl;
-          ServiceLocator.log.d('[ChannelLogo] M3U台标失败，标记失败状态. fallbackURL - $fallback');
-          // 只在非滚动状态下加载 fallback，避免滚动时的 IO 拥堵
-          if (!_logoState.isScrolling && fallback != null && fallback.isNotEmpty) {
-            // 使用轻量级 Image.network 临时显示，不走复杂的缓存逻辑
-            // 下次自然重建时会用 CachedNetworkImage 正确加载
-            return Image.network(
-              fallback,
-              width: widget.width,
-              height: widget.height,
-              fit: widget.fit,
-              errorBuilder: (_, __, ___) => _buildPlaceholder(),
-              // 添加简单的加载指示
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return _buildPlaceholder();
-              },
-            );
-          }
+          // ✅ 不再在errorWidget中发起新的网络请求
+          // 只标记失败状态，下次rebuild时会自动加载fallback（本地asset）
+          ServiceLocator.log.d('[ChannelLogo] M3U台标失败，标记失败状态 - ${widget.channel.name}');
         }
         return _buildPlaceholder();
       },

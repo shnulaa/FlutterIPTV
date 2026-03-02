@@ -112,8 +112,13 @@ class Channel {
 
   factory Channel.fromMap(Map<String, dynamic> map) {
     final logoUrl = map['logo_url'] as String?;
-    final fallbackLogoUrl = map['fallback_logo_url'] as String?;
+    var fallbackLogoUrl = map['fallback_logo_url'] as String?;
     final url = map['url'] as String;
+    
+    // Convert PNG to WebP for fallback logo URLs
+    if (fallbackLogoUrl != null && fallbackLogoUrl.endsWith('.png')) {
+      fallbackLogoUrl = fallbackLogoUrl.replaceAll('.png', '.webp');
+    }
     
     // Parse sources from JSON string or use single URL
     List<String> sources = [url];

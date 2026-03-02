@@ -13,6 +13,25 @@ class ChannelLogoService {
 
   ChannelLogoService(this._db);
 
+  /// Convert network URL to local asset path
+  /// Extracts filename from GitHub URL and converts to local asset path
+  /// Also converts PNG to WebP format
+  String _convertToLocalAsset(String networkUrl) {
+    // Extract filename from URL (e.g., Beijing9.png)
+    final filename = networkUrl.split('/').last;
+    
+    // Convert PNG extension to WebP
+    final webpFilename = filename.replaceAll('.png', '.webp');
+    
+    // Return local asset path with WebP extension
+    final assetPath = 'assets/icons/img/$webpFilename';
+    
+    // Debug log
+    // ServiceLocator.log.d('[ChannelLogoService] URL转换: $filename → $webpFilename');
+    
+    return assetPath;
+  }
+
   /// Initialize the service and load cache
   Future<void> initialize() async {
     if (_isInitialized) return;
@@ -33,13 +52,22 @@ class ChannelLogoService {
     try {
       final logos = await _db.query(_tableName);
       _logoCache.clear();
+      int convertedCount = 0;
       for (final logo in logos) {
         final channelName = logo['channel_name'] as String;
         final logoUrl = logo['logo_url'] as String;
-        _logoCache[_normalizeChannelName(channelName)] = logoUrl;
+        // Convert network URL to local asset path
+        final localAssetPath = _convertToLocalAsset(logoUrl);
+        _logoCache[_normalizeChannelName(channelName)] = localAssetPath;
+        
+        // Log first few conversions for debugging
+        if (convertedCount < 5) {
+          ServiceLocator.log.d('[ChannelLogoService] 转换示例 #${convertedCount + 1}: $channelName -> $localAssetPath');
+        }
+        convertedCount++;
       }
       ServiceLocator.log
-          .d('ChannelLogoService: 缓存加载完成，共 ${_logoCache.length} 条记录');
+          .d('ChannelLogoService: 缓存加载完成，共 ${_logoCache.length} 条记录（已转换为本地路径）');
     } catch (e) {
       ServiceLocator.log.e('ChannelLogoService: 缓存加载失败: $e');
     }
@@ -129,8 +157,9 @@ class ChannelLogoService {
 
       if (results.isNotEmpty) {
         final logoUrl = results.first['logo_url'] as String;
-        _logoCache[normalized] = logoUrl;
-        return logoUrl;
+        final localAssetPath = _convertToLocalAsset(logoUrl);
+        _logoCache[normalized] = localAssetPath;
+        return localAssetPath;
       } else {
         // Add to negative cache
         _notFoundCache.add(normalized);
@@ -151,6 +180,7 @@ class ChannelLogoService {
     }
 
     final Map<String, String> results = {};
+    int foundCount = 0;
 
     // Check memory cache
     // Since _logoCache contains ALL logos (normalized), we don't need to query DB.
@@ -160,6 +190,12 @@ class ChannelLogoService {
 
       if (_logoCache.containsKey(normalized)) {
         results[name] = _logoCache[normalized]!;
+        
+        // Log first few results for debugging
+        if (foundCount < 5) {
+          ServiceLocator.log.d('[ChannelLogoService] 批量查询结果 #${foundCount + 1}: $name -> ${_logoCache[normalized]}');
+        }
+        foundCount++;
       } else {
         // If not in cache, assume not found for bulk operations.
         // We don't update negative cache here to allow potential future fuzzy retries
@@ -171,6 +207,7 @@ class ChannelLogoService {
       }
     }
 
+    ServiceLocator.log.d('[ChannelLogoService] 批量查询完成: ${channelNames.length} 个频道，找到 $foundCount 个台标');
     return results;
   }
 

@@ -2724,35 +2724,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     switch (fontFamily) {
       case 'System':
         return isChinese ? '系统字体' : 'System Font';
-      // 中文字体
-      case 'Microsoft YaHei':
-        return isChinese ? '微软雅黑' : 'Microsoft YaHei';
-      case 'SimHei':
-        return isChinese ? '黑体' : 'SimHei';
-      case 'SimSun':
-        return isChinese ? '宋体' : 'SimSun';
-      case 'KaiTi':
-        return isChinese ? '楷体' : 'KaiTi';
-      case 'FangSong':
-        return isChinese ? '仿宋' : 'FangSong';
-      // 英文字体
-      case 'Arial':
-        return 'Arial';
-      case 'Calibri':
-        return 'Calibri';
-      case 'Georgia':
-        return 'Georgia';
-      case 'Verdana':
-        return 'Verdana';
-      case 'Tahoma':
-        return 'Tahoma';
-      case 'Times New Roman':
-        return 'Times New Roman';
-      case 'Segoe UI':
-        return 'Segoe UI';
-      case 'Impact':
-        return 'Impact';
+      case 'Source Han Sans SC Normal':
+        return isChinese ? '思源黑体 常规' : 'Source Han Sans SC Normal';
+      case 'Source Han Sans SC Bold':
+        return isChinese ? '思源黑体 粗体' : 'Source Han Sans SC Bold';
       default:
+        // 如果是旧字体，显示为"思源黑体 粗体"
+        if (AppTheme.fontMigrationMap.containsKey(fontFamily)) {
+          return isChinese ? '思源黑体 粗体' : 'Source Han Sans SC Bold';
+        }
         return fontFamily;
     }
   }
