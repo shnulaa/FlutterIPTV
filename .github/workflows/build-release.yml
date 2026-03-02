@@ -246,8 +246,8 @@ jobs:
           
           # Read changelog from version.json
           if [ -f "docs/version.json" ]; then
-            CHANGELOG_ZH=$(jq -r '.changelog.zh' docs/version.json | sed 's/\\n/\n/g')
-            CHANGELOG_EN=$(jq -r '.changelog.en' docs/version.json | sed 's/\\n/\n/g')
+            CHANGELOG_ZH=$(jq -r '.changelog.zh' docs/version.json)
+            CHANGELOG_EN=$(jq -r '.changelog.en' docs/version.json)
           else
             # Fallback to git commits if version.json not found
             PREV_TAG=$(git tag -l 'v*' --sort=-v:refname | grep -v "^${TAG}$" | head -1)
@@ -260,7 +260,7 @@ jobs:
             fi
           fi
           
-          cat > release_notes.md << 'EOF'
+          cat > release_notes.md << EOF
           ## 📺 FlutterIPTV ${VERSION}
           
           ### 📝 更新内容 What's New
@@ -337,12 +337,6 @@ jobs:
           如遇到问题，请在 [Issues](https://github.com/${{ github.repository }}/issues) 页面反馈。
           If you encounter any problems, please report them on the [Issues](https://github.com/${{ github.repository }}/issues) page.
           EOF
-          
-          # Replace variables in the heredoc
-          sed -i "s/\${VERSION}/${VERSION}/g" release_notes.md
-          sed -i "s|\${BASE_URL}|${BASE_URL}|g" release_notes.md
-          sed -i "s|\${CHANGELOG_ZH}|${CHANGELOG_ZH}|g" release_notes.md
-          sed -i "s|\${CHANGELOG_EN}|${CHANGELOG_EN}|g" release_notes.md
       
       - name: Create Release
         if: steps.version.outputs.CREATE_RELEASE == 'true'
