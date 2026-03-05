@@ -52,6 +52,11 @@ class SettingsProvider extends ChangeNotifier {
   static const String _keyLastAppVersion = 'last_app_version'; // 用于检测版本更新
   static const String _keyShowWatchHistoryOnHome = 'show_watch_history_on_home'; // 首页是否显示观看记录
   static const String _keyShowFavoritesOnHome = 'show_favorites_on_home'; // 首页是否显示收藏夹
+  static const String _keyUserAgent = 'user_agent'; // User-Agent for HTTP requests
+  static const String _keyShowUserAgent = 'show_user_agent'; // 是否在播放器OSD显示User-Agent
+
+  // Default User-Agent (same as current hardcoded value)
+  static const String defaultUserAgent = 'Wget/1.21.3';
 
   // Settings values
   String _themeMode = 'dark';
@@ -98,6 +103,8 @@ class SettingsProvider extends ChangeNotifier {
   String _mobileOrientation = 'portrait'; // 手机端屏幕方向：portrait, landscape, auto - 默认竖屏
   bool _showWatchHistoryOnHome = false; // 首页是否显示观看记录 - 默认不显示
   bool _showFavoritesOnHome = false; // 首页是否显示收藏夹 - 默认不显示
+  String _userAgent = defaultUserAgent; // User-Agent for HTTP requests - 默认 Wget/1.21.3
+  bool _showUserAgent = false; // 是否在播放器OSD显示User-Agent - 默认不显示
 
   // Getters
   String get themeMode => _themeMode;
@@ -143,6 +150,8 @@ class SettingsProvider extends ChangeNotifier {
   String get mobileOrientation => _mobileOrientation;
   bool get showWatchHistoryOnHome => _showWatchHistoryOnHome;
   bool get showFavoritesOnHome => _showFavoritesOnHome;
+  String get userAgent => _userAgent;
+  bool get showUserAgent => _showUserAgent;
   
   /// 获取当前应该使用的配色方案
   String get currentColorScheme {
@@ -271,6 +280,10 @@ class SettingsProvider extends ChangeNotifier {
     _showWatchHistoryOnHome = prefs.getBool(_keyShowWatchHistoryOnHome) ?? false;
     _showFavoritesOnHome = prefs.getBool(_keyShowFavoritesOnHome) ?? false;
     
+    // 加载 User-Agent 设置
+    _userAgent = prefs.getString(_keyUserAgent) ?? defaultUserAgent;
+    _showUserAgent = prefs.getBool(_keyShowUserAgent) ?? false;
+    
     // 不在构造函数中调用 notifyListeners()，避免 build 期间触发重建
   }
 
@@ -362,6 +375,8 @@ class SettingsProvider extends ChangeNotifier {
     await prefs.setString(_keyMobileOrientation, _mobileOrientation);
     await prefs.setBool(_keyShowWatchHistoryOnHome, _showWatchHistoryOnHome);
     await prefs.setBool(_keyShowFavoritesOnHome, _showFavoritesOnHome);
+    await prefs.setString(_keyUserAgent, _userAgent);
+    await prefs.setBool(_keyShowUserAgent, _showUserAgent);
   }
 
   // Setters with persistence
@@ -708,6 +723,27 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 设置 User-Agent
+  Future<void> setUserAgent(String userAgent) async {
+    ServiceLocator.log.d('SettingsProvider: 设置 User-Agent - $userAgent');
+    _userAgent = userAgent;
+    await _saveSettings();
+    notifyListeners();
+  }
+
+  /// 重置 User-Agent 为默认值
+  Future<void> resetUserAgent() async {
+    await setUserAgent(defaultUserAgent);
+  }
+
+  /// 设置是否在播放器OSD显示User-Agent
+  Future<void> setShowUserAgent(bool show) async {
+    ServiceLocator.log.d('SettingsProvider: 设置显示User-Agent - $show');
+    _showUserAgent = show;
+    await _saveSettings();
+    notifyListeners();
+  }
+
   /// 设置首页是否显示收藏夹
   Future<void> setShowFavoritesOnHome(bool show) async {
     ServiceLocator.log.d('SettingsProvider: 设置首页显示收藏夹 - $show');
@@ -751,6 +787,8 @@ class SettingsProvider extends ChangeNotifier {
     _darkColorScheme = 'ocean';
     _lightColorScheme = 'sky';
     _fontFamily = 'System';
+    _userAgent = defaultUserAgent; // 重置 User-Agent 为默认值 Wget/1.21.3
+    _showUserAgent = false; // 重置显示User-Agent开关为关闭
 
     await _saveSettings();
     

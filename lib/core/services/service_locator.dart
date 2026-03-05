@@ -10,6 +10,7 @@ import 'channel_logo_service.dart';
 import 'redirect_cache_service.dart';
 import 'watch_history_service.dart';
 import '../managers/update_manager.dart';
+import '../../features/settings/providers/settings_provider.dart';
 
 /// Service Locator for dependency injection
 class ServiceLocator {
@@ -22,6 +23,7 @@ class ServiceLocator {
   static late ChannelLogoService _channelLogoService;
   static late RedirectCacheService _redirectCache;
   static late WatchHistoryService _watchHistory;
+  static SettingsProvider? _settings; // Nullable because it's initialized later
 
   static SharedPreferences get prefs => _prefs;
   static DatabaseHelper get database => _database;
@@ -32,6 +34,7 @@ class ServiceLocator {
   static ChannelLogoService get channelLogo => _channelLogoService;
   static RedirectCacheService get redirectCache => _redirectCache;
   static WatchHistoryService get watchHistory => _watchHistory;
+  static SettingsProvider? get settings => _settings;
   
   /// Check if log service is initialized
   static bool get isLogInitialized {
@@ -83,6 +86,11 @@ class ServiceLocator {
     
     // Initialize redirect cache service
     _redirectCache = RedirectCacheService();
+  }
+
+  /// Register settings provider (called from main.dart after SettingsProvider is created)
+  static void registerSettings(SettingsProvider settings) {
+    _settings = settings;
   }
 
   static Future<void> dispose() async {

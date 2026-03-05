@@ -17,7 +17,7 @@ object RedirectResolver {
     private const val MAX_REDIRECT_DEPTH = 3
     private const val CONNECT_TIMEOUT = 2000
     private const val READ_TIMEOUT = 2000
-    private const val USER_AGENT = "Wget/1.21.3"
+    private const val DEFAULT_USER_AGENT = "Wget/1.21.3"
     
     // 信任所有证书的 TrustManager（用于 IPTV 场景）
     private val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
@@ -44,9 +44,10 @@ object RedirectResolver {
      * 解析真实播放地址（处理302重定向，带缓存）
      * @param url 原始URL
      * @param useCache 是否使用缓存（默认true）
+     * @param userAgent 自定义User-Agent（默认Wget/1.21.3）
      * @return 真实播放地址
      */
-    fun resolveRealPlayUrl(url: String, useCache: Boolean = true): String {
+    fun resolveRealPlayUrl(url: String, useCache: Boolean = true, userAgent: String = DEFAULT_USER_AGENT): String {
         val startTime = System.currentTimeMillis()
         
         // 清理URL：去掉 $ 及其后面的内容（通常是源标签/备注）
@@ -87,7 +88,7 @@ object RedirectResolver {
         }
         
         // 递归解析重定向（最多3层）
-        val realUrl = resolveRedirectRecursive(cleanUrl, 0, startTime)
+        val realUrl = resolveRedirectRecursive(cleanUrl, 0, startTime, userAgent)
         
         // 缓存最终结果
         if (useCache && realUrl != cleanUrl) {
@@ -144,7 +145,7 @@ object RedirectResolver {
     /**
      * 递归解析重定向
      */
-    private fun resolveRedirectRecursive(url: String, depth: Int, startTime: Long): String {
+    private fun resolveRedirectRecursive(url: String, depth: Int, startTime: Long, userAgent: String): String {
         if (depth >= MAX_REDIRECT_DEPTH) {
             NativeLogger.w(TAG, "⚠ 达到最大重定向深度($MAX_REDIRECT_DEPTH)，停止解析: $url")
             return url
@@ -167,7 +168,7 @@ object RedirectResolver {
             }
             
             connection.instanceFollowRedirects = false
-            connection.setRequestProperty("User-Agent", USER_AGENT)
+            connection.setRequestProperty("User-Agent", userAgent)
             connection.connectTimeout = CONNECT_TIMEOUT
             connection.readTimeout = READ_TIMEOUT
             
@@ -192,7 +193,7 @@ object RedirectResolver {
                     NativeLogger.d(TAG, "  -> 重定向到: $location")
                     
                     // 递归解析下一层重定向
-                    return resolveRedirectRecursive(location, depth + 1, startTime)
+                    return resolveRedirectRecursive(location, depth + 1, startTime, userAgent)
                 }
             }
             

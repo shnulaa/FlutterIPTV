@@ -791,6 +791,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             volumeBoostDb: settingsProvider.volumeBoost,
                             defaultScreenPosition: settingsProvider.defaultScreenPosition,
                             showChannelName: settingsProvider.showMultiScreenChannelName,
+                            userAgent: settingsProvider.userAgent,
                             onClosed: () {
                               ServiceLocator.log.d('Native multi-screen closed', tag: 'SearchScreen');
                             },

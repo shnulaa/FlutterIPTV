@@ -141,14 +141,16 @@ class MainActivity: FlutterFragmentActivity() {
                     val progressBarMode = call.argument<String>("progressBarMode") ?: "auto" // 进度条显示模式
                     val seekStepSeconds = call.argument<Int>("seekStepSeconds") ?: 10 // 快进/快退跨度（秒）
                     val showChannelName = call.argument<Boolean>("showChannelName") ?: false // 多屏频道名称显示
+                    val userAgent = call.argument<String>("userAgent") ?: "Wget/1.21.3" // User-Agent
+                    val showUserAgent = call.argument<Boolean>("showUserAgent") ?: false // 是否显示User-Agent
                     
                     // 保存showChannelName设置，用于从单屏进入分屏时使用
                     lastShowChannelName = showChannelName
                     
                     if (url != null) {
-                        Log.d(TAG, "Launching native player fragment: $name (index $index of ${urls?.size ?: 0}, isDlna=$isDlnaMode, logos=${logos?.size ?: 0}, isSeekable=${isSeekable?.getOrNull(index)}, progressBarMode=$progressBarMode, seekStepSeconds=$seekStepSeconds, showChannelName=$showChannelName)")
+                        Log.d(TAG, "Launching native player fragment: $name (index $index of ${urls?.size ?: 0}, isDlna=$isDlnaMode, logos=${logos?.size ?: 0}, isSeekable=${isSeekable?.getOrNull(index)}, progressBarMode=$progressBarMode, seekStepSeconds=$seekStepSeconds, showChannelName=$showChannelName, userAgent=$userAgent, showUserAgent=$showUserAgent)")
                         try {
-                            showPlayerFragment(url, name, index, urls, names, groups, sources, logos, epgIds, isSeekable, isDlnaMode, bufferStrength, showFps, showClock, showNetworkSpeed, showVideoInfo, progressBarMode, seekStepSeconds)
+                            showPlayerFragment(url, name, index, urls, names, groups, sources, logos, epgIds, isSeekable, isDlnaMode, bufferStrength, showFps, showClock, showNetworkSpeed, showVideoInfo, progressBarMode, seekStepSeconds, userAgent = userAgent, showUserAgent = showUserAgent)
                             result.success(true)
                         } catch (e: Exception) {
                             Log.e(TAG, "Failed to launch player", e)
@@ -203,9 +205,10 @@ class MainActivity: FlutterFragmentActivity() {
                     @Suppress("UNCHECKED_CAST")
                     val restoreScreenChannels = call.argument<List<Int?>>("restoreScreenChannels")
                     val showChannelName = call.argument<Boolean>("showChannelName") ?: false
+                    val userAgent = call.argument<String>("userAgent") ?: "Wget/1.21.3"
                     
                     if (urls != null && names != null && groups != null) {
-                        Log.d(TAG, "Launching multi-screen player with ${urls.size} channels, initial=$initialChannelIndex, volumeBoost=$volumeBoostDb, defaultScreen=$defaultScreenPosition, restoreActive=$restoreActiveIndex, restoreChannels=$restoreScreenChannels, showChannelName=$showChannelName")
+                        Log.d(TAG, "Launching multi-screen player with ${urls.size} channels, initial=$initialChannelIndex, volumeBoost=$volumeBoostDb, defaultScreen=$defaultScreenPosition, restoreActive=$restoreActiveIndex, restoreChannels=$restoreScreenChannels, showChannelName=$showChannelName, userAgent=$userAgent")
                         try {
                             showMultiScreenFragment(
                                 urls, names, groups, sources, logos,
@@ -214,7 +217,8 @@ class MainActivity: FlutterFragmentActivity() {
                                 restoreActiveIndex = restoreActiveIndex,  // 从 Flutter 传递的恢复参数
                                 restoreScreenChannels = restoreScreenChannels,
                                 initialSourceIndex = 0,
-                                showChannelName = showChannelName
+                                showChannelName = showChannelName,
+                                userAgent = userAgent
                             )
                             result.success(true)
                         } catch (e: Exception) {
@@ -309,9 +313,11 @@ class MainActivity: FlutterFragmentActivity() {
         showVideoInfo: Boolean = true,
         progressBarMode: String = "auto",  // 进度条显示模式
         seekStepSeconds: Int = 10,  // 快进/快退跨度（秒）
-        initialSourceIndex: Int = 0  // 初始源索引
+        initialSourceIndex: Int = 0,  // 初始源索引
+        userAgent: String = "Wget/1.21.3",  // User-Agent
+        showUserAgent: Boolean = false  // 是否显示User-Agent
     ) {
-        Log.d(TAG, "showPlayerFragment isDlnaMode=$isDlnaMode, bufferStrength=$bufferStrength, logos=${logos?.size ?: 0}, sourceIndex=$initialSourceIndex, isSeekable=${isSeekable?.getOrNull(index)}, progressBarMode=$progressBarMode, seekStepSeconds=$seekStepSeconds")
+        Log.d(TAG, "showPlayerFragment isDlnaMode=$isDlnaMode, bufferStrength=$bufferStrength, logos=${logos?.size ?: 0}, sourceIndex=$initialSourceIndex, isSeekable=${isSeekable?.getOrNull(index)}, progressBarMode=$progressBarMode, seekStepSeconds=$seekStepSeconds, userAgent=$userAgent, showUserAgent=$showUserAgent")
         
         // 保存频道数据（用于切换到分屏时传递）
         lastChannelUrls = urls
@@ -364,7 +370,9 @@ class MainActivity: FlutterFragmentActivity() {
             showVideoInfo,
             progressBarMode,  // 传递进度条显示模式
             seekStepSeconds,  // 传递快进/快退跨度
-            initialSourceIndex  // 传递初始源索引
+            initialSourceIndex,  // 传递初始源索引
+            userAgent,  // 传递 User-Agent
+            showUserAgent  // 传递是否显示User-Agent
         ).apply {
             onCloseListener = {
                 runOnUiThread {
@@ -443,10 +451,11 @@ class MainActivity: FlutterFragmentActivity() {
         restoreActiveIndex: Int = -1,  // 从 Flutter 传递的恢复活动屏幕索引（首页继续播放）
         restoreScreenChannels: List<Int?>? = null,  // 从 Flutter 传递的恢复频道索引（首页继续播放）
         initialSourceIndex: Int = 0,  // 初始源索引（从单屏进入分屏时传递）
-        showChannelName: Boolean = false  // 是否显示频道名称
+        showChannelName: Boolean = false,  // 是否显示频道名称
+        userAgent: String = "Wget/1.21.3"  // User-Agent
     ) {
         val shouldRestoreFromFlutter = restoreActiveIndex >= 0 && restoreScreenChannels != null
-        Log.d(TAG, "showMultiScreenFragment with ${urls.size} channels, initial=$initialChannelIndex, sourceIndex=$initialSourceIndex, volumeBoost=$volumeBoostDb, defaultScreen=$defaultScreenPosition, restoreFromLocal=$restoreFromLocal, restoreFromFlutter=$shouldRestoreFromFlutter, showChannelName=$showChannelName")
+        Log.d(TAG, "showMultiScreenFragment with ${urls.size} channels, initial=$initialChannelIndex, sourceIndex=$initialSourceIndex, volumeBoost=$volumeBoostDb, defaultScreen=$defaultScreenPosition, restoreFromLocal=$restoreFromLocal, restoreFromFlutter=$shouldRestoreFromFlutter, showChannelName=$showChannelName, userAgent=$userAgent")
         
         // 保存频道数据
         lastChannelUrls = urls
@@ -522,7 +531,8 @@ class MainActivity: FlutterFragmentActivity() {
             finalRestoreActiveIndex,
             finalRestoreFocusedIndex,
             savedStatesArrayList,
-            showChannelName  // 传递是否显示频道名称
+            showChannelName,  // 传递是否显示频道名称
+            userAgent  // 传递 User-Agent
         ).apply {
             onCloseListener = {
                 runOnUiThread {

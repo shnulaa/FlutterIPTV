@@ -12,11 +12,13 @@ import '../../../core/widgets/color_scheme_dialog.dart';
 import '../../../core/platform/platform_detector.dart';
 import '../../../core/i18n/app_strings.dart';
 import '../../../core/services/service_locator.dart';
+import '../../../core/constants/user_agent_presets.dart';
 import '../../player/providers/player_provider.dart';
 import '../../multi_screen/providers/multi_screen_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/dlna_provider.dart';
 import '../widgets/qr_log_export_dialog.dart';
+import '../widgets/user_agent_dialog.dart';
 import '../../epg/providers/epg_provider.dart';
 import '../../backup/screens/backup_screen.dart';
 
@@ -386,6 +388,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: _getBufferStrengthLabel(context, settings.bufferStrength),
                 icon: Icons.speed_rounded,
                 onTap: () => _showBufferStrengthDialog(context, settings),
+              ),
+              _buildDivider(),
+              _buildSelectTile(
+                context,
+                title: AppStrings.of(context)?.userAgent ?? 'User-Agent',
+                subtitle: _getUserAgentLabel(context, settings.userAgent),
+                icon: Icons.public_rounded,
+                onTap: () => _showUserAgentDialog(context),
+              ),
+              _buildDivider(),
+              _buildSwitchTile(
+                context,
+                title: AppStrings.of(context)?.showUserAgent ?? 'Show User-Agent',
+                subtitle: AppStrings.of(context)?.showUserAgentSubtitle ?? 'Display User-Agent in player OSD',
+                icon: Icons.info_outline_rounded,
+                value: settings.showUserAgent,
+                onChanged: (value) {
+                  settings.setShowUserAgent(value);
+                  final strings = AppStrings.of(context);
+                  _showSuccess(context, value ? (strings?.userAgentDisplayEnabled ?? 'User-Agent display enabled') : (strings?.userAgentDisplayDisabled ?? 'User-Agent display disabled'));
+                },
               ),
               _buildDivider(),
               _buildSwitchTile(
@@ -1893,6 +1916,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
       default:
         return strings?.progressBarModeAuto ?? '自动检测';
     }
+  }
+
+  void _showUserAgentDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => const UserAgentDialog(),
+    );
+  }
+
+  String _getUserAgentLabel(BuildContext context, String userAgent) {
+    // Check if it matches a preset
+    final presetKey = UserAgentPresets.getKeyByValue(userAgent);
+    if (presetKey != null) {
+      final strings = AppStrings.of(context);
+      switch (presetKey) {
+        case 'wget':
+          return '${strings?.userAgentPresetWget ?? 'Wget (Default)'}: $userAgent';
+        case 'chrome_windows':
+          return '${strings?.userAgentPresetChromeWin ?? 'Chrome Windows'}: ${userAgent.substring(0, 50)}...';
+        case 'chrome_mac':
+          return '${strings?.userAgentPresetChromeMac ?? 'Chrome Mac'}: ${userAgent.substring(0, 50)}...';
+        case 'firefox':
+          return '${strings?.userAgentPresetFirefox ?? 'Firefox'}: ${userAgent.substring(0, 50)}...';
+        case 'safari':
+          return '${strings?.userAgentPresetSafari ?? 'Safari'}: ${userAgent.substring(0, 50)}...';
+        case 'edge':
+          return '${strings?.userAgentPresetEdge ?? 'Edge'}: ${userAgent.substring(0, 50)}...';
+        case 'vlc':
+          return '${strings?.userAgentPresetVLC ?? 'VLC'}: $userAgent';
+        case 'ffmpeg':
+          return '${strings?.userAgentPresetFFmpeg ?? 'FFmpeg'}: $userAgent';
+        case 'android_chrome':
+          return '${strings?.userAgentPresetAndroid ?? 'Android Chrome'}: ${userAgent.substring(0, 50)}...';
+        case 'ios_safari':
+          return '${strings?.userAgentPresetIOS ?? 'iOS Safari'}: ${userAgent.substring(0, 50)}...';
+      }
+    }
+    // Custom user agent
+    if (userAgent.length > 60) {
+      return '${AppStrings.of(context)?.userAgentPresetCustom ?? 'Custom'}: ${userAgent.substring(0, 60)}...';
+    }
+    return '${AppStrings.of(context)?.userAgentPresetCustom ?? 'Custom'}: $userAgent';
   }
 
   void _showSeekStepDialog(BuildContext context, SettingsProvider settings) {

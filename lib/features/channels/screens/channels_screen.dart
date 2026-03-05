@@ -1260,6 +1260,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> with ThrottledStateMixi
                                         settingsProvider.defaultScreenPosition,
                                     showChannelName: settingsProvider
                                         .showMultiScreenChannelName,
+                                    userAgent: settingsProvider.userAgent,
                                     onClosed: () {
                                       ServiceLocator.log.d(
                                           'ChannelsScreen: Native multi-screen closed');

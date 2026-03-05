@@ -6,6 +6,7 @@ import 'dart:math' as math;
 
 import '../../../core/models/channel.dart';
 import '../../../core/services/service_locator.dart';
+import '../../settings/providers/settings_provider.dart';
 
 /// 单个屏幕的播放器状态
 class ScreenPlayerState {
@@ -282,7 +283,9 @@ class MultiScreenProvider extends ChangeNotifier {
       ServiceLocator.log.d('MultiScreenProvider: Opening media for screen $screenIndex: $realUrl');
       final playStartTime = DateTime.now();
       
-      await screen.player!.open(Media(realUrl));
+      final userAgent = ServiceLocator.settings?.userAgent ?? SettingsProvider.defaultUserAgent;
+      ServiceLocator.log.d('MultiScreenProvider: 屏幕$screenIndex User-Agent: $userAgent');
+      await screen.player!.open(Media(realUrl, httpHeaders: {'User-Agent': userAgent}));
       
       final playTime = DateTime.now().difference(playStartTime).inMilliseconds;
       ServiceLocator.log.d('MultiScreenProvider: >>> 屏幕$screenIndex 播放器初始化完成，耗时: ${playTime}ms');

@@ -72,12 +72,12 @@ class _HttpConnectionPool {
       ..idleTimeout = _HttpPoolConfig.idleTimeout
       ..maxConnectionsPerHost = _HttpPoolConfig.maxConnectionsPerHost
       ..autoUncompress = true
-      ..userAgent = 'FlutterIPTV/1.0';
+      ..userAgent = ServiceLocator.settings?.userAgent ?? 'Wget/1.21.3';
 
     _ioClient = io_client.IOClient(_httpClient!);
     _initialized = true;
     ServiceLocator.log.i(
-        '[HttpPool] 连接池已初始化 - 每主机最大连接数: ${_HttpPoolConfig.maxConnectionsPerHost}, 连接超时: ${_HttpPoolConfig.connectionTimeout.inSeconds}s, 空闲超时: ${_HttpPoolConfig.idleTimeout.inSeconds}s');
+        '[HttpPool] 连接池已初始化 - 每主机最大连接数: ${_HttpPoolConfig.maxConnectionsPerHost}, 连接超时: ${_HttpPoolConfig.connectionTimeout.inSeconds}s, 空闲超时: ${_HttpPoolConfig.idleTimeout.inSeconds}s, User-Agent: ${_httpClient!.userAgent}');
   }
 
   io_client.IOClient get client {

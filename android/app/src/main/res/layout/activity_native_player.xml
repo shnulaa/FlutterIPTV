@@ -437,6 +437,20 @@
             android:fontFamily="monospace"
             android:visibility="gone" />
 
+        <TextView
+            android:id="@+id/user_agent_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:background="#809C27B0"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="3dp"
+            android:textColor="#FFFFFF"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace"
+            android:visibility="gone" />
+
     </LinearLayout>
 
 </FrameLayout>

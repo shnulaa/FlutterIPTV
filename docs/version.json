@@ -1,26 +1,26 @@
 {
-  "version": "1.5.19",
-  "build": 179,
+  "version": "1.5.20",
+  "build": 180,
   "releaseDate": "2026-03-05",
   "assets": {
     "windows": {
-      "installer": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.19/flutteriptv-Windows-x64-Setup.exe",
-      "portable": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.19/flutteriptv-Windows-x64-Portable.zip"
+      "installer": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.20/flutteriptv-Windows-x64-Setup.exe",
+      "portable": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.20/flutteriptv-Windows-x64-Portable.zip"
     },
     "android_mobile": {
-      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.19/flutteriptv-Android-Mobile-arm64-v8a.apk",
-      "armeabi-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.19/flutteriptv-Android-Mobile-armeabi-v7a.apk",
-      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.19/flutteriptv-Android-Mobile-x86_64.apk"
+      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.20/flutteriptv-Android-Mobile-arm64-v8a.apk",
+      "armeabi-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.20/flutteriptv-Android-Mobile-armeabi-v7a.apk",
+      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.20/flutteriptv-Android-Mobile-x86_64.apk"
     },
     "android_tv": {
-      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.19/flutteriptv-AndroidTV-arm64-v8a.apk",
-      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.19/flutteriptv-AndroidTV-armeabi-v7a.apk",
-      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.19/flutteriptv-AndroidTV-x86_64.apk"
+      "arm64-v8a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.20/flutteriptv-AndroidTV-arm64-v8a.apk",
+      "armeabi-v7a": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.20/flutteriptv-AndroidTV-armeabi-v7a.apk",
+      "x86_64": "https://gh-proxy.org/https://github.com/shnulaa/FlutterIPTV/releases/download/v1.5.20/flutteriptv-AndroidTV-x86_64.apk"
     }
   },
   "changelog": {
-    "zh": "- 新增：手机端播放页面横竖屏切换悬浮按钮\n- 优化：悬浮按钮跟随控制栏显示/隐藏\n- 优化：退出播放页面自动恢复原屏幕方向设置\n- 优化：悬浮按钮位置调整,避免遮挡底部控制按钮",
-    "en": "- New: Screen orientation toggle floating button on mobile player page\n- Optimization: Floating button follows control bar visibility\n- Optimization: Auto restore screen orientation when exiting player\n- Optimization: Adjusted floating button position to avoid blocking bottom controls"
+    "zh": "- 新增：全平台自定义User-Agent支持\n- 新增：10个预设User-Agent选项\n- 新增：TV端扫码输入User-Agent功能\n- 新增：播放器右上角显示User-Agent开关\n- 优化：TV端设置界面避免焦点陷阱\n- 修复：重置设置时正确还原User-Agent\n- 修复：Android原生播放器User-Agent硬编码问题",
+    "en": "- New: Custom User-Agent support for all platforms\n- New: 10 preset User-Agent options\n- New: QR code input for User-Agent on TV\n- New: Display User-Agent in player top-right corner\n- Optimization: TV settings UI avoids focus trap\n- Fix: Correctly restore User-Agent when resetting settings\n- Fix: Android native player User-Agent hardcoded issue"
   },
   "minVersion": "1.0.0"
 }

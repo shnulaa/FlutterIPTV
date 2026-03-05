@@ -324,6 +324,8 @@ class NativePlayerChannel {
     String progressBarMode = 'auto', // 进度条显示模式：auto, always, never
     int seekStepSeconds = 10, // 快进/快退跨度（秒）
     bool showChannelName = false, // 多屏播放是否显示频道名称
+    String? userAgent, // User-Agent for HTTP requests
+    bool showUserAgent = false, // 是否在播放器OSD显示User-Agent
     Function? onClosed,
   }) async {
     try {
@@ -331,7 +333,7 @@ class NativePlayerChannel {
       _onPlayerClosedCallback = onClosed;
 
       ServiceLocator.log.d(
-          'NativePlayerChannel: launching player with url=$url, name=$name, index=$index, channels=${urls?.length ?? 0}, isDlna=$isDlnaMode, buffer=$bufferStrength, progressBarMode=$progressBarMode, seekStepSeconds=$seekStepSeconds, showChannelName=$showChannelName');
+          'NativePlayerChannel: launching player with url=$url, name=$name, index=$index, channels=${urls?.length ?? 0}, isDlna=$isDlnaMode, buffer=$bufferStrength, progressBarMode=$progressBarMode, seekStepSeconds=$seekStepSeconds, showChannelName=$showChannelName, userAgent=$userAgent, showUserAgent=$showUserAgent');
       final result = await _channel.invokeMethod<bool>('launchPlayer', {
         'url': url,
         'name': name,
@@ -352,6 +354,8 @@ class NativePlayerChannel {
         'progressBarMode': progressBarMode, // 传递进度条显示模式
         'seekStepSeconds': seekStepSeconds, // 传递快进/快退跨度
         'showChannelName': showChannelName, // 传递多屏频道名称显示设置
+        'userAgent': userAgent, // 传递 User-Agent
+        'showUserAgent': showUserAgent, // 传递是否显示User-Agent
       });
       ServiceLocator.log.d('NativePlayerChannel: launch result=$result');
       return result ?? false;
@@ -434,6 +438,7 @@ class NativePlayerChannel {
     int restoreActiveIndex = -1, // 恢复时的活动屏幕索引
     List<int?>? restoreScreenChannels, // 恢复时每个屏幕的频道索引
     bool showChannelName = false, // 是否显示频道名称
+    String? userAgent, // User-Agent for HTTP requests
     Function? onClosed,
   }) async {
     try {
@@ -441,7 +446,7 @@ class NativePlayerChannel {
       _onMultiScreenClosedCallback = onClosed;
 
       ServiceLocator.log.d(
-          'NativePlayerChannel: launching multi-screen with ${urls.length} channels, initial=$initialChannelIndex, volumeBoost=$volumeBoostDb, defaultScreen=$defaultScreenPosition, restoreActive=$restoreActiveIndex, restoreChannels=$restoreScreenChannels, showChannelName=$showChannelName');
+          'NativePlayerChannel: launching multi-screen with ${urls.length} channels, initial=$initialChannelIndex, volumeBoost=$volumeBoostDb, defaultScreen=$defaultScreenPosition, restoreActive=$restoreActiveIndex, restoreChannels=$restoreScreenChannels, showChannelName=$showChannelName, userAgent=$userAgent');
       final result = await _channel.invokeMethod<bool>('launchMultiScreen', {
         'urls': urls,
         'names': names,
@@ -454,6 +459,7 @@ class NativePlayerChannel {
         'restoreActiveIndex': restoreActiveIndex,
         'restoreScreenChannels': restoreScreenChannels,
         'showChannelName': showChannelName,
+        'userAgent': userAgent, // 传递 User-Agent
       });
       ServiceLocator.log.d('NativePlayerChannel: multi-screen launch result=$result');
       return result ?? false;

@@ -4,6 +4,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../../core/models/channel.dart';
 import '../../../core/services/service_locator.dart';
+import '../../settings/providers/settings_provider.dart';
 
 class VideoPlayerWidget extends StatefulWidget {
   final Channel channel;
@@ -68,7 +69,9 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   void _loadAndPlay() {
     try {
-      _player.open(Media(widget.channel.url));
+      final userAgent = ServiceLocator.settings?.userAgent ?? SettingsProvider.defaultUserAgent;
+      ServiceLocator.log.d('VideoPlayerWidget: User-Agent: $userAgent');
+      _player.open(Media(widget.channel.url, httpHeaders: {'User-Agent': userAgent}));
     } catch (e) {
       ServiceLocator.log.d('Error loading channel: $e');
     }

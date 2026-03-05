@@ -1087,6 +1087,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Ro
         restoreActiveIndex: activeIndex,
         restoreScreenChannels: restoreScreenChannels,
         showChannelName: settingsProvider.showMultiScreenChannelName,
+        userAgent: settingsProvider.userAgent,
         onClosed: () {
           ServiceLocator.log.i('原生分屏播放器关闭，刷新观看记录', tag: 'HomeScreen');
           // TV端原生分屏播放器关闭后，刷新观看记录
@@ -1460,6 +1461,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Ro
           volumeBoostDb: settingsProvider.volumeBoost,
           defaultScreenPosition: settingsProvider.defaultScreenPosition,
           showChannelName: settingsProvider.showMultiScreenChannelName,
+          userAgent: settingsProvider.userAgent,
           onClosed: () {
             ServiceLocator.log.d('HomeScreen: Native multi-screen closed, refreshing watch history');
             // TV端原生分屏播放器关闭后，刷新观看记录

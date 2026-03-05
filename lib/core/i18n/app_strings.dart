@@ -198,6 +198,32 @@ class AppStrings {
   String get processing => _localizedValues['processing']!;
   String get testChannel => _localizedValues['testChannel']!;
   String get unavailable => _localizedValues['unavailable']!;
+  
+  // User-Agent settings
+  String get userAgent => _localizedValues['userAgent']!;
+  String get userAgentSubtitle => _localizedValues['userAgentSubtitle']!;
+  String get userAgentPreset => _localizedValues['userAgentPreset']!;
+  String get userAgentCustom => _localizedValues['userAgentCustom']!;
+  String get userAgentCustomHint => _localizedValues['userAgentCustomHint']!;
+  String get userAgentSaved => _localizedValues['userAgentSaved']!;
+  String get userAgentReset => _localizedValues['userAgentReset']!;
+  String get userAgentScanQR => _localizedValues['userAgentScanQR']!;
+  String get userAgentScanQRHint => _localizedValues['userAgentScanQRHint']!;
+  String get userAgentPresetWget => _localizedValues['userAgentPresetWget']!;
+  String get userAgentPresetChromeWin => _localizedValues['userAgentPresetChromeWin']!;
+  String get userAgentPresetChromeMac => _localizedValues['userAgentPresetChromeMac']!;
+  String get userAgentPresetFirefox => _localizedValues['userAgentPresetFirefox']!;
+  String get userAgentPresetSafari => _localizedValues['userAgentPresetSafari']!;
+  String get userAgentPresetEdge => _localizedValues['userAgentPresetEdge']!;
+  String get userAgentPresetVLC => _localizedValues['userAgentPresetVLC']!;
+  String get userAgentPresetFFmpeg => _localizedValues['userAgentPresetFFmpeg']!;
+  String get userAgentPresetAndroid => _localizedValues['userAgentPresetAndroid']!;
+  String get userAgentPresetIOS => _localizedValues['userAgentPresetIOS']!;
+  String get userAgentPresetCustom => _localizedValues['userAgentPresetCustom']!;
+  String get showUserAgent => _localizedValues['showUserAgent']!;
+  String get showUserAgentSubtitle => _localizedValues['showUserAgentSubtitle']!;
+  String get userAgentDisplayEnabled => _localizedValues['userAgentDisplayEnabled']!;
+  String get userAgentDisplayDisabled => _localizedValues['userAgentDisplayDisabled']!;
   String get localFile => _localizedValues['localFile']!;
 
   // Backup and Restore
@@ -1126,6 +1152,32 @@ class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
     'errorTimeout': '连接超时，请检查网络或链接',
     'errorNetwork': '网络连接失败，请检查网络',
     'usingCachedSource': '远程源不可用，使用缓存源',
+    
+    // User-Agent settings
+    'userAgent': 'User-Agent',
+    'userAgentSubtitle': '自定义HTTP请求标识',
+    'userAgentPreset': '预设',
+    'userAgentCustom': '自定义',
+    'userAgentCustomHint': '输入自定义User-Agent',
+    'userAgentSaved': 'User-Agent已保存',
+    'userAgentReset': 'User-Agent已重置为默认值',
+    'userAgentScanQR': '扫码输入',
+    'userAgentScanQRHint': '使用手机扫码输入User-Agent',
+    'userAgentPresetWget': 'Wget（默认）',
+    'userAgentPresetChromeWin': 'Chrome Windows',
+    'userAgentPresetChromeMac': 'Chrome Mac',
+    'userAgentPresetFirefox': 'Firefox',
+    'userAgentPresetSafari': 'Safari',
+    'userAgentPresetEdge': 'Edge',
+    'userAgentPresetVLC': 'VLC',
+    'userAgentPresetFFmpeg': 'FFmpeg',
+    'userAgentPresetAndroid': 'Android Chrome',
+    'userAgentPresetIOS': 'iOS Safari',
+    'userAgentPresetCustom': '自定义',
+    'showUserAgent': '显示 User-Agent',
+    'showUserAgentSubtitle': '在播放器右上角显示User-Agent',
+    'userAgentDisplayEnabled': 'User-Agent 显示已启用',
+    'userAgentDisplayDisabled': 'User-Agent 显示已禁用',
   };
 
   static const Map<String, String> _enValues = {
@@ -1666,5 +1718,31 @@ class _AppStringsDelegate extends LocalizationsDelegate<AppStrings> {
     'errorTimeout': 'Connection timeout, please check network or URL',
     'errorNetwork': 'Network connection failed, please check network',
     'usingCachedSource': 'Remote source unavailable, using cached source',
+    
+    // User-Agent settings
+    'userAgent': 'User-Agent',
+    'userAgentSubtitle': 'Customize HTTP request identifier',
+    'userAgentPreset': 'Preset',
+    'userAgentCustom': 'Custom',
+    'userAgentCustomHint': 'Enter custom User-Agent',
+    'userAgentSaved': 'User-Agent saved',
+    'userAgentReset': 'User-Agent reset to default',
+    'userAgentScanQR': 'Scan to Input',
+    'userAgentScanQRHint': 'Scan QR code to input User-Agent from phone',
+    'userAgentPresetWget': 'Wget (Default)',
+    'userAgentPresetChromeWin': 'Chrome Windows',
+    'userAgentPresetChromeMac': 'Chrome Mac',
+    'userAgentPresetFirefox': 'Firefox',
+    'userAgentPresetSafari': 'Safari',
+    'userAgentPresetEdge': 'Edge',
+    'userAgentPresetVLC': 'VLC',
+    'userAgentPresetFFmpeg': 'FFmpeg',
+    'userAgentPresetAndroid': 'Android Chrome',
+    'userAgentPresetIOS': 'iOS Safari',
+    'userAgentPresetCustom': 'Custom',
+    'showUserAgent': 'Show User-Agent',
+    'showUserAgentSubtitle': 'Display User-Agent in player OSD',
+    'userAgentDisplayEnabled': 'User-Agent display enabled',
+    'userAgentDisplayDisabled': 'User-Agent display disabled',
   };
 }

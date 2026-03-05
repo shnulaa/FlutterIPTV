@@ -118,6 +118,9 @@ class MultiScreenPlayerFragment : Fragment() {
     
     // 是否显示频道名称
     private var showChannelName = false
+    
+    // User-Agent
+    private var userAgent = "Wget/1.21.3"
 
     // Handler
     private val handler = Handler(Looper.getMainLooper())
@@ -149,6 +152,7 @@ class MultiScreenPlayerFragment : Fragment() {
         private const val ARG_RESTORE_FOCUSED_INDEX = "restore_focused_index"
         private const val ARG_RESTORE_SCREEN_STATES = "restore_screen_states"
         private const val ARG_SHOW_CHANNEL_NAME = "show_channel_name"
+        private const val ARG_USER_AGENT = "user_agent"
         
         // 静态图片缓存，在 Fragment 之间共享
         private val imageCache = hashMapOf<String, Bitmap?>()
@@ -167,7 +171,8 @@ class MultiScreenPlayerFragment : Fragment() {
             restoreActiveIndex: Int = -1,
             restoreFocusedIndex: Int = -1,
             restoreScreenStates: ArrayList<ArrayList<String>>? = null,
-            showChannelName: Boolean = false
+            showChannelName: Boolean = false,
+            userAgent: String = "Wget/1.21.3"
         ): MultiScreenPlayerFragment {
             return MultiScreenPlayerFragment().apply {
                 arguments = Bundle().apply {
@@ -184,6 +189,7 @@ class MultiScreenPlayerFragment : Fragment() {
                     putInt(ARG_RESTORE_FOCUSED_INDEX, restoreFocusedIndex)
                     restoreScreenStates?.let { putSerializable(ARG_RESTORE_SCREEN_STATES, it) }
                     putBoolean(ARG_SHOW_CHANNEL_NAME, showChannelName)
+                    putString(ARG_USER_AGENT, userAgent)
                 }
             }
         }
@@ -230,6 +236,7 @@ class MultiScreenPlayerFragment : Fragment() {
             restoreActiveIndex = it.getInt(ARG_RESTORE_ACTIVE_INDEX, -1)
             restoreFocusedIndex = it.getInt(ARG_RESTORE_FOCUSED_INDEX, -1)
             showChannelName = it.getBoolean(ARG_SHOW_CHANNEL_NAME, false)
+            userAgent = it.getString(ARG_USER_AGENT, "Wget/1.21.3") ?: "Wget/1.21.3"
             @Suppress("UNCHECKED_CAST")
             restoreScreenStates = it.getSerializable(ARG_RESTORE_SCREEN_STATES) as? ArrayList<ArrayList<String>>
         }
@@ -358,7 +365,9 @@ class MultiScreenPlayerFragment : Fragment() {
             .setConnectTimeoutMs(8000)
             .setReadTimeoutMs(15000)
             .setAllowCrossProtocolRedirects(true)  // 允许跨协议重定向 (HTTP→HTTPS)
-            .setUserAgent("Wget/1.21.3")
+            .setUserAgent(userAgent)  // 使用自定义 User-Agent
+        
+        Log.d(TAG, "Player $index using User-Agent: $userAgent")
         
         val mediaSourceFactory = DefaultMediaSourceFactory(requireContext())
             .setDataSourceFactory(dataSourceFactory)

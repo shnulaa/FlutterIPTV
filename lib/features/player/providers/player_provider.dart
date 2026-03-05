@@ -10,6 +10,7 @@ import '../../../core/platform/platform_detector.dart';
 import '../../../core/services/service_locator.dart';
 import '../../../core/services/channel_test_service.dart';
 import '../../../core/services/log_service.dart';
+import '../../settings/providers/settings_provider.dart';
 
 enum PlayerState {
   idle,
@@ -77,6 +78,13 @@ class PlayerProvider extends ChangeNotifier {
   bool get isPlaying => _state == PlayerState.playing;
   bool get isLoading => _state == PlayerState.loading || _state == PlayerState.buffering;
   bool get hasError => _state == PlayerState.error && _error != null;
+
+  /// Create Media object with custom User-Agent header
+  Media _createMedia(String url) {
+    final userAgent = ServiceLocator.settings?.userAgent ?? SettingsProvider.defaultUserAgent;
+    ServiceLocator.log.d('PlayerProvider: 创建Media对象 User-Agent: $userAgent');
+    return Media(url, httpHeaders: {'User-Agent': userAgent});
+  }
 
   /// Check if current content is seekable (VOD or replay)
   bool get isSeekable {
@@ -292,7 +300,7 @@ class PlayerProvider extends ChangeNotifier {
         ServiceLocator.log.d('>>> 重试: 使用播放地址: $realUrl', tag: 'PlayerProvider');
         
         final playStartTime = DateTime.now();
-        await _mediaKitPlayer?.open(Media(realUrl));
+        await _mediaKitPlayer?.open(_createMedia(realUrl));
         
         final playTime = DateTime.now().difference(playStartTime).inMilliseconds;
         final totalTime = DateTime.now().difference(startTime).inMilliseconds;
@@ -875,7 +883,7 @@ class PlayerProvider extends ChangeNotifier {
         ServiceLocator.log.i('>>> Start initializing player', tag: 'PlayerProvider');
         final playStartTime = DateTime.now();
         
-        await _mediaKitPlayer?.open(Media(realUrl));
+        await _mediaKitPlayer?.open(_createMedia(realUrl));
         
         final playTime = DateTime.now().difference(playStartTime).inMilliseconds;
         ServiceLocator.log.i('>>> 播放器初始化完成，耗时: ${playTime}ms', tag: 'PlayerProvider');
@@ -984,7 +992,7 @@ class PlayerProvider extends ChangeNotifier {
       ServiceLocator.log.i('>>> Start initializing player', tag: 'PlayerProvider');
       final playStartTime = DateTime.now();
       
-      await _mediaKitPlayer?.open(Media(realUrl));
+      await _mediaKitPlayer?.open(_createMedia(realUrl));
       
       final playTime = DateTime.now().difference(playStartTime).inMilliseconds;
       final totalTime = DateTime.now().difference(startTime).inMilliseconds;
@@ -1251,7 +1259,7 @@ class PlayerProvider extends ChangeNotifier {
         ServiceLocator.log.d('>>> 切换源: 使用播放地址: $realUrl', tag: 'PlayerProvider');
         
         final playStartTime = DateTime.now();
-        await _mediaKitPlayer?.open(Media(realUrl));
+        await _mediaKitPlayer?.open(_createMedia(realUrl));
         
         final playTime = DateTime.now().difference(playStartTime).inMilliseconds;
         final totalTime = DateTime.now().difference(startTime).inMilliseconds;

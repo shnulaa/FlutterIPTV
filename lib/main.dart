@@ -173,7 +173,11 @@ class _FlutterIPTVAppState extends State<FlutterIPTVApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) {
+          final settings = SettingsProvider();
+          ServiceLocator.registerSettings(settings);
+          return settings;
+        }),
         ChangeNotifierProvider(create: (_) => PlaylistProvider()),
         ChangeNotifierProvider(create: (_) => ChannelProvider()),
         ChangeNotifierProvider(create: (_) => PlayerProvider()),

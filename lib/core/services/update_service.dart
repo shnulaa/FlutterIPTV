@@ -78,10 +78,13 @@ class UpdateService {
   /// 从 GitHub Pages 获取最新发布信息
   Future<AppUpdate?> _fetchLatestRelease() async {
     try {
+      final userAgent = ServiceLocator.settings?.userAgent ?? 'Wget/1.21.3';
+      ServiceLocator.log.d('UPDATE: 检查更新 User-Agent: $userAgent');
+      
       final response = await http.get(
         Uri.parse(_versionJsonUrl),
         headers: {
-          'User-Agent': 'FlutterIPTV-App',
+          'User-Agent': userAgent,
           'Cache-Control': 'no-cache',
         },
       ).timeout(const Duration(seconds: 10));
@@ -156,8 +159,11 @@ class UpdateService {
       ServiceLocator.log.d('UPDATE: 保存到: ${file.path}');
 
       // 下载文件
+      final userAgent = ServiceLocator.settings?.userAgent ?? 'Wget/1.21.3';
+      ServiceLocator.log.d('UPDATE: 下载文件 User-Agent: $userAgent');
+      
       final request = http.Request('GET', Uri.parse(downloadUrl));
-      request.headers['User-Agent'] = 'FlutterIPTV-App';
+      request.headers['User-Agent'] = userAgent;
       
       final response = await http.Client().send(request);
       

@@ -62,6 +62,9 @@ class NativePlayerActivity : AppCompatActivity() {
     private var videoCodec = ""
     private var isHardwareDecoder = false
     private var frameRate = 0f
+    
+    // User-Agent
+    private var userAgent = "Wget/1.21.3"
 
     companion object {
         private const val EXTRA_VIDEO_URL = "video_url"
@@ -69,6 +72,7 @@ class NativePlayerActivity : AppCompatActivity() {
         private const val EXTRA_CHANNEL_INDEX = "channel_index"
         private const val EXTRA_CHANNEL_URLS = "channel_urls"
         private const val EXTRA_CHANNEL_NAMES = "channel_names"
+        private const val EXTRA_USER_AGENT = "user_agent"
 
         fun createIntent(
             context: Context, 
@@ -76,7 +80,8 @@ class NativePlayerActivity : AppCompatActivity() {
             channelName: String,
             channelIndex: Int = 0,
             channelUrls: ArrayList<String>? = null,
-            channelNames: ArrayList<String>? = null
+            channelNames: ArrayList<String>? = null,
+            userAgent: String = "Wget/1.21.3"
         ): Intent {
             return Intent(context, NativePlayerActivity::class.java).apply {
                 putExtra(EXTRA_VIDEO_URL, videoUrl)
@@ -84,6 +89,7 @@ class NativePlayerActivity : AppCompatActivity() {
                 putExtra(EXTRA_CHANNEL_INDEX, channelIndex)
                 channelUrls?.let { putStringArrayListExtra(EXTRA_CHANNEL_URLS, it) }
                 channelNames?.let { putStringArrayListExtra(EXTRA_CHANNEL_NAMES, it) }
+                putExtra(EXTRA_USER_AGENT, userAgent)
             }
         }
     }
@@ -108,8 +114,9 @@ class NativePlayerActivity : AppCompatActivity() {
         currentIndex = intent.getIntExtra(EXTRA_CHANNEL_INDEX, 0)
         channelUrls = intent.getStringArrayListExtra(EXTRA_CHANNEL_URLS) ?: arrayListOf()
         channelNames = intent.getStringArrayListExtra(EXTRA_CHANNEL_NAMES) ?: arrayListOf()
+        userAgent = intent.getStringExtra(EXTRA_USER_AGENT) ?: "Wget/1.21.3"
         
-        Log.d(TAG, "Playing: $currentName (index $currentIndex of ${channelUrls.size}) - $currentUrl")
+        Log.d(TAG, "Playing: $currentName (index $currentIndex of ${channelUrls.size}) - $currentUrl, userAgent=$userAgent")
 
         // Initialize views
         playerView = findViewById(R.id.player_view)
@@ -168,7 +175,9 @@ class NativePlayerActivity : AppCompatActivity() {
             .setConnectTimeoutMs(8000)
             .setReadTimeoutMs(15000)
             .setAllowCrossProtocolRedirects(true)  // 允许跨协议重定向 (HTTP→HTTPS)
-            .setUserAgent("Wget/1.21.3")
+            .setUserAgent(userAgent)  // 使用自定义 User-Agent
+        
+        Log.d(TAG, "Using User-Agent: $userAgent")
         
         val mediaSourceFactory = DefaultMediaSourceFactory(this)
             .setDataSourceFactory(dataSourceFactory)

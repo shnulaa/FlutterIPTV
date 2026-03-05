@@ -185,9 +185,12 @@ class ChannelTestService {
           );
 
       // 设置常见的流媒体请求头
-      request.headers.set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+      final userAgent = ServiceLocator.settings?.userAgent ?? 'Wget/1.21.3';
+      request.headers.set('User-Agent', userAgent);
       request.headers.set('Accept', '*/*');
       request.headers.set('Connection', 'keep-alive');
+      
+      ServiceLocator.log.d('频道测试 User-Agent: $userAgent');
 
       response = await request.close().timeout(
             const Duration(seconds: _timeout),
@@ -234,7 +237,8 @@ class ChannelTestService {
             const Duration(seconds: _timeout),
           );
 
-      request.headers.set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+      final userAgent = ServiceLocator.settings?.userAgent ?? 'Wget/1.21.3';
+      request.headers.set('User-Agent', userAgent);
       request.headers.set('Accept', '*/*');
       request.headers.set('Connection', 'keep-alive');
 

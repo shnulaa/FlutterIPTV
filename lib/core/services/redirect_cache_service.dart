@@ -135,8 +135,11 @@ class RedirectCacheService {
       client.connectionTimeout = const Duration(seconds: 2);
       
       final request = await client.getUrl(Uri.parse(url));
-      request.headers.set(HttpHeaders.userAgentHeader, 'Wget/1.21.3');
+      final userAgent = ServiceLocator.settings?.userAgent ?? 'Wget/1.21.3';
+      request.headers.set(HttpHeaders.userAgentHeader, userAgent);
       request.followRedirects = false;
+      
+      ServiceLocator.log.d('HTTP请求 User-Agent: $userAgent', tag: 'RedirectCache');
       
       final response = await request.close().timeout(const Duration(seconds: 2));
       final connectTime = DateTime.now().difference(connectStartTime).inMilliseconds;

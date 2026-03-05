@@ -198,6 +198,9 @@ class NativePlayerFragment : Fragment() {
     // Video info display
     private lateinit var resolutionText: TextView
     private var showVideoInfo: Boolean = true
+    private lateinit var userAgentText: TextView
+    private var userAgent: String = "Wget/1.21.3"
+    private var showUserAgent: Boolean = false
     
     // Favorite icon
     private lateinit var favoriteIcon: ImageView
@@ -226,6 +229,8 @@ class NativePlayerFragment : Fragment() {
         private const val ARG_PROGRESS_BAR_MODE = "progress_bar_mode"
         private const val ARG_SEEK_STEP_SECONDS = "seek_step_seconds"
         private const val ARG_INITIAL_SOURCE_INDEX = "initial_source_index"
+        private const val ARG_USER_AGENT = "user_agent"
+        private const val ARG_SHOW_USER_AGENT = "show_user_agent"
 
         fun newInstance(
             videoUrl: String,
@@ -246,7 +251,9 @@ class NativePlayerFragment : Fragment() {
             showVideoInfo: Boolean = true,
             progressBarMode: String = "auto",
             seekStepSeconds: Int = 10,
-            initialSourceIndex: Int = 0
+            initialSourceIndex: Int = 0,
+            userAgent: String = "Wget/1.21.3",
+            showUserAgent: Boolean = false
         ): NativePlayerFragment {
             return NativePlayerFragment().apply {
                 arguments = Bundle().apply {
@@ -269,6 +276,8 @@ class NativePlayerFragment : Fragment() {
                     putString(ARG_PROGRESS_BAR_MODE, progressBarMode)
                     putInt(ARG_SEEK_STEP_SECONDS, seekStepSeconds)
                     putInt(ARG_INITIAL_SOURCE_INDEX, initialSourceIndex)
+                    putString(ARG_USER_AGENT, userAgent)
+                    putBoolean(ARG_SHOW_USER_AGENT, showUserAgent)
                 }
             }
         }
@@ -311,6 +320,8 @@ class NativePlayerFragment : Fragment() {
             showNetworkSpeed = it.getBoolean(ARG_SHOW_NETWORK_SPEED, true)
             showVideoInfo = it.getBoolean(ARG_SHOW_VIDEO_INFO, true)
             currentSourceIndex = it.getInt(ARG_INITIAL_SOURCE_INDEX, 0) // 使用传入的初始源索引
+            userAgent = it.getString(ARG_USER_AGENT, "Wget/1.21.3") ?: "Wget/1.21.3"
+            showUserAgent = it.getBoolean(ARG_SHOW_USER_AGENT, false)
         }
         
         Log.d(TAG, "=== 参数读取完成 ===")
@@ -424,6 +435,7 @@ class NativePlayerFragment : Fragment() {
 
         // Video info display (resolution + bitrate)
         resolutionText = view.findViewById(R.id.resolution_text)
+        userAgentText = view.findViewById(R.id.user_agent_text)
         
         // Favorite icon
         favoriteIcon = view.findViewById(R.id.favorite_icon)
@@ -1424,7 +1436,9 @@ class NativePlayerFragment : Fragment() {
             .setConnectTimeoutMs(5000)  // 8秒连接超时（考虑网络延迟）
             .setReadTimeoutMs(5000)    // 15秒读取超时
             .setAllowCrossProtocolRedirects(true)  // 允许跨协议重定向 (HTTP→HTTPS)
-            .setUserAgent("Wget/1.21.3")  // 使用与302解析相同的User-Agent
+            .setUserAgent(userAgent)  // 使用自定义 User-Agent
+        
+        Log.d(TAG, "Using User-Agent: $userAgent")
         
         // 配置 MediaSourceFactory 支持 HLS/DASH 等流媒体格式
         val mediaSourceFactory = DefaultMediaSourceFactory(requireContext())
@@ -1633,7 +1647,7 @@ class NativePlayerFragment : Fragment() {
     
     // 解析真实播放地址（使用统一的RedirectResolver）
     private fun resolveRealPlayUrl(url: String): String {
-        return RedirectResolver.resolveRealPlayUrl(url, useCache = true)
+        return RedirectResolver.resolveRealPlayUrl(url, useCache = true, userAgent = userAgent)
     }
     
     private fun playUrl(url: String) {
@@ -2181,7 +2195,7 @@ class NativePlayerFragment : Fragment() {
         return try {
             // 直接调用RedirectResolver解析真实地址
             // 如果成功解析，说明源可用，同时地址已被缓存
-            val realUrl = RedirectResolver.resolveRealPlayUrl(url, useCache = true)
+            val realUrl = RedirectResolver.resolveRealPlayUrl(url, useCache = true, userAgent = userAgent)
             
             // 如果返回的地址不为空，说明源可用
             val isAvailable = realUrl.isNotEmpty()
@@ -2263,6 +2277,33 @@ class NativePlayerFragment : Fragment() {
             } else {
                 resolutionText.visibility = View.GONE
             }
+            
+            // 更新右上角 User-Agent 显示
+            if (showUserAgent) {
+                val shortUA = getShortUserAgent(userAgent)
+                userAgentText.text = shortUA
+                userAgentText.visibility = View.VISIBLE
+            } else {
+                userAgentText.visibility = View.GONE
+            }
+        }
+    }
+    
+    private fun getShortUserAgent(ua: String): String {
+        return when {
+            ua.startsWith("Wget/") -> "Wget"
+            ua.contains("Windows") -> "Windows"
+            ua.contains("Macintosh") -> "Mac"
+            ua.contains("Linux") -> "Linux"
+            ua.contains("Android") -> "Android"
+            ua.contains("iPhone") || ua.contains("iPad") -> "iOS"
+            ua.startsWith("VLC/") -> "VLC"
+            ua.startsWith("Lavf/") -> "FFmpeg"
+            ua.contains("Chrome") && !ua.contains("Edge") -> "Chrome"
+            ua.contains("Firefox") -> "Firefox"
+            ua.contains("Safari") && !ua.contains("Chrome") -> "Safari"
+            ua.contains("Edge") -> "Edge"
+            else -> ua.take(10) // 如果无法识别，显示前10个字符
         }
     }
 

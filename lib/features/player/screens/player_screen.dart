@@ -312,6 +312,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         final showClock = settingsProvider.showClock;
         final showNetworkSpeed = settingsProvider.showNetworkSpeed;
         final showVideoInfo = settingsProvider.showVideoInfo;
+        final userAgent = settingsProvider.userAgent;
 
         // Launch native player with channel list and callback for when it closes
         final launched = await NativePlayerChannel.launchPlayer(
@@ -335,6 +336,8 @@ class _PlayerScreenState extends State<PlayerScreen>
           seekStepSeconds: settingsProvider.seekStepSeconds, // 传递快进/快退跨度
           showChannelName:
               settingsProvider.showMultiScreenChannelName, // 传递多屏频道名称显示设置
+          userAgent: userAgent, // 传递 User-Agent
+          showUserAgent: settingsProvider.showUserAgent, // 传递是否显示User-Agent
           onClosed: () {
             ServiceLocator.log.d('PlayerScreen: Native player closed callback');
             // 停止 DLNA 同步定时器
@@ -1566,6 +1569,25 @@ class _PlayerScreenState extends State<PlayerScreen>
                                     ),
                                   ),
                                 ),
+                              // User-Agent 显示 - 紫色
+                              if (settings.showUserAgent)
+                                Container(
+                                  margin: const EdgeInsets.only(left: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple.withOpacity(0.7),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'UA: ${_getShortUserAgent(settings.userAgent)}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -1583,6 +1605,56 @@ class _PlayerScreenState extends State<PlayerScreen>
         ),
       ),
     ); // PopScope
+  }
+
+  /// 获取简短的User-Agent显示文本
+  String _getShortUserAgent(String userAgent) {
+    // Wget/1.21.3 -> Wget
+    if (userAgent.startsWith('Wget/')) {
+      return 'Wget';
+    }
+    // Mozilla/5.0 (Windows...) -> Windows
+    if (userAgent.contains('Windows')) {
+      return 'Windows';
+    }
+    // Mozilla/5.0 (Macintosh...) -> Mac
+    if (userAgent.contains('Macintosh')) {
+      return 'Mac';
+    }
+    // Mozilla/5.0 (Linux; Android...) -> Android
+    if (userAgent.contains('Android')) {
+      return 'Android';
+    }
+    // Mozilla/5.0 (iPhone...) -> iOS
+    if (userAgent.contains('iPhone') || userAgent.contains('iPad')) {
+      return 'iOS';
+    }
+    // VLC/3.0.20 -> VLC
+    if (userAgent.startsWith('VLC/')) {
+      return 'VLC';
+    }
+    // Lavf/60.3.100 -> FFmpeg
+    if (userAgent.startsWith('Lavf/')) {
+      return 'FFmpeg';
+    }
+    // Chrome
+    if (userAgent.contains('Chrome') && !userAgent.contains('Edg')) {
+      return 'Chrome';
+    }
+    // Edge
+    if (userAgent.contains('Edg')) {
+      return 'Edge';
+    }
+    // Firefox
+    if (userAgent.contains('Firefox')) {
+      return 'Firefox';
+    }
+    // Safari (not Chrome)
+    if (userAgent.contains('Safari') && !userAgent.contains('Chrome')) {
+      return 'Safari';
+    }
+    // 默认显示前20个字符
+    return userAgent.length > 20 ? '${userAgent.substring(0, 20)}...' : userAgent;
   }
 
   Widget _buildVideoPlayer() {

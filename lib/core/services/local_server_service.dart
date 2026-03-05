@@ -21,6 +21,7 @@ class LocalServerService {
   Function(String content, String name)? onContentReceived;
   Function(String query)? onSearchReceived;
   Function(String serverUrl, String username, String password)? onWebDAVConfigReceived;
+  Function(String userAgent)? onUserAgentReceived;
 
   // Log content for viewing
   String? _logContent;
@@ -38,6 +39,7 @@ class LocalServerService {
   String? _cachedImportHtml;
   String? _cachedSearchHtml;
   String? _cachedWebDAVConfigHtml;
+  String? _cachedUserAgentHtml;
 
   /// Set log content for viewing via /logs route
   void setLogContent(String content) {
@@ -82,6 +84,15 @@ class LocalServerService {
           ServiceLocator.log.d('WebDAV配置HTML模板加载成功', tag: 'LocalServer');
         } catch (e) {
           ServiceLocator.log.d('WebDAV配置HTML模板加载失败: $e', tag: 'LocalServer');
+        }
+      }
+      
+      if (_cachedUserAgentHtml == null) {
+        try {
+          _cachedUserAgentHtml = await rootBundle.loadString('assets/html/user_agent_input.html');
+          ServiceLocator.log.d('User-Agent输入HTML模板加载成功', tag: 'LocalServer');
+        } catch (e) {
+          ServiceLocator.log.d('User-Agent输入HTML模板加载失败: $e', tag: 'LocalServer');
         }
       }
       
@@ -180,6 +191,14 @@ class LocalServerService {
         // Handle WebDAV config submission
         ServiceLocator.log.d('处理 WebDAV 配置提交');
         await _handleWebDAVConfigSubmission(request);
+      } else if (request.uri.path == '/user-agent' && request.method == 'GET') {
+        // Serve the User-Agent input page
+        ServiceLocator.log.d('提供 User-Agent 输入页面');
+        await _serveUserAgentPage(request);
+      } else if (request.uri.path == '/api/user-agent' && request.method == 'POST') {
+        // Handle User-Agent submission
+        ServiceLocator.log.d('处理 User-Agent 提交');
+        await _handleUserAgentSubmission(request);
       } else {
         ServiceLocator.log.d('404 - 未找到路径: ${request.uri.path}');
         request.response.statusCode = 404;
@@ -224,6 +243,13 @@ class LocalServerService {
   Future<void> _serveWebDAVConfigPage(HttpRequest request) async {
     request.response.headers.contentType = ContentType.html;
     request.response.write(_cachedWebDAVConfigHtml ?? _getWebDAVConfigPageHtml());
+    await request.response.close();
+  }
+
+  /// Serve the User-Agent input page
+  Future<void> _serveUserAgentPage(HttpRequest request) async {
+    request.response.headers.contentType = ContentType.html;
+    request.response.write(_cachedUserAgentHtml ?? _getUserAgentPageHtml());
     await request.response.close();
   }
 
@@ -359,6 +385,41 @@ class LocalServerService {
 
     await request.response.close();
     ServiceLocator.log.d('WebDAV 配置请求处理完成');
+  }
+
+  /// Handle User-Agent submission from mobile
+  Future<void> _handleUserAgentSubmission(HttpRequest request) async {
+    try {
+      ServiceLocator.log.d('收到来自 ${request.requestedUri} 的 User-Agent 请求');
+
+      final content = await utf8.decoder.bind(request).join();
+      ServiceLocator.log.d('请求内容长度: ${content.length}');
+
+      final data = json.decode(content) as Map<String, dynamic>;
+      final userAgent = data['userAgent'] as String?;
+
+      ServiceLocator.log.d('User-Agent: $userAgent');
+
+      if (userAgent != null && userAgent.isNotEmpty) {
+        ServiceLocator.log.d('调用 User-Agent 接收回调...');
+        onUserAgentReceived?.call(userAgent);
+
+        request.response.headers.contentType = ContentType.json;
+        request.response.write(json.encode({'success': true, 'message': 'User-Agent received'}));
+      } else {
+        ServiceLocator.log.d('User-Agent 为空');
+        request.response.statusCode = 400;
+        request.response.write(json.encode({'success': false, 'message': 'User-Agent is required'}));
+      }
+    } catch (e) {
+      ServiceLocator.log.d('处理 User-Agent 请求时出错: $e');
+      ServiceLocator.log.d('错误堆栈: ${StackTrace.current}');
+      request.response.statusCode = 400;
+      request.response.write(json.encode({'success': false, 'message': 'Invalid request: $e'}));
+    }
+
+    await request.response.close();
+    ServiceLocator.log.d('User-Agent 请求处理完成');
   }
 
   /// Get the local IP address
@@ -801,6 +862,37 @@ class LocalServerService {
 <body>
     <h1>🔧 Lotus IPTV</h1>
     <p>WebDAV Configuration</p>
+    <p>Please reload the page</p>
+</body>
+</html>
+''';
+  }
+
+  /// Generate the User-Agent input HTML page (fallback)
+  String _getUserAgentPageHtml() {
+    return r'''
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lotus IPTV - User-Agent Input</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+            text-align: center;
+        }
+        h1 { margin-top: 50px; }
+        p { color: #888; }
+    </style>
+</head>
+<body>
+    <h1>🌐 Lotus IPTV</h1>
+    <p>User-Agent Input</p>
     <p>Please reload the page</p>
 </body>
 </html>

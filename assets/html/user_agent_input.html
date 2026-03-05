@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lotus IPTV - User-Agent Input</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            max-width: 500px;
+            width: 100%;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header p {
+            color: #888;
+            font-size: 14px;
+        }
+        .form-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .info-box {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .info-box .icon {
+            font-size: 20px;
+        }
+        .info-box .text {
+            color: #aaa;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ccc;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: none;
+            animation: slideIn 0.3s ease;
+            z-index: 1000;
+        }
+        .toast.success {
+            background: #4caf50;
+            color: white;
+        }
+        .toast.error {
+            background: #f44336;
+            color: white;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .toast.show {
+            display: block;
+        }
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 24px;
+            }
+            .form-container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 id="pageTitle">🌐 Lotus IPTV User-Agent</h1>
+            <p id="pageSubtitle">Enter custom User-Agent string</p>
+        </div>
+        
+        <div class="form-container">
+            <div class="info-box">
+                <div class="icon">💡</div>
+                <div class="text" id="infoText">
+                    Enter your custom User-Agent string below
+                </div>
+            </div>
+            
+            <form id="userAgentForm">
+                <div class="form-group">
+                    <label for="userAgent" id="labelUserAgent">User-Agent *</label>
+                    <input 
+                        type="text" 
+                        id="userAgent" 
+                        name="userAgent" 
+                        placeholder="Mozilla/5.0..."
+                        required
+                    >
+                </div>
+                
+                <button type="submit" class="btn" id="submitBtn">
+                    <span id="btnText">Save User-Agent</span>
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        // 国际化文本
+        const i18n = {
+            'zh': {
+                pageTitle: '🌐 Lotus IPTV User-Agent',
+                pageSubtitle: '输入自定义 User-Agent 字符串',
+                infoText: '在下方输入您的自定义 User-Agent 字符串',
+                labelUserAgent: 'User-Agent *',
+                btnText: '保存 User-Agent',
+                btnSaving: '正在保存...',
+                errorEmpty: '请输入 User-Agent',
+                successSaved: '✓ User-Agent 已保存成功！',
+                errorSaveFailed: '✗ 保存失败',
+                errorNetwork: '✗ 网络错误，请检查连接'
+            },
+            'en': {
+                pageTitle: '🌐 Lotus IPTV User-Agent',
+                pageSubtitle: 'Enter custom User-Agent string',
+                infoText: 'Enter your custom User-Agent string below',
+                labelUserAgent: 'User-Agent *',
+                btnText: 'Save User-Agent',
+                btnSaving: 'Saving...',
+                errorEmpty: 'Please enter User-Agent',
+                successSaved: '✓ User-Agent saved successfully!',
+                errorSaveFailed: '✗ Save failed',
+                errorNetwork: '✗ Network error, please check connection'
+            }
+        };
+        
+        // 检测语言
+        const userLang = navigator.language || navigator.userLanguage;
+        const lang = userLang.startsWith('zh') ? 'zh' : 'en';
+        const t = i18n[lang];
+        
+        // 应用翻译
+        document.getElementById('pageTitle').innerHTML = t.pageTitle;
+        document.getElementById('pageSubtitle').textContent = t.pageSubtitle;
+        document.getElementById('infoText').innerHTML = t.infoText;
+        document.getElementById('labelUserAgent').textContent = t.labelUserAgent;
+        document.getElementById('btnText').textContent = t.btnText;
+        
+        // Toast 提示
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 表单提交
+        document.getElementById('userAgentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const userAgent = document.getElementById('userAgent').value.trim();
+            
+            if (!userAgent) {
+                showToast(t.errorEmpty, 'error');
+                return;
+            }
+            
+            // 禁用按钮
+            submitBtn.disabled = true;
+            btnText.textContent = t.btnSaving;
+            
+            try {
+                const response = await fetch('/api/user-agent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userAgent: userAgent
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(t.successSaved, 'success');
+                    // 清空表单
+                    setTimeout(() => {
+                        document.getElementById('userAgentForm').reset();
+                    }, 1000);
+                } else {
+                    showToast(t.errorSaveFailed + ': ' + (result.message || ''), 'error');
+                }
+            } catch (error) {
+                console.error('提交 User-Agent 失败:', error);
+                showToast(t.errorNetwork, 'error');
+            } finally {
+                // 恢复按钮
+                submitBtn.disabled = false;
+                btnText.textContent = t.btnText;
+            }
+        });
+    </script>
+</body>
+</html>
