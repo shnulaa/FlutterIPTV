@@ -326,7 +326,7 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
         screen.position.inSeconds.toDouble().clamp(0.0, maxDuration).toDouble();
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(4, 4, 4, 3),
+      padding: const EdgeInsets.fromLTRB(6, 6, 6, 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.bottomCenter,
@@ -344,9 +344,9 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
           if (showProgress) ...[
             SliderTheme(
               data: SliderTheme.of(context).copyWith(
-                trackHeight: 1.5,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 3),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 6),
+                trackHeight: 2.5,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
                 activeTrackColor: AppTheme.getPrimaryColor(context),
                 inactiveTrackColor: const Color(0x33FFFFFF),
                 thumbColor: Colors.white,
@@ -362,38 +362,39 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     _formatDuration(screen.position),
-                    style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 8),
+                    style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 10),
                   ),
                   Text(
                     _formatDuration(screen.duration),
-                    style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 8),
+                    style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 10),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
           ],
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
-                width: 66,
+                width: 110,
                 child: Row(
                   children: [
                     const Icon(Icons.volume_up_rounded,
-                        color: Colors.white, size: 12),
+                        color: Colors.white, size: 18),
                     Expanded(
                       child: SliderTheme(
                         data: SliderTheme.of(context).copyWith(
-                          trackHeight: 1.5,
+                          trackHeight: 2.5,
                           thumbShape:
-                              const RoundSliderThumbShape(enabledThumbRadius: 2.5),
+                              const RoundSliderThumbShape(enabledThumbRadius: 5),
+                          overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
                         ),
                         child: Slider(
                           value: multiScreenProvider.volume,
@@ -409,10 +410,10 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                   ],
                 ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 8),
               SizedBox(
-                height: 24,
-                width: 24,
+                height: 36,
+                width: 36,
                 child: FilledButton.tonal(
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.white.withOpacity(0.14),
@@ -427,19 +428,19 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                     screen.isPlaying
                         ? Icons.pause_rounded
                         : Icons.play_arrow_rounded,
-                    size: 14,
+                    size: 22,
                   ),
                 ),
               ),
               if (channel.hasMultipleSources) ...[
-                const SizedBox(width: 4),
+                const SizedBox(width: 8),
                 SizedBox(
-                  height: 24,
+                  height: 36,
                   child: FilledButton.tonal(
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.white.withOpacity(0.14),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                     ),
                     onPressed: () {
                       multiScreenProvider.setActiveScreen(index);
@@ -447,7 +448,7 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                     },
                     child: Text(
                       '${AppStrings.of(context)?.source ?? 'Source'} ${channel.currentSourceIndex + 1}/${channel.sourceCount}',
-                      style: const TextStyle(fontSize: 9),
+                      style: const TextStyle(fontSize: 11),
                     ),
                   ),
                 ),
@@ -578,9 +579,7 @@ class _MultiScreenPlayerState extends State<MultiScreenPlayer> {
                     Positioned(
                       left: 0,
                       right: 0,
-                      bottom: settingsProvider.showMultiScreenChannelName
-                          ? 30
-                          : 0,
+                      bottom: 0,
                       child: _buildScreenControlsOverlay(
                         context,
                         multiScreenProvider,
